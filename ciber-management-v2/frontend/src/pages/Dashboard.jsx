@@ -186,7 +186,7 @@ const Dashboard = () => {
       <nav className="navbar navbar-expand-lg navbar-dark">
         <div className="container-fluid">
           <a className="navbar-brand" href="#">
-            <img src="/assets/images/logo.png" alt="Multiciber Las Brisas" className="navbar-logo" />
+            <img src="./assets/images/logo.png" alt="Multiciber Las Brisas" className="navbar-logo" />
             Ciber Las Brisas
           </a>
           
@@ -223,7 +223,7 @@ const Dashboard = () => {
         <div className="header-content">
           <div className="user-info">
             <div className="user-avatar">
-              <img src="/assets/images/logo.png" alt="Multiciber Las Brisas" />
+              <img src="./assets/images/logo.png" alt="Multiciber Las Brisas" />
             </div>
             <div className="user-details">
               <h4>Multiciber Las Brisas <i className="fas fa-chevron-down"></i></h4>
