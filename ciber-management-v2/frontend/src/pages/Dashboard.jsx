@@ -118,6 +118,10 @@ const Dashboard = () => {
     setShowInventory(false);
   };
 
+  const handleLogout = () => {
+    logout();
+  };
+
   // Si se debe mostrar la vista de selección de productos
   if (showSelectProducts) {
     return (

@@ -87,6 +87,26 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
+  // Verificar si hay datos guardados en localStorage al cargar la app
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const user = localStorage.getItem('user');
+    
+    if (token && user) {
+      try {
+        const userData = JSON.parse(user);
+        dispatch({
+          type: AUTH_ACTIONS.LOGIN_SUCCESS,
+          payload: { user: userData, token },
+        });
+      } catch (error) {
+        // Si hay error al parsear, limpiar localStorage
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
+    }
+  }, []);
+
   // Función de login
   const login = async (username, password) => {
     try {
