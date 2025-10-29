@@ -209,7 +209,7 @@ const Login = () => {
           {/* Logo */}
           <div className="login-logo">
             <img 
-              src="./assets/images/logo.png" 
+              src="/assets/images/logo.png" 
               alt="Multiciber Las Brisas" 
               onError={(e) => {
                 console.log('Error cargando logo:', e.target.src);
