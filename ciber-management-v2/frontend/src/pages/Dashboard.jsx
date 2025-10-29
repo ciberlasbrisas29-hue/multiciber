@@ -181,22 +181,6 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#f8f9fa', paddingBottom: '80px', paddingTop: '0' }}>
-      {/* Botón de logout temporal */}
-      <div style={{ position: 'fixed', top: '10px', right: '10px', zIndex: 9999 }}>
-        <button 
-          onClick={handleLogout}
-          style={{
-            background: '#dc3545',
-            color: 'white',
-            border: 'none',
-            padding: '8px 16px',
-            borderRadius: '4px',
-            cursor: 'pointer'
-          }}
-        >
-          Logout
-        </button>
-      </div>
 
       {/* Navbar Desktop */}
       <nav className="navbar navbar-expand-lg navbar-dark">
