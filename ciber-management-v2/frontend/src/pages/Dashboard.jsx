@@ -8,13 +8,14 @@ import Debts from './Debts';
 import Inventory from './Inventory';
 
 const Dashboard = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading } = useAuth();
   const [isNewSaleModalOpen, setIsNewSaleModalOpen] = useState(false);
   const [showSelectProducts, setShowSelectProducts] = useState(false);
   const [showNewSale, setShowNewSale] = useState(false);
   const [showBalance, setShowBalance] = useState(false);
   const [showDebts, setShowDebts] = useState(false);
   const [showInventory, setShowInventory] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleOpenNewSaleModal = () => {
     setIsNewSaleModalOpen(true);
@@ -118,9 +119,17 @@ const Dashboard = () => {
     setShowInventory(false);
   };
 
-  const handleLogout = () => {
-    logout();
-    // La función logout ya maneja la recarga de la página
+  const handleLogout = async () => {
+    if (isLoggingOut) return; // Evitar múltiples clicks
+    
+    setIsLoggingOut(true);
+    
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Error durante logout:', error);
+      setIsLoggingOut(false);
+    }
   };
 
   // Si se debe mostrar la vista de selección de productos
@@ -211,7 +220,21 @@ const Dashboard = () => {
                 <li><a className="dropdown-item" href="#"><i className="fas fa-user-edit"></i> Perfil</a></li>
                 <li><a className="dropdown-item" href="#"><i className="fas fa-cog"></i> Configuración</a></li>
                 <li><hr className="dropdown-divider" /></li>
-                <li><a className="dropdown-item" href="#" onClick={(e) => { e.preventDefault(); handleLogout(); }}><i className="fas fa-sign-out-alt"></i> Cerrar Sesión</a></li>
+                <li>
+                  <a 
+                    className="dropdown-item" 
+                    href="#" 
+                    onClick={(e) => { e.preventDefault(); handleLogout(); }}
+                    style={{ 
+                      opacity: isLoggingOut ? 0.6 : 1,
+                      pointerEvents: isLoggingOut ? 'none' : 'auto'
+                    }}
+                  >
+                    <i className="fas fa-sign-out-alt"></i> 
+                    {isLoggingOut ? 'Cerrando sesión...' : 'Cerrar Sesión'}
+                    {isLoggingOut && <i className="fas fa-spinner fa-spin ms-2"></i>}
+                  </a>
+                </li>
               </ul>
             </div>
           </div>

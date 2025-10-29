@@ -202,37 +202,33 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Función de logout
+  // Función de logout optimizada
   const logout = async () => {
     try {
-      // Limpiar localStorage completamente
-      localStorage.clear();
+      // Mostrar indicador de carga si es necesario
+      dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: true });
       
-      // Actualizar el estado
+      // Limpiar localStorage de forma inmediata
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      
+      // Actualizar el estado inmediatamente
       dispatch({ type: AUTH_ACTIONS.LOGOUT });
       
-      // Esperar un momento para que el estado se actualice
-      setTimeout(() => {
-        // Forzar recarga de la página para ir al login
-        window.location.href = '/';
-      }, 100);
-      
-      // Opcional: llamar a la API si está disponible
-      try {
-        await authService.logout();
-      } catch (apiError) {
-        // Si la API falla, no importa, ya limpiamos el estado local
+      // Llamar a la API de logout en paralelo (no bloquea la UI)
+      authService.logout().catch(apiError => {
         console.log('API logout falló, pero el logout local fue exitoso');
-      }
+      });
+      
+      // Redirección inmediata sin setTimeout
+      window.location.replace('/');
+      
     } catch (error) {
       console.error('Error al cerrar sesión:', error);
-      // Aún así, limpiar el estado local
+      // Limpieza de emergencia
       localStorage.clear();
       dispatch({ type: AUTH_ACTIONS.LOGOUT });
-      // Forzar recarga de la página
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 100);
+      window.location.replace('/');
     }
   };
 
