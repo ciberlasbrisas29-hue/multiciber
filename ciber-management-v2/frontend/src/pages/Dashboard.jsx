@@ -180,6 +180,23 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#f8f9fa', paddingBottom: '80px', paddingTop: '0' }}>
+      {/* Botón de logout temporal */}
+      <div style={{ position: 'fixed', top: '10px', right: '10px', zIndex: 9999 }}>
+        <button 
+          onClick={handleLogout}
+          style={{
+            background: '#dc3545',
+            color: 'white',
+            border: 'none',
+            padding: '8px 16px',
+            borderRadius: '4px',
+            cursor: 'pointer'
+          }}
+        >
+          Logout
+        </button>
+      </div>
+
       {/* Navbar Desktop */}
       <nav className="navbar navbar-expand-lg navbar-dark">
         <div className="container-fluid">
@@ -209,7 +226,7 @@ const Dashboard = () => {
                 <li><a className="dropdown-item" href="#"><i className="fas fa-user-edit"></i> Perfil</a></li>
                 <li><a className="dropdown-item" href="#"><i className="fas fa-cog"></i> Configuración</a></li>
                 <li><hr className="dropdown-divider" /></li>
-                <li><a className="dropdown-item" href="#" onClick={logout}><i className="fas fa-sign-out-alt"></i> Cerrar Sesión</a></li>
+                <li><a className="dropdown-item" href="#" onClick={(e) => { e.preventDefault(); handleLogout(); }}><i className="fas fa-sign-out-alt"></i> Cerrar Sesión</a></li>
               </ul>
             </div>
           </div>
