@@ -191,14 +191,25 @@ export const AuthProvider = ({ children }) => {
   // Función de logout
   const logout = async () => {
     try {
-      await authService.logout();
-    } catch (error) {
-      console.error('Error al cerrar sesión:', error);
-    } finally {
-      // Limpiar localStorage
+      // Limpiar localStorage primero
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       
+      // Actualizar el estado
+      dispatch({ type: AUTH_ACTIONS.LOGOUT });
+      
+      // Opcional: llamar a la API si está disponible
+      try {
+        await authService.logout();
+      } catch (apiError) {
+        // Si la API falla, no importa, ya limpiamos el estado local
+        console.log('API logout falló, pero el logout local fue exitoso');
+      }
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+      // Aún así, limpiar el estado local
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
       dispatch({ type: AUTH_ACTIONS.LOGOUT });
     }
   };

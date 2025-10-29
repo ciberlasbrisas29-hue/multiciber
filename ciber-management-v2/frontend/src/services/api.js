@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Configuración base de la API
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://ciber-management-v2.vercel.app/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://multiciber.vercel.app/api';
 
 // Crear instancia de axios
 const api = axios.create({
