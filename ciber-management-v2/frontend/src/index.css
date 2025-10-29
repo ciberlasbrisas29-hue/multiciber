@@ -22,6 +22,10 @@ html, body {
   padding: 0;
   height: 100%;
   width: 100%;
+  overflow: hidden;
+  position: fixed;
+  top: 0;
+  left: 0;
 }
 
 * {
@@ -41,6 +45,7 @@ body {
   width: 100vw;
   margin: 0;
   padding: 0;
+  overflow: hidden;
 }
 
 /* Variables CSS */
@@ -61,12 +66,13 @@ body {
 
 /* Estilos para el Login */
 .login-container {
-  min-height: 100vh;
+  height: 100vh;
   width: 100vw;
   display: flex;
   background: linear-gradient(135deg, #2c5f5f 0%, #4a9d9d 100%);
   margin: 0;
   padding: 0;
+  overflow: hidden;
   position: relative;
 }
 
@@ -78,11 +84,12 @@ body {
   width: 100%;
   max-width: 500px;
   min-width: 400px;
-  min-height: 100vh;
+  height: 100vh;
   padding: clamp(20px, 5%, 50px);
   background: var(--white);
   flex: 0 0 40%;
   position: relative;
+  overflow: hidden;
   box-sizing: border-box;
 }
 
@@ -437,7 +444,7 @@ body {
 
 .wallpaper {
   width: 100%;
-  min-height: 100vh;
+  height: 100vh;
   background: linear-gradient(135deg, var(--dark-teal), var(--light-teal));
   background-image: 
     radial-gradient(circle at 20% 80%, rgba(255, 193, 7, 0.1) 0%, transparent 50%),
@@ -449,6 +456,7 @@ body {
   align-items: center;
   justify-content: center;
   position: relative;
+  overflow: hidden;
   min-width: 0;
   box-sizing: border-box;
 }
@@ -522,69 +530,161 @@ body {
 @media (max-width: 768px) {
   .login-container {
     flex-direction: column;
-    min-height: 100vh;
+    height: 100vh;
     width: 100vw;
+    background: #ffffff; /* Fondo blanco para móvil */
   }
   
   .login-section {
     max-width: 100%;
-    min-height: 100vh;
-    padding: 1.5rem 1rem;
-    justify-content: center;
-    flex: 1;
+    height: 60vh; /* 60% de la pantalla para el login */
+    padding: 2rem 1.5rem;
+    justify-content: flex-start;
+    flex: none;
+    overflow-y: auto;
+    background: #ffffff;
+    order: 1;
   }
   
   .wallpaper {
-    height: 300px;
+    height: 40vh; /* 40% de la pantalla para características */
     flex: none;
     order: 2;
     overflow: hidden;
+    background: linear-gradient(135deg, #2c5f5f 0%, #4a9d9d 100%);
   }
   
   .wallpaper-content {
     margin-left: 0;
     padding: 1.5rem;
+    text-align: center;
   }
   
   .wallpaper h1 {
     font-size: 2rem;
+    margin-bottom: 0.5rem;
   }
   
   .wallpaper p {
     font-size: 1rem;
+    margin-bottom: 1.5rem;
   }
   
-  .login-logo::before {
-    opacity: 0.6;
-    filter: blur(12px);
-    top: -8px;
-    left: -8px;
-    right: -8px;
-    bottom: -8px;
+  .features-list {
+    max-width: 100%;
+    margin: 0 auto;
   }
   
+  .feature-item {
+    font-size: 0.9rem;
+    margin-bottom: 0.8rem;
+  }
+  
+  /* Logo para móvil - usando imagen */
   .login-logo {
-    box-shadow: 0 15px 40px rgba(255, 193, 7, 0.5);
+    width: 100px;
+    height: 100px;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  
+  .login-logo img {
+    width: 100px;
+    height: 100px;
+    object-fit: contain;
+    border-radius: 50%;
+    box-shadow: 0 8px 25px rgba(255, 193, 7, 0.4);
+  }
+  
+  .login-logo i {
+    font-size: 3rem;
+    color: #ffc107;
   }
   
   .login-title {
-    font-size: 1.6em;
+    font-size: 1.4em;
+    font-weight: 700;
+    color: #212529;
+    margin-bottom: 0.5rem;
   }
   
   .login-subtitle {
-    font-size: 0.9em;
-    margin-bottom: 30px;
+    font-size: 0.85em;
+    color: #6c757d;
+    margin-bottom: 2rem;
   }
   
+  /* Campos de entrada personalizados para móvil */
   .login-input {
     font-size: 0.85em;
-    padding: 20px 15px 8px;
-    height: 55px;
+    padding: 15px 12px;
+    height: 50px;
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    color: #495057;
   }
   
+  .login-input::placeholder {
+    color: #adb5bd;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75em;
+  }
+  
+  .login-input:focus {
+    background-color: #ffffff;
+    border: 2px solid #ffc107;
+    box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.1);
+  }
+  
+  /* Ocultar labels flotantes en móvil */
+  .login-label .desktop-label {
+    display: none !important;
+  }
+  
+  /* Ocultar animaciones de labels en móvil */
+  .login-input:focus + .desktop-label,
+  .login-input:not(:placeholder-shown) + .desktop-label {
+    display: none !important;
+  }
+  
+  /* Botón personalizado para móvil */
   .login-button {
     font-size: 0.9em;
     padding: 12px 30px;
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    color: #495057;
+    font-weight: 600;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+  }
+  
+  .login-button:hover {
+    background-color: #e9ecef;
+    transform: translateY(-1px);
+  }
+  
+  .login-button i {
+    font-size: 1.2em;
+  }
+  
+  /* Enlace de contraseña olvidada */
+  .login-link {
+    font-size: 0.75em;
+    color: #adb5bd;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-top: 1rem;
   }
 }
 
@@ -720,6 +820,11 @@ body {
     font-size: 0.95em;
     padding: 13px 35px;
   }
+  
+  /* Mostrar labels flotantes en tablet */
+  .login-label .desktop-label {
+    display: block !important;
+  }
 }
 
 /* Media query para pantallas grandes */
@@ -759,6 +864,11 @@ body {
   
   .features-list {
     max-width: 450px;
+  }
+  
+  /* Mostrar labels flotantes en desktop */
+  .login-label .desktop-label {
+    display: block !important;
   }
 }
 

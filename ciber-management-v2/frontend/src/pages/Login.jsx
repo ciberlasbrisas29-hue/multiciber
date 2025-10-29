@@ -236,13 +236,14 @@ const Login = memo(() => {
           <form onSubmit={handleSubmit}>
             {/* Usuario */}
             <label className="login-label">
-              <span>Usuario</span>
+              <span className="desktop-label">Usuario</span>
               <input
                 type="text"
                 name="username"
                 value={formData.username}
                 onChange={handleChange}
                 className="login-input"
+                placeholder="USUARIO"
                 required
               />
             </label>
@@ -250,13 +251,14 @@ const Login = memo(() => {
             {/* Contraseña */}
             <div className="password-input-container">
               <label className="login-label">
-                <span>Contraseña</span>
+                <span className="desktop-label">Contraseña</span>
                 <input
                   type={showPassword ? 'text' : 'password'}
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
                   className="login-input"
+                  placeholder="CONTRASEÑA"
                   required
                 />
                 <button
