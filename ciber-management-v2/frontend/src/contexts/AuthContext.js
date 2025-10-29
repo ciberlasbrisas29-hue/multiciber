@@ -198,6 +198,9 @@ export const AuthProvider = ({ children }) => {
       // Actualizar el estado
       dispatch({ type: AUTH_ACTIONS.LOGOUT });
       
+      // Forzar recarga de la página para ir al login
+      window.location.reload();
+      
       // Opcional: llamar a la API si está disponible
       try {
         await authService.logout();
@@ -211,6 +214,8 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       dispatch({ type: AUTH_ACTIONS.LOGOUT });
+      // Forzar recarga de la página
+      window.location.reload();
     }
   };
 

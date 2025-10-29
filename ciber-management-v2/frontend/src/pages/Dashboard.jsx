@@ -120,6 +120,7 @@ const Dashboard = () => {
 
   const handleLogout = () => {
     logout();
+    // La función logout ya maneja la recarga de la página
   };
 
   // Si se debe mostrar la vista de selección de productos
