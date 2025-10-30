@@ -119,7 +119,6 @@ expenseSchema.pre('save', async function(next) {
 });
 
 // Índices
-expenseSchema.index({ expenseNumber: 1 });
 expenseSchema.index({ category: 1 });
 expenseSchema.index({ status: 1 });
 expenseSchema.index({ createdBy: 1 });
