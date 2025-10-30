@@ -58,4 +58,10 @@ const startServer = async () => {
   });
 };
 
-startServer();
+// Solo iniciar servidor si no estamos en Vercel
+if (process.env.NODE_ENV !== 'production') {
+  startServer();
+}
+
+// Exportar la app para Vercel
+module.exports = app;
