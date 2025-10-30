@@ -16,14 +16,20 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Configurar Mongoose para Vercel
+mongoose.set('bufferCommands', false);
+mongoose.set('bufferMaxEntries', 0);
+
 // Conectar a MongoDB
 const connectDB = async () => {
   try {
     const conn = await mongoose.connect(process.env.MONGODB_URI, {
       serverSelectionTimeoutMS: 5000, // 5 segundos
       socketTimeoutMS: 45000, // 45 segundos
-      bufferMaxEntries: 0, // Deshabilitar buffering
-      bufferCommands: false, // Deshabilitar buffering
+      connectTimeoutMS: 10000, // 10 segundos para conectar
+      maxPoolSize: 1, // Limitar conexiones
+      minPoolSize: 1,
+      maxIdleTimeMS: 30000, // 30 segundos idle
     });
     console.log(`MongoDB conectado: ${conn.connection.host}`);
   } catch (error) {
