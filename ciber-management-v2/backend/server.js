@@ -26,8 +26,6 @@ const connectDB = async () => {
       maxPoolSize: 1, // Limitar conexiones
       minPoolSize: 1,
       maxIdleTimeMS: 30000, // 30 segundos idle
-      bufferCommands: true, // Habilitar buffering
-      bufferMaxEntries: 0, // Sin límite de buffer
     });
     console.log(`MongoDB conectado: ${conn.connection.host}`);
   } catch (error) {
