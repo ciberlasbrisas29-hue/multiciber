@@ -16,9 +16,6 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Configurar Mongoose para Vercel
-mongoose.set('bufferCommands', false);
-
 // Conectar a MongoDB
 const connectDB = async () => {
   try {
@@ -29,6 +26,8 @@ const connectDB = async () => {
       maxPoolSize: 1, // Limitar conexiones
       minPoolSize: 1,
       maxIdleTimeMS: 30000, // 30 segundos idle
+      bufferCommands: true, // Habilitar buffering
+      bufferMaxEntries: 0, // Sin límite de buffer
     });
     console.log(`MongoDB conectado: ${conn.connection.host}`);
   } catch (error) {
