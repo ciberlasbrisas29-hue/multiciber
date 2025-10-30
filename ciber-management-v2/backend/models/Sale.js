@@ -140,7 +140,6 @@ saleSchema.pre('save', async function(next) {
 });
 
 // Índices
-saleSchema.index({ saleNumber: 1 });
 saleSchema.index({ status: 1 });
 saleSchema.index({ paymentMethod: 1 });
 saleSchema.index({ createdBy: 1 });
