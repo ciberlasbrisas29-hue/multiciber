@@ -1,14 +1,18 @@
 import React, { createContext, useContext, useReducer, useEffect, useState, useRef, useCallback, useMemo, memo } from 'react';
 import { authService } from '../services/api';
 
+// Flag global para evitar doble inicialización
+let isAppInitialized = false;
+let authContextRenderCount = 0;
+
 // Estado inicial
 const initialState = {
   user: null,
   token: null,
   isAuthenticated: false,
-  isLoading: false,
+  isLoading: true,
   error: null,
-  initialized: false,
+  initialized: false, // Flag para saber si ya se inicializó
 };
 
 // Tipos de acciones
@@ -22,7 +26,7 @@ const AUTH_ACTIONS = {
   INITIALIZED: 'INITIALIZED',
 };
 
-// Reducer optimizado
+// Reducer
 const authReducer = (state, action) => {
   switch (action.type) {
     case AUTH_ACTIONS.LOGIN_START:
@@ -91,50 +95,90 @@ export const useAuth = () => {
   return context;
 };
 
-// Provider del contexto optimizado
+// Provider del contexto
 export const AuthProvider = memo(({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const hasInitialized = useRef(false);
   
-  // Inicialización única
+  authContextRenderCount++;
+  // Solo log en desarrollo y cuando hay cambios significativos
+  if (process.env.NODE_ENV === 'development' && authContextRenderCount <= 3) {
+    console.log('🔄 AuthProvider renderizando', { 
+      renderCount: authContextRenderCount,
+      isLoading: state.isLoading, 
+      isAuthenticated: state.isAuthenticated,
+      isLoggingOut
+    });
+  }
+
+  // Verificar si hay datos guardados en localStorage al cargar la app (solo una vez)
   useEffect(() => {
     if (hasInitialized.current) return;
+    
+    console.log('🟡 AuthContext useEffect ejecutándose', new Date().toISOString());
     
     const token = localStorage.getItem('token');
     const user = localStorage.getItem('user');
     
+    console.log('🔍 Verificando localStorage:', { token, user });
+    
+    // Solo restaurar la sesión si hay datos válidos
     if (token && user) {
       try {
         const userData = JSON.parse(user);
+        // Verificar que el token sea válido
         if (token && token !== 'null' && token !== 'undefined' && token.length > 10) {
+          console.log('✅ Restaurando sesión:', userData);
           dispatch({
             type: AUTH_ACTIONS.LOGIN_SUCCESS,
             payload: { user: userData, token },
           });
         } else {
+          console.log('❌ Token inválido, limpiando localStorage');
           localStorage.removeItem('token');
           localStorage.removeItem('user');
         }
       } catch (error) {
+        console.log('❌ Error al parsear user data:', error);
+        // Si hay error al parsear, limpiar localStorage
         localStorage.removeItem('token');
         localStorage.removeItem('user');
       }
+    } else {
+      console.log('❌ No hay datos en localStorage');
     }
     
     hasInitialized.current = true;
+    // Marcar como inicializado
     dispatch({ type: AUTH_ACTIONS.INITIALIZED });
-  }, []);
+  }, []); // Solo ejecutar una vez al montar
 
-  // Función de login optimizada
+  // Detectar cambios en isAuthenticated para debug (solo en desarrollo)
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 Cambio en isAuthenticated:', { 
+        isAuthenticated: state.isAuthenticated, 
+        isLoggingOut 
+      });
+    }
+  }, [state.isAuthenticated, isLoggingOut]);
+
+  // Función de login
   const login = useCallback(async (username, password) => {
     try {
-      dispatch({ type: AUTH_ACTIONS.LOGIN_START });
+      // Solo cambiar loading si no está ya en loading
+      if (!state.isLoading) {
+        dispatch({ type: AUTH_ACTIONS.LOGIN_START });
+      }
 
+      // Usar la API real del backend
       const response = await authService.login(username, password);
       
       if (response.success) {
         const { user, token } = response.data;
         
+        // Guardar en localStorage
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(user));
         
@@ -159,7 +203,7 @@ export const AuthProvider = memo(({ children }) => {
       });
       return { success: false, error: errorMessage };
     }
-  }, []);
+  }, [state.isLoading]);
 
   // Función de registro
   const register = useCallback(async (userData) => {
@@ -171,6 +215,7 @@ export const AuthProvider = memo(({ children }) => {
       if (response.success) {
         const { user, token } = response.data;
         
+        // Guardar en localStorage
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(user));
         
@@ -197,24 +242,41 @@ export const AuthProvider = memo(({ children }) => {
     }
   }, []);
 
-  // Función de logout
+  // Función de logout optimizada - sin recarga de página
   const logout = useCallback(async () => {
+    if (isLoggingOut) return; // Evitar múltiples llamadas
+    
     try {
+      console.log('🚪 Iniciando logout...');
+      setIsLoggingOut(true);
+      
+      // Limpiar localStorage de forma inmediata
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      
+      // Actualizar el estado inmediatamente - esto causará el re-render automático
       dispatch({ type: AUTH_ACTIONS.LOGOUT });
+      
+      // Reset del flag después de un pequeño delay
+      setTimeout(() => {
+        setIsLoggingOut(false);
+      }, 100);
+      
+      console.log('✅ Logout completado - estado actualizado');
+      
     } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+      // Limpieza de emergencia
       localStorage.clear();
       dispatch({ type: AUTH_ACTIONS.LOGOUT });
     }
-  }, []);
+  }, [isLoggingOut]);
 
   // Función para limpiar errores
   const clearError = useCallback(() => {
     dispatch({ type: AUTH_ACTIONS.CLEAR_ERROR });
   }, []);
 
-  // Value optimizado - solo se recrea cuando hay cambios reales
   const value = useMemo(() => ({
     user: state.user,
     token: state.token,

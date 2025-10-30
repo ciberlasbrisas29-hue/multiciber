@@ -13,20 +13,30 @@ const Login = memo(() => {
   const [isLoading, setIsLoading] = useState(false);
 
   const { login, error, clearError } = useAuth();
+  
+  // Debug: Log del error (solo en desarrollo)
+  useEffect(() => {
+    if (error && process.env.NODE_ENV === 'development') {
+      console.log('🔴 Error en Login:', error);
+    }
+  }, [error]);
 
   // Debug: Log cuando el componente se monta
   loginRenderCount++;
-  console.log('🔵 Login component mounted', { 
-    renderCount: loginRenderCount,
-    timestamp: new Date().toISOString() 
-  });
+  // Solo log en desarrollo y las primeras veces
+  if (process.env.NODE_ENV === 'development' && loginRenderCount <= 3) {
+    console.log('🔵 Login component mounted', { 
+      renderCount: loginRenderCount,
+      timestamp: new Date().toISOString() 
+    });
+  }
 
-  // Limpiar errores al cambiar los inputs
+  // Limpiar errores solo cuando el usuario empiece a escribir
   useEffect(() => {
-    if (error) {
+    if (error && (formData.username || formData.password)) {
       clearError();
     }
-  }, [formData, clearError]);
+  }, [formData.username, formData.password, error, clearError]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -38,16 +48,29 @@ const Login = memo(() => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
+    
+    // Solo mostrar loading si no está ya en loading
+    if (!isLoading) {
+      setIsLoading(true);
+    }
 
     try {
       const result = await login(formData.username, formData.password);
       if (result.success) {
-        console.log('✅ Login exitoso');
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ Login exitoso');
+        }
         // No necesitamos navegar, el App.jsx se encarga de renderizar Dashboard
+      } else {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('❌ Login fallido:', result.error);
+        }
+        // El error ya se maneja en el contexto de autenticación
       }
     } catch (error) {
-      console.error('Error en login:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error en login:', error);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -243,7 +266,6 @@ const Login = memo(() => {
                 value={formData.username}
                 onChange={handleChange}
                 className="login-input"
-                placeholder="USUARIO"
                 required
               />
             </label>
@@ -258,7 +280,6 @@ const Login = memo(() => {
                   value={formData.password}
                   onChange={handleChange}
                   className="login-input"
-                  placeholder="CONTRASEÑA"
                   required
                 />
                 <button

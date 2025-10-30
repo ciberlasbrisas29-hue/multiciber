@@ -1,12 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const Product = require('../models/Product');
-const auth = require('../middleware/auth');
+const { authenticateToken } = require('../middleware/auth');
 
 // @route   GET /api/products
 // @desc    Obtener todos los productos
 // @access  Private
-router.get('/', auth, async (req, res) => {
+router.get('/', authenticateToken, async (req, res) => {
   try {
     const { page = 1, limit = 10, category, search, isActive } = req.query;
     
@@ -48,7 +48,7 @@ router.get('/', auth, async (req, res) => {
 // @route   GET /api/products/:id
 // @desc    Obtener un producto por ID
 // @access  Private
-router.get('/:id', auth, async (req, res) => {
+router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const product = await Product.findOne({
       _id: req.params.id,
@@ -78,7 +78,7 @@ router.get('/:id', auth, async (req, res) => {
 // @route   POST /api/products
 // @desc    Crear un nuevo producto
 // @access  Private
-router.post('/', auth, async (req, res) => {
+router.post('/', authenticateToken, async (req, res) => {
   try {
     const {
       name,
@@ -147,7 +147,7 @@ router.post('/', auth, async (req, res) => {
 // @route   PUT /api/products/:id
 // @desc    Actualizar un producto
 // @access  Private
-router.put('/:id', auth, async (req, res) => {
+router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const product = await Product.findOne({
       _id: req.params.id,
@@ -201,7 +201,7 @@ router.put('/:id', auth, async (req, res) => {
 // @route   DELETE /api/products/:id
 // @desc    Eliminar un producto
 // @access  Private
-router.delete('/:id', auth, async (req, res) => {
+router.delete('/:id', authenticateToken, async (req, res) => {
   try {
     const product = await Product.findOne({
       _id: req.params.id,
@@ -235,7 +235,7 @@ router.delete('/:id', auth, async (req, res) => {
 // @route   GET /api/products/stats/overview
 // @desc    Obtener estadísticas de productos
 // @access  Private
-router.get('/stats/overview', auth, async (req, res) => {
+router.get('/stats/overview', authenticateToken, async (req, res) => {
   try {
     const stats = await Product.aggregate([
       { $match: { createdBy: mongoose.Types.ObjectId(req.user.id) } },

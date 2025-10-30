@@ -2,7 +2,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
-const auth = require('../middleware/auth');
+const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -168,7 +168,7 @@ router.post('/login', [
 // @route   GET /api/auth/me
 // @desc    Obtener datos del usuario actual
 // @access  Private
-router.get('/me', auth, async (req, res) => {
+router.get('/me', authenticateToken, async (req, res) => {
   try {
     res.json({
       success: true,
@@ -188,7 +188,7 @@ router.get('/me', auth, async (req, res) => {
 // @route   POST /api/auth/logout
 // @desc    Cerrar sesión (opcional, ya que JWT es stateless)
 // @access  Private
-router.post('/logout', auth, (req, res) => {
+router.post('/logout', authenticateToken, (req, res) => {
   res.json({
     success: true,
     message: 'Sesión cerrada exitosamente'
