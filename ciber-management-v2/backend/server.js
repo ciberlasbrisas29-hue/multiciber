@@ -20,8 +20,10 @@ app.use(express.urlencoded({ extended: true }));
 const connectDB = async () => {
   try {
     const conn = await mongoose.connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 5000, // 5 segundos
+      socketTimeoutMS: 45000, // 45 segundos
+      bufferMaxEntries: 0, // Deshabilitar buffering
+      bufferCommands: false, // Deshabilitar buffering
     });
     console.log(`MongoDB conectado: ${conn.connection.host}`);
   } catch (error) {
