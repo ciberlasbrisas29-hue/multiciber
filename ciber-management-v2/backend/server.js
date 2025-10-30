@@ -5,7 +5,9 @@ const dotenv = require('dotenv');
 const path = require('path');
 
 // Cargar variables de entorno
-dotenv.config({ path: './config.env' });
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config({ path: './config.env' });
+}
 
 const app = express();
 
