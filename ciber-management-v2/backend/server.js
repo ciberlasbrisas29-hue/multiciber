@@ -68,6 +68,9 @@ const startServer = async () => {
 // Solo iniciar servidor si no estamos en Vercel
 if (process.env.NODE_ENV !== 'production') {
   startServer();
+} else {
+  // En Vercel, conectar a la base de datos inmediatamente
+  connectDB();
 }
 
 // Exportar la app para Vercel
