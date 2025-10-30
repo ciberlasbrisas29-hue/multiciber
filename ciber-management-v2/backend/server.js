@@ -18,7 +18,6 @@ app.use(express.urlencoded({ extended: true }));
 
 // Configurar Mongoose para Vercel
 mongoose.set('bufferCommands', false);
-mongoose.set('bufferMaxEntries', 0);
 
 // Conectar a MongoDB
 const connectDB = async () => {
