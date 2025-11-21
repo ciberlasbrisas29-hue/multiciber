@@ -272,7 +272,7 @@ const HomePage = () => {
           <div className="relative z-10">
             <div className="flex items-center mb-3">
               <Sparkles className="w-6 h-6 text-white mr-2" />
-              <h3 className="text-xl font-bold text-white">Nueva Funcionalidad</h3>
+              <h3 className="text-xl font-bold text-white">Sistema de Reportes Avanzados</h3>
             </div>
             <p className="text-white/90 text-sm mb-4 leading-relaxed">
               Descubre nuestro nuevo sistema de reportes avanzados con análisis en tiempo real
