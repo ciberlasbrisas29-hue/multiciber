@@ -188,8 +188,9 @@ const HomePage = () => {
     }
   };
 
+  // Asegurar que siempre retornamos contenido válido
   return (
-    <>
+    <div className="min-h-screen">
         {/* Card Principal */}
         <div className="bg-white rounded-3xl shadow-xl p-6 mb-6 border border-purple-100">
           <div className="flex items-start justify-between mb-4">
@@ -337,7 +338,7 @@ const HomePage = () => {
             </div>
           )}
         </div>
-    </>
+    </div>
   );
 };
 
