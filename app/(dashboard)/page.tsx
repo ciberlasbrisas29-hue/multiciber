@@ -8,8 +8,17 @@ import {
   Package, AlertTriangle, ArrowRight, Plus, Minus, Box
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { LucideIcon } from 'lucide-react';
 
-const QuickAccessCard = ({ title, subtitle, icon: Icon, color, onClick }) => (
+interface QuickAccessCardProps {
+  title: string;
+  subtitle: string;
+  icon: LucideIcon;
+  color: string;
+  onClick: () => void;
+}
+
+const QuickAccessCard = ({ title, subtitle, icon: Icon, color, onClick }: QuickAccessCardProps) => (
   <div
     className={`bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer border-l-4 ${color} group`}
     onClick={onClick}
@@ -24,7 +33,16 @@ const QuickAccessCard = ({ title, subtitle, icon: Icon, color, onClick }) => (
   </div>
 );
 
-const StatCard = ({ title, value, change, icon: Icon, iconColor, trend }) => (
+interface StatCardProps {
+  title: string;
+  value: string | number;
+  change?: string;
+  icon: LucideIcon;
+  iconColor: string;
+  trend?: number;
+}
+
+const StatCard = ({ title, value, change, icon: Icon, iconColor, trend }: StatCardProps) => (
   <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
     <div className="flex items-center justify-between mb-4">
       <div className={`p-3 rounded-lg ${iconColor}`}>
@@ -85,7 +103,7 @@ const DashboardPage = () => {
     fetchDashboardData();
   }, []);
 
-  const formatCurrency = (amount) => {
+  const formatCurrency = (amount: number | null | undefined) => {
     return new Intl.NumberFormat('es-SV', {
       style: 'currency',
       currency: 'USD',
