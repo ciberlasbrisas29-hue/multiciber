@@ -7,13 +7,20 @@ import DefaultProductImage from '@/components/DefaultProductImage';
 import BarcodeScanner from '@/components/BarcodeScanner';
 import { Search, Scan, ArrowLeft, Package, AlertTriangle, TrendingUp } from 'lucide-react';
 
+interface Category {
+    name: string;
+    displayName: string;
+    count: number;
+    image: string | null;
+}
+
 const InventoryPage = () => {
     const router = useRouter();
     const searchParams = useSearchParams();
     const selectedCategory = searchParams.get('category');
     
     const [view, setView] = useState<'categories' | 'products'>('categories');
-    const [categories, setCategories] = useState([]);
+    const [categories, setCategories] = useState<Category[]>([]);
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
