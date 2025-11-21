@@ -1,0 +1,67 @@
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { jwtVerify } from 'jose';
+
+const SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
+
+export async function middleware(req: NextRequest) {
+  console.log('Middleware running for:', req.nextUrl.pathname);
+  const { pathname, origin } = req.nextUrl;
+  
+  // Intenta obtener el token de la cookie
+  const token = req.cookies.get('token')?.value;
+
+  // --- Verificación y decodificación del token ---
+  let userId = null;
+  if (token) {
+    try {
+      const { payload } = await jwtVerify(token, SECRET);
+      userId = payload.id as string;
+    } catch (err) {
+      // Token inválido (expirado, malformado, etc.)
+      // Lo tratamos como si no hubiera token
+    }
+  }
+
+  const isAuthenticated = !!userId;
+
+  // --- Rutas Públicas (no requieren autenticación) ---
+  const publicRoutes = ['/login', '/register'];
+  if (publicRoutes.includes(pathname)) {
+    // Si está autenticado y trata de acceder a login/register, redirigir al dashboard
+    if (isAuthenticated) {
+      return NextResponse.redirect(`${origin}/`);
+    }
+    // Si no, permitir el acceso
+    return NextResponse.next();
+  }
+
+  // --- Rutas de API ---
+  if (pathname.startsWith('/api')) {
+    if (!isAuthenticated) {
+      return NextResponse.json({ success: false, message: 'Autenticación requerida' }, { status: 401 });
+    }
+    // Para las rutas de API, agregamos el ID de usuario en los headers
+    const requestHeaders = new Headers(req.headers);
+    requestHeaders.set('x-user-id', userId);
+    return NextResponse.next({ request: { headers: requestHeaders } });
+  }
+
+  // --- Rutas Privadas de UI ---
+  // Todas las demás rutas que no son públicas ni de la API
+  if (!isAuthenticated) {
+    // Si no está autenticado, redirigir a login
+    return NextResponse.redirect(`${origin}/login`);
+  }
+
+  // Si está autenticado, permitir el acceso a la página solicitada
+  return NextResponse.next();
+}
+
+export const config = {
+  // El matcher se asegura de que el middleware se ejecute en todas las rutas,
+  // excepto en las de archivos estáticos (_next/static), imágenes (_next/image), y favicon.
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico).*)',
+  ],
+};

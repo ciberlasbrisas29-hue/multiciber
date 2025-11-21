@@ -1,0 +1,27 @@
+<svg width="300" height="300" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="300" height="300" fill="#f8f9fa" stroke="#e9ecef" stroke-width="2"/>
+  
+  <!-- Product box icon -->
+  <g transform="translate(150, 150)">
+    <!-- Box -->
+    <rect x="-40" y="-25" width="80" height="50" fill="#6c757d" opacity="0.7"/>
+    <rect x="-40" y="-35" width="80" height="20" fill="#495057" opacity="0.8"/>
+    
+    <!-- Box sides -->
+    <polygon points="-40,-35 -30,-45 50,-45 40,-35" fill="#343a40" opacity="0.9"/>
+    <polygon points="40,-35 50,-45 50,-25 40,-15" fill="#212529" opacity="0.8"/>
+    
+    <!-- Product icon inside -->
+    <circle cx="0" cy="-5" r="12" fill="#ffffff" opacity="0.9"/>
+    <rect x="-8" y="-13" width="16" height="16" fill="#0d6efd" opacity="0.8" rx="2"/>
+  </g>
+  
+  <!-- Text -->
+  <text x="150" y="220" text-anchor="middle" fill="#6c757d" font-family="Arial, sans-serif" font-size="16" font-weight="500">
+    Imagen no disponible
+  </text>
+  
+  <!-- Border decoration -->
+  <rect x="10" y="10" width="280" height="280" fill="none" stroke="#dee2e6" stroke-width="1" stroke-dasharray="5,5"/>
+</svg>
