@@ -137,8 +137,9 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScan, onClose, isOpen
             }
           );
         } else {
-          // Fallback: decode from video element directly
-          codeReader.current.decodeFromVideoElement(
+          // Fallback: decode from video device with null deviceId
+          codeReader.current.decodeFromVideoDevice(
+            null,
             videoRef.current,
             (result, err) => {
               if (result) {
