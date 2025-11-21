@@ -31,6 +31,12 @@ const HomePage = () => {
   const [loading, setLoading] = useState(true);
   const [recentMovements, setRecentMovements] = useState<Movement[]>([]);
   const [loadingMovements, setLoadingMovements] = useState(true);
+  const [mounted, setMounted] = useState(false);
+
+  // Asegurar que el componente está montado (solo en cliente)
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const formatDateTime = (date: Date): string => {
     const day = String(date.getDate()).padStart(2, '0');
@@ -165,6 +171,15 @@ const HomePage = () => {
     const interval = setInterval(fetchRecentMovements, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  // No renderizar contenido hasta que esté montado (evita problemas de SSR)
+  if (!mounted) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-pink-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+      </div>
+    );
+  }
 
   const currentBalance = stats?.month?.profit !== undefined 
     ? stats.month.profit.toFixed(2) 
