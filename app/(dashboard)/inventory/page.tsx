@@ -82,7 +82,7 @@ const InventoryPage = () => {
         setPage(1);
     };
 
-    const handleBarcodeScanned = (barcode) => {
+    const handleBarcodeScanned = (barcode: string) => {
         setSearchTerm(barcode);
         setShowBarcodeScanner(false);
         setPage(1);
