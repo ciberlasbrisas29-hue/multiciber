@@ -10,6 +10,32 @@ import {
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { LucideIcon } from 'lucide-react';
 
+interface LowStockData {
+  count: number;
+  critical: number;
+  warning: number;
+  products: any[];
+}
+
+interface DashboardStats {
+  today?: {
+    revenue?: number;
+    transactions?: number;
+    productsSold?: number;
+  };
+  inventory?: {
+    totalProducts?: number;
+    lowStock?: number;
+    activeProducts?: number;
+  };
+  topProduct?: string;
+}
+
+interface WeeklyDataPoint {
+  date: string;
+  sales: number;
+}
+
 interface QuickAccessCardProps {
   title: string;
   subtitle: string;
@@ -63,9 +89,9 @@ const StatCard = ({ title, value, change, icon: Icon, iconColor, trend }: StatCa
 
 const DashboardPage = () => {
   const router = useRouter();
-  const [stats, setStats] = useState(null);
-  const [lowStockData, setLowStockData] = useState(null);
-  const [weeklyData, setWeeklyData] = useState([]);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [lowStockData, setLowStockData] = useState<LowStockData | null>(null);
+  const [weeklyData, setWeeklyData] = useState<WeeklyDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -213,7 +239,7 @@ const DashboardPage = () => {
               <XAxis dataKey="date" stroke="#9CA3AF" style={{ fontSize: '12px' }} />
               <YAxis stroke="#9CA3AF" style={{ fontSize: '12px' }} />
               <Tooltip
-                formatter={(value) => [formatCurrency(value), 'Ventas']}
+                formatter={(value) => [formatCurrency(typeof value === 'number' ? value : Number(value) || 0), 'Ventas']}
                 contentStyle={{ borderRadius: '8px', border: '1px solid #E5E7EB' }}
               />
               <Line
