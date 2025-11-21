@@ -14,6 +14,12 @@ interface Category {
     image: string | null;
 }
 
+interface Pagination {
+    current: number;
+    pages: number;
+    total: number;
+}
+
 const InventoryPage = () => {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -21,11 +27,11 @@ const InventoryPage = () => {
     
     const [view, setView] = useState<'categories' | 'products'>('categories');
     const [categories, setCategories] = useState<Category[]>([]);
-    const [products, setProducts] = useState([]);
+    const [products, setProducts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
-    const [pagination, setPagination] = useState({});
+    const [pagination, setPagination] = useState<Pagination>({ current: 1, pages: 1, total: 0 });
     const [page, setPage] = useState(1);
 
     // Cargar categorías
