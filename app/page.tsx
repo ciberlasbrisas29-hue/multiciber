@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 import { dashboardService } from '@/services/api';
 import { 
   Plus, 
@@ -27,10 +28,27 @@ interface Movement {
 
 const HomePage = () => {
   const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [recentMovements, setRecentMovements] = useState<Movement[]>([]);
   const [loadingMovements, setLoadingMovements] = useState(true);
+
+  // Redirigir si no está autenticado
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.replace('/login');
+    }
+  }, [isAuthenticated, authLoading, router]);
+
+  // No renderizar nada mientras se verifica la autenticación o si no está autenticado
+  if (authLoading || !isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+      </div>
+    );
+  }
 
   const formatDateTime = (date: Date): string => {
     const day = String(date.getDate()).padStart(2, '0');
