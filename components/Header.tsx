@@ -1,18 +1,34 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { Bell } from 'lucide-react';
+import { Bell, LogOut } from 'lucide-react';
 import Logo from '@/components/Logo';
 
 const Header = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const router = useRouter();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Buenos días';
     if (hour < 18) return 'Buenas tardes';
     return 'Buenas noches';
+  };
+
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    try {
+      await logout();
+      router.push('/login');
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   const userName = user?.username || 'Usuario';
@@ -29,13 +45,23 @@ const Header = () => {
             <h1 className="text-2xl font-bold">{userName}</h1>
           </div>
         </div>
-        <button className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30 relative">
-          <Bell className="w-5 h-5" />
-          {/* Badge de notificación */}
-          <span className="absolute -top-1 -right-1 w-5 h-5 bg-gray-900 rounded-full flex items-center justify-center">
-            <span className="text-[10px] font-bold text-white">N</span>
-          </span>
-        </button>
+        <div className="flex items-center space-x-2">
+          <button className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30 relative">
+            <Bell className="w-5 h-5" />
+            {/* Badge de notificación */}
+            <span className="absolute -top-1 -right-1 w-5 h-5 bg-gray-900 rounded-full flex items-center justify-center">
+              <span className="text-[10px] font-bold text-white">N</span>
+            </span>
+          </button>
+          <button
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+            className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30 hover:bg-white/30 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Cerrar sesión"
+          >
+            <LogOut className="w-5 h-5" />
+          </button>
+        </div>
       </div>
     </header>
   );
