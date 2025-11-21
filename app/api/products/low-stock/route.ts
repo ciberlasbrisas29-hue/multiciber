@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import dbConnect from '@/lib/db';
 import Product from '@/lib/models/Product';
 import User from '@/lib/models/User';
-import jwt from 'jsonwebtoken';
+import jwt, { JwtPayload } from 'jsonwebtoken';
 
 async function getUserFromToken() {
     try {
@@ -14,7 +14,12 @@ async function getUserFromToken() {
             return null;
         }
 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret-key');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret-key') as JwtPayload;
+        
+        if (!decoded || typeof decoded === 'string' || !decoded.id) {
+            return null;
+        }
+
         const user = await User.findById(decoded.id);
 
         return user;
