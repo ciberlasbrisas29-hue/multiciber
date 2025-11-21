@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, TrendingUp, DollarSign, ShoppingCart, Package, CreditCard, Wallet, Building2, MoreHorizontal, Download } from 'lucide-react';
-import { LineChart, Line, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend, BarChart, Bar } from 'recharts';
+import { LineChart, Line, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend, BarChart, Bar, PieLabelRenderProps } from 'recharts';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -493,7 +493,10 @@ const ReportsPage = () => {
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={({ name, percentage }) => `${name}: ${percentage.toFixed(1)}%`}
+                label={(props: PieLabelRenderProps) => {
+                  const { name, percent } = props;
+                  return `${name}: ${(percent * 100).toFixed(1)}%`;
+                }}
                 outerRadius={80}
                 fill="#8884d8"
                 dataKey="value"
