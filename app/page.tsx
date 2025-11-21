@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { dashboardService } from '@/services/api';
 import { 
   Plus, 
@@ -25,6 +26,7 @@ interface Movement {
 }
 
 const HomePage = () => {
+  const router = useRouter();
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [recentMovements, setRecentMovements] = useState<Movement[]>([]);
