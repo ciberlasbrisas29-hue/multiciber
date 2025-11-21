@@ -3,10 +3,13 @@
   "short_name": "Multiciber",
   "description": "Sistema de gestión completo para negocios tipo cibercafé/tienda de tecnología",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "fullscreen"],
   "background_color": "#ffffff",
   "theme_color": "#7c3aed",
   "orientation": "portrait-primary",
+  "prefer_related_applications": false,
   "permissions": [
     "camera"
   ],
