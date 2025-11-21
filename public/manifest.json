@@ -1,0 +1,46 @@
+{
+  "name": "Multiciber - Sistema de Gestión",
+  "short_name": "Multiciber",
+  "description": "Sistema de gestión completo para negocios tipo cibercafé/tienda de tecnología",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#7c3aed",
+  "orientation": "portrait-primary",
+  "permissions": [
+    "camera"
+  ],
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Nueva Venta",
+      "short_name": "Venta",
+      "description": "Crear una nueva venta",
+      "url": "/sales/new",
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Inventario",
+      "short_name": "Inventario",
+      "description": "Ver inventario",
+      "url": "/inventory",
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192" }]
+    }
+  ]
+}
+

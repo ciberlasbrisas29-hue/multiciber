@@ -92,6 +92,19 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScan, onClose, isOpen
         throw new Error('getUserMedia no está disponible');
       }
 
+      // Verificar permisos de cámara antes de solicitar
+      try {
+        const permissionStatus = await navigator.permissions.query({ name: 'camera' as PermissionName });
+        if (permissionStatus.state === 'denied') {
+          setError('Permisos de cámara denegados. Por favor, habilita los permisos de cámara en la configuración de tu dispositivo.');
+          setIsScanning(false);
+          return;
+        }
+      } catch (permError) {
+        // Algunos navegadores no soportan permissions.query, continuar normalmente
+        console.log('No se pudo verificar permisos, continuando...');
+      }
+
       // Start decoding from video device with fallback constraints
       let constraints;
       
@@ -113,6 +126,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScan, onClose, isOpen
         };
       }
 
+      // Solicitar permisos de cámara (esto mostrará el diálogo nativo)
       const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
       setStream(mediaStream);
       videoRef.current.srcObject = mediaStream;
@@ -160,9 +174,20 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScan, onClose, isOpen
         setError('Error al inicializar el escáner');
         setIsScanning(false);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error starting scanner:', err);
-      setError('Error al acceder a la cámara. Verifica los permisos.');
+      
+      // Manejo específico de errores de permisos
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        setError('Permisos de cámara denegados. Por favor, permite el acceso a la cámara en la configuración de tu navegador o dispositivo.');
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        setError('No se encontró ninguna cámara. Verifica que tu dispositivo tenga una cámara disponible.');
+      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+        setError('La cámara está siendo usada por otra aplicación. Cierra otras apps que usen la cámara e intenta de nuevo.');
+      } else {
+        setError('Error al acceder a la cámara. Verifica los permisos y que la cámara esté disponible.');
+      }
+      
       setIsScanning(false);
     }
   };

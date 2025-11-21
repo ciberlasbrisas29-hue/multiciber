@@ -6,7 +6,8 @@
     "dev": "next dev -H 0.0.0.0",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "generate-icons": "node scripts/generate-icons-better.js"
   },
   "dependencies": {
     "@capacitor/android": "^7.4.4",
