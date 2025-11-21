@@ -36,8 +36,14 @@ const NewSalePage = () => {
   const sortButtonRef = useRef<HTMLButtonElement>(null);
   const [sortMenuPosition, setSortMenuPosition] = useState({ top: 0, left: 0 });
 
+  interface Category {
+    value: string;
+    label: string;
+    color?: string;
+  }
+
   // Categorías base del sistema
-  const baseCategories = [
+  const baseCategories: Category[] = [
     { value: 'all', label: 'Todas las categorías' },
     { value: 'accesorios-gaming', label: 'Accesorios Gaming' },
     { value: 'almacenamiento', label: 'Almacenamiento' },
@@ -49,7 +55,7 @@ const NewSalePage = () => {
   ];
 
   // Categorías personalizadas desde localStorage
-  const [customCategories, setCustomCategories] = useState<any[]>(() => {
+  const [customCategories, setCustomCategories] = useState<Category[]>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('customCategories');
       return saved ? JSON.parse(saved) : [];
@@ -58,9 +64,9 @@ const NewSalePage = () => {
   });
 
   // Combinar categorías base y personalizadas
-  const categories = [
+  const categories: Category[] = [
     ...baseCategories,
-    ...customCategories.map((cat: any) => ({
+    ...customCategories.map((cat: Category) => ({
       value: cat.value,
       label: cat.label,
       color: cat.color
