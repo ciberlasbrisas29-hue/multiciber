@@ -495,7 +495,8 @@ const ReportsPage = () => {
                 labelLine={false}
                 label={(props: PieLabelRenderProps) => {
                   const { name, percent } = props;
-                  return `${name}: ${(percent * 100).toFixed(1)}%`;
+                  const percentage = percent !== undefined ? percent * 100 : 0;
+                  return `${name}: ${percentage.toFixed(1)}%`;
                 }}
                 outerRadius={80}
                 fill="#8884d8"
