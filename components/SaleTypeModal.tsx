@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { X, Package, DollarSign } from 'lucide-react';
+import { X, Package, DollarSign, ArrowDown } from 'lucide-react';
 
 interface SaleTypeModalProps {
   isOpen: boolean;
@@ -14,12 +14,14 @@ const SaleTypeModal: React.FC<SaleTypeModalProps> = ({ isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
-  const handleSelectType = (type: 'product' | 'free') => {
+  const handleSelectType = (type: 'product' | 'free' | 'expense') => {
     if (type === 'product') {
       router.push('/sales/new');
-    } else {
+    } else if (type === 'free') {
       // Para venta libre, redirigir a una ruta específica o usar la misma con parámetros
       router.push('/sales/free');
+    } else if (type === 'expense') {
+      router.push('/expenses/new');
     }
     onClose();
   };
@@ -43,9 +45,9 @@ const SaleTypeModal: React.FC<SaleTypeModalProps> = ({ isOpen, onClose }) => {
           {/* Opción 1: Venta de productos */}
           <button
             onClick={() => handleSelectType('product')}
-            className="w-full p-5 rounded-2xl border-2 border-purple-200 hover:border-purple-400 bg-gradient-to-br from-purple-50 to-indigo-50 transition-all duration-200 active:scale-95 flex items-start space-x-4"
+            className="w-full p-5 rounded-2xl border-2 border-green-200 hover:border-green-400 bg-gradient-to-br from-green-50 to-emerald-50 transition-all duration-200 active:scale-95 flex items-start space-x-4"
           >
-            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center flex-shrink-0 shadow-lg">
+            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center flex-shrink-0 shadow-lg">
               <Package className="w-7 h-7 text-white" />
             </div>
             <div className="flex-1 text-left">
@@ -61,9 +63,9 @@ const SaleTypeModal: React.FC<SaleTypeModalProps> = ({ isOpen, onClose }) => {
           {/* Opción 2: Venta libre */}
           <button
             onClick={() => handleSelectType('free')}
-            className="w-full p-5 rounded-2xl border-2 border-indigo-200 hover:border-indigo-400 bg-gradient-to-br from-indigo-50 to-blue-50 transition-all duration-200 active:scale-95 flex items-start space-x-4"
+            className="w-full p-5 rounded-2xl border-2 border-green-200 hover:border-green-400 bg-gradient-to-br from-green-50 to-emerald-50 transition-all duration-200 active:scale-95 flex items-start space-x-4"
           >
-            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center flex-shrink-0 shadow-lg">
+            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center flex-shrink-0 shadow-lg">
               <DollarSign className="w-7 h-7 text-white" />
             </div>
             <div className="flex-1 text-left">
@@ -72,6 +74,24 @@ const SaleTypeModal: React.FC<SaleTypeModalProps> = ({ isOpen, onClose }) => {
               </h3>
               <p className="text-sm text-gray-600 leading-relaxed">
                 Registra un ingreso sin seleccionar productos de tu inventario.
+              </p>
+            </div>
+          </button>
+
+          {/* Opción 3: Nuevo Gasto */}
+          <button
+            onClick={() => handleSelectType('expense')}
+            className="w-full p-5 rounded-2xl border-2 border-red-200 hover:border-red-400 bg-gradient-to-br from-red-50 to-orange-50 transition-all duration-200 active:scale-95 flex items-start space-x-4"
+          >
+            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center flex-shrink-0 shadow-lg">
+              <ArrowDown className="w-7 h-7 text-white" />
+            </div>
+            <div className="flex-1 text-left">
+              <h3 className="text-lg font-bold text-gray-900 mb-1">
+                Nuevo Gasto
+              </h3>
+              <p className="text-sm text-gray-600 leading-relaxed">
+                Registra un egreso o costo de tu negocio.
               </p>
             </div>
           </button>

@@ -1,15 +1,48 @@
 import { NextResponse } from 'next/server';
-import { headers } from 'next/headers';
+import { cookies } from 'next/headers';
 import dbConnect from '@/lib/db';
 import Expense from '@/lib/models/Expense';
+import User from '@/lib/models/User';
+import jwt from 'jsonwebtoken';
+
+// Helper function to get user from token
+async function getUserFromToken(req) {
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get('token')?.value;
+
+    if (!token) {
+      console.log('No se encontró token de autenticación.');
+      return null;
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret-key');
+    const user = await User.findById(decoded.id);
+    
+    if (!user) {
+      console.log('Usuario no encontrado para el token dado.');
+    }
+    return user;
+  } catch (error) {
+    console.error('Error verificando token en getUserFromToken:', error);
+    return null;
+  }
+}
 
 // @desc    Obtener todos los gastos
 export async function GET(req) {
   await dbConnect();
   
   try {
-    const headersList = headers();
-    const userId = headersList.get('x-user-id');
+    const user = await getUserFromToken(req);
+    
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: 'No autorizado' }, 
+        { status: 401 }
+      );
+    }
+
     const { searchParams } = new URL(req.url);
     
     const page = parseInt(searchParams.get('page') || '1');
@@ -19,7 +52,7 @@ export async function GET(req) {
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
 
-    const filters = { createdBy: userId };
+    const filters = { createdBy: user._id };
     
     if (category) filters.category = category;
     if (status) filters.status = status;
@@ -34,7 +67,8 @@ export async function GET(req) {
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
-      .populate('createdBy', 'username');
+      .populate('createdBy', 'username')
+      .lean();
 
     const total = await Expense.countDocuments(filters);
 
@@ -59,8 +93,15 @@ export async function POST(req) {
   await dbConnect();
 
   try {
-    const headersList = headers();
-    const userId = headersList.get('x-user-id');
+    const user = await getUserFromToken(req);
+    
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: 'No autorizado' }, 
+        { status: 401 }
+      );
+    }
+
     const body = await req.json();
 
     const { description, amount, category, paymentMethod } = body;
@@ -71,7 +112,7 @@ export async function POST(req) {
 
     const expense = new Expense({
       ...body,
-      createdBy: userId,
+      createdBy: user._id,
     });
 
     await expense.save();

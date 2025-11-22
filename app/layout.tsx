@@ -20,7 +20,6 @@ export const metadata: Metadata = {
   title: "Multiciber - Sistema de Gestión",
   description: "Sistema de gestión completo para negocios tipo cibercafé/tienda de tecnología",
   manifest: "/manifest.json",
-  themeColor: "#7c3aed",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -35,6 +34,15 @@ export const metadata: Metadata = {
       { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
     ],
   },
+};
+
+export const viewport = {
+  themeColor: "#7c3aed",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

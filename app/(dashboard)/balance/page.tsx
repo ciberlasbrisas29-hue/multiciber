@@ -1,682 +1,681 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import {
-  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, AreaChart, Area,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
-} from 'recharts';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import { toPng } from 'html-to-image';
-import { format, startOfMonth, endOfMonth } from 'date-fns';
-import { es } from 'date-fns/locale';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import DashboardLayout from '@/components/DashboardLayout';
 import {
-  Calendar, Download, TrendingUp, TrendingDown,
-  DollarSign, Users, FileText, BarChart3,
-  AlertTriangle, CheckCircle, Info, X
+  Calendar, ArrowUp, ArrowDown, Clock,
+  TrendingUp, TrendingDown, DollarSign, FileText,
+  AlertCircle, CheckCircle, Minus, Plus, X
 } from 'lucide-react';
+import { dashboardService, salesService, expensesService } from '@/services/api';
 
-const COLORS = ['#0891b2', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+interface Transaction {
+  id: string;
+  type: 'sale' | 'expense';
+  concept: string;
+  paymentMethod?: string;
+  date: Date;
+  amount: number;
+  description?: string;
+}
 
-interface BalanceData {
-  summary: {
-    totalSales: number;
-    totalPaidSales: number;
-    totalDebts: number;
-    totalTransactions: number;
-    averageTicket: number;
-    grossProfit: number;
-    totalExpenses: number;
-    netProfit: number;
-    profitMargin: number;
-    totalRevenue: number;
-    estimatedCost: number;
-  };
-  charts: {
-    dailySales: Array<{ date: string; sales: number; cost: number; profit: number; transactions: number }>;
-    paymentMethods: Array<{ method: string; total: number; count: number }>;
-    weeklyTrend: Array<{ day: string; sales: number; transactions: number }>;
-    topProducts: Array<{ _id: string; totalQuantity: number; totalRevenue: number }>;
-  };
-  topProducts: Array<{
-    _id: string;
-    totalQuantity: number;
-    totalRevenue: number;
-    averagePrice: number;
-  }>;
-  paymentMethods: Array<{
-    _id: string;
-    total: number;
-    count: number;
-  }>;
-  dateRange: {
-    startDate: string;
-    endDate: string;
-  };
-  period: string;
+interface Debt {
+  id: string;
+  type: 'receivable' | 'payable';
+  concept: string;
+  amount: number;
+  dueDate?: Date;
+  createdAt: Date;
+  description?: string;
 }
 
 const BalancePage = () => {
-  const [balanceData, setBalanceData] = useState<BalanceData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [selectedPeriod, setSelectedPeriod] = useState('month');
-  const [customDateRange, setCustomDateRange] = useState({
-    startDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
-    endDate: format(endOfMonth(new Date()), 'yyyy-MM-dd')
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  
+  // Inicializar activeTab basado en el parámetro de la URL
+  const [activeTab, setActiveTab] = useState<'activity' | 'debts'>(() => {
+    return tabParam === 'debts' ? 'debts' : 'activity';
   });
-  const [showCustomDate, setShowCustomDate] = useState(false);
-  const [exportingPDF, setExportingPDF] = useState(false);
-  const [notifications, setNotifications] = useState<Array<{
-    id: string;
-    type: 'success' | 'warning' | 'error' | 'info';
-    message: string;
-    timestamp: Date;
-  }>>([]);
-  const reportRef = useRef<HTMLDivElement>(null);
+  const [activeSubTab, setActiveSubTab] = useState<'income' | 'expenses'>('income');
+  const [debtSubTab, setDebtSubTab] = useState<'receivable' | 'payable'>('receivable');
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [dateRange, setDateRange] = useState<'today' | 'yesterday' | 'last7days' | 'custom'>('today');
+  const [loading, setLoading] = useState(true);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [debts, setDebts] = useState<Debt[]>([]);
+  const [summary, setSummary] = useState({
+    totalIncome: 0,
+    totalExpenses: 0,
+    balance: 0
+  });
 
-  const periodOptions = [
-    { value: 'today', label: 'Hoy' },
-    { value: 'yesterday', label: 'Ayer' },
-    { value: 'week', label: 'Esta Semana' },
-    { value: 'month', label: 'Este Mes' },
-    { value: 'year', label: 'Este Año' },
-    { value: 'custom', label: 'Personalizado' }
-  ];
+  // Actualizar activeTab cuando cambia el parámetro de la URL
+  useEffect(() => {
+    if (tabParam === 'debts') {
+      setActiveTab('debts');
+    }
+  }, [tabParam]);
 
-  const fetchBalanceData = useCallback(async () => {
+  const getDateRange = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(today);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    switch (dateRange) {
+      case 'today':
+        return {
+          start: today.toISOString(),
+          end: endOfDay.toISOString(),
+          label: 'Hoy'
+        };
+      case 'yesterday':
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const endOfYesterday = new Date(yesterday);
+        endOfYesterday.setHours(23, 59, 59, 999);
+        return {
+          start: yesterday.toISOString(),
+          end: endOfYesterday.toISOString(),
+          label: 'Ayer'
+        };
+      case 'last7days':
+        const sevenDaysAgo = new Date(today);
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        return {
+          start: sevenDaysAgo.toISOString(),
+          end: endOfDay.toISOString(),
+          label: 'Últimos 7 días'
+        };
+      case 'custom':
+        const customStart = new Date(selectedDate);
+        customStart.setHours(0, 0, 0, 0);
+        const customEnd = new Date(selectedDate);
+        customEnd.setHours(23, 59, 59, 999);
+        return {
+          start: customStart.toISOString(),
+          end: customEnd.toISOString(),
+          label: selectedDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })
+        };
+      default:
+        return {
+          start: today.toISOString(),
+          end: endOfDay.toISOString(),
+          label: 'Hoy'
+        };
+    }
+  };
+
+  const fetchDailyTransactions = useCallback(async () => {
     try {
       setLoading(true);
-      let url = `/api/balance?period=${selectedPeriod}`;
+      const { start, end } = getDateRange();
+      
+      // Obtener ventas y gastos recientes
+      const [salesResponse, expensesResponse] = await Promise.all([
+        dashboardService.getRecentSales(100),
+        dashboardService.getRecentExpenses(100)
+      ]);
 
-      if (selectedPeriod === 'custom') {
-        url += `&startDate=${customDateRange.startDate}&endDate=${customDateRange.endDate}`;
+      const formattedTransactions: Transaction[] = [];
+
+      // Procesar ventas (ingresos)
+      if (salesResponse.success && salesResponse.data) {
+        salesResponse.data.forEach((sale: any) => {
+          const saleDate = new Date(sale.createdAt);
+          const range = getDateRange();
+          const startDate = new Date(range.start);
+          const endDate = new Date(range.end);
+
+          if (saleDate >= startDate && saleDate <= endDate && sale.status === 'paid') {
+            formattedTransactions.push({
+              id: sale._id,
+              type: 'sale',
+              concept: sale.client?.name 
+                ? `Venta: ${sale.client.name}` 
+                : sale.saleNumber 
+                  ? `Venta #${sale.saleNumber}` 
+                  : 'Venta',
+              paymentMethod: sale.paymentMethod || 'Efectivo',
+              date: saleDate,
+              amount: sale.total || 0,
+              description: sale.items?.length > 0 
+                ? `${sale.items.length} producto${sale.items.length > 1 ? 's' : ''}`
+                : undefined
+            });
+          }
+        });
       }
 
-      const response = await fetch(url);
-      const data = await response.json();
+      // Procesar gastos (egresos)
+      if (expensesResponse.success && expensesResponse.data) {
+        expensesResponse.data.forEach((expense: any) => {
+          const expenseDate = new Date(expense.createdAt);
+          const range = getDateRange();
+          const startDate = new Date(range.start);
+          const endDate = new Date(range.end);
 
-      if (data.success) {
-        setBalanceData(data.data);
-
-        const newNotifications = [];
-
-        if (data.data.summary.totalDebts > data.data.summary.totalSales * 0.3) {
-          newNotifications.push({
-            id: `debt-${Date.now()}`,
-            type: 'warning' as const,
-            message: `Las deudas representan el ${((data.data.summary.totalDebts / data.data.summary.totalSales) * 100).toFixed(0)}% de las ventas totales`,
-            timestamp: new Date()
-          });
-        }
-
-        if (data.data.summary.profitMargin > 40) {
-          newNotifications.push({
-            id: `profit-${Date.now()}`,
-            type: 'success' as const,
-            message: `¡Excelente margen de ganancia del ${data.data.summary.profitMargin.toFixed(1)}%!`,
-            timestamp: new Date()
-          });
-        } else if (data.data.summary.profitMargin < 15) {
-          newNotifications.push({
-            id: `lowprofit-${Date.now()}`,
-            type: 'warning' as const,
-            message: `Margen de ganancia bajo: ${data.data.summary.profitMargin.toFixed(1)}%`,
-            timestamp: new Date()
-          });
-        }
-
-        if (data.data.summary.totalTransactions === 0) {
-          newNotifications.push({
-            id: `notrans-${Date.now()}`,
-            type: 'info' as const,
-            message: 'No hay transacciones en el período seleccionado',
-            timestamp: new Date()
-          });
-        }
-
-        setNotifications(newNotifications);
+          if (expenseDate >= startDate && expenseDate <= endDate && expense.status === 'paid') {
+            formattedTransactions.push({
+              id: expense._id,
+              type: 'expense',
+              concept: expense.vendor?.name 
+                ? `Gasto: ${expense.vendor.name}` 
+                : expense.description 
+                  ? expense.description 
+                  : expense.category || 'Gasto',
+              paymentMethod: expense.paymentMethod || 'Efectivo',
+              date: expenseDate,
+              amount: expense.amount || 0,
+              description: expense.category
+            });
+          }
+        });
       }
-    } catch (error) {
-      console.error('Error fetching balance data:', error);
-      setNotifications([{
-        id: `error-${Date.now()}`,
-        type: 'error',
-        message: 'Error al cargar los datos del balance',
-        timestamp: new Date()
-      }]);
+
+      // Ordenar por fecha (más reciente primero)
+      formattedTransactions.sort((a, b) => b.date.getTime() - a.date.getTime());
+
+      // Calcular resumen
+      const totalIncome = formattedTransactions
+        .filter(t => t.type === 'sale')
+        .reduce((sum, t) => sum + t.amount, 0);
+      const totalExpenses = formattedTransactions
+        .filter(t => t.type === 'expense')
+        .reduce((sum, t) => sum + t.amount, 0);
+
+      setTransactions(formattedTransactions);
+      setSummary({
+        totalIncome,
+        totalExpenses,
+        balance: totalIncome - totalExpenses
+      });
+    } catch (err) {
+      console.error("Error fetching daily transactions:", err);
     } finally {
       setLoading(false);
     }
-  }, [selectedPeriod, customDateRange]);
+  }, [dateRange, selectedDate]);
+
+  const fetchDebts = useCallback(async () => {
+    try {
+      setLoading(true);
+      
+      // Obtener ventas y gastos con deudas usando los servicios de API
+      const [salesResponse, expensesResponse] = await Promise.allSettled([
+        salesService.getSales({ status: 'debt', limit: 100 }),
+        expensesService.getExpenses({ status: 'pending', limit: 100 })
+      ]);
+
+      const debtsList: Debt[] = [];
+
+      // Procesar deudas por cobrar (ventas con status 'debt')
+      if (salesResponse.status === 'fulfilled' && salesResponse.value?.success && salesResponse.value?.data) {
+        salesResponse.value.data.forEach((sale: any) => {
+          const remainingAmount = (sale.total || 0) - (sale.paidAmount || 0);
+          if (remainingAmount > 0) {
+            debtsList.push({
+              id: sale._id,
+              type: 'receivable',
+              concept: sale.client?.name 
+                ? `Venta: ${sale.client.name}` 
+                : sale.saleNumber 
+                  ? `Venta #${sale.saleNumber}` 
+                  : 'Venta',
+              amount: remainingAmount,
+              dueDate: sale.dueDate ? new Date(sale.dueDate) : undefined,
+              createdAt: new Date(sale.createdAt),
+              description: sale.items?.length > 0 
+                ? `${sale.items.length} producto${sale.items.length > 1 ? 's' : ''}`
+                : undefined
+            });
+          }
+        });
+      }
+
+      // Procesar deudas por pagar (gastos con status 'pending')
+      if (expensesResponse.status === 'fulfilled' && expensesResponse.value?.success && expensesResponse.value?.data) {
+        expensesResponse.value.data.forEach((expense: any) => {
+          debtsList.push({
+            id: expense._id,
+            type: 'payable',
+            concept: expense.vendor?.name 
+              ? `Gasto: ${expense.vendor.name}` 
+              : expense.description 
+                ? expense.description 
+                : expense.category || 'Gasto',
+            amount: expense.amount || 0,
+            dueDate: expense.dueDate ? new Date(expense.dueDate) : undefined,
+            createdAt: new Date(expense.createdAt),
+            description: expense.category
+          });
+        });
+      }
+
+      // Ordenar por fecha de vencimiento o creación
+      debtsList.sort((a, b) => {
+        const dateA = a.dueDate?.getTime() || a.createdAt.getTime();
+        const dateB = b.dueDate?.getTime() || b.createdAt.getTime();
+        return dateA - dateB;
+      });
+
+      setDebts(debtsList);
+    } catch (err) {
+      // Silenciar errores - simplemente no mostrar deudas si hay un error
+      setDebts([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    fetchBalanceData();
-  }, [fetchBalanceData]);
-
-  const handlePeriodChange = (period: string) => {
-    setSelectedPeriod(period);
-    setShowCustomDate(period === 'custom');
-  };
-
-  const dismissNotification = (id: string) => {
-    setNotifications(prev => prev.filter(notification => notification.id !== id));
-  };
-
-  const getNotificationIcon = (type: string) => {
-    switch (type) {
-      case 'success': return <CheckCircle className="w-5 h-5" />;
-      case 'warning': return <AlertTriangle className="w-5 h-5" />;
-      case 'error': return <AlertTriangle className="w-5 h-5" />;
-      case 'info': return <Info className="w-5 h-5" />;
-      default: return <Info className="w-5 h-5" />;
+    if (activeTab === 'activity') {
+      fetchDailyTransactions();
+    } else {
+      fetchDebts();
     }
-  };
-
-  const getNotificationColors = (type: string) => {
-    switch (type) {
-      case 'success': return 'bg-green-50 border-green-200 text-green-800';
-      case 'warning': return 'bg-yellow-50 border-yellow-200 text-yellow-800';
-      case 'error': return 'bg-red-50 border-red-200 text-red-800';
-      case 'info': return 'bg-blue-50 border-blue-200 text-blue-800';
-      default: return 'bg-gray-50 border-gray-200 text-gray-800';
-    }
-  };
+  }, [activeTab, fetchDailyTransactions, fetchDebts]);
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-SV', {
+    return new Intl.NumberFormat('es-MX', {
       style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2,
+      currency: 'MXN',
+      minimumFractionDigits: 2
     }).format(amount);
   };
 
-  const loadImage = (url: string): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.crossOrigin = 'Anonymous';
-      img.src = url;
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          reject(new Error('Could not get canvas context'));
-          return;
-        }
-        ctx.drawImage(img, 0, 0);
-        resolve(canvas.toDataURL('image/png'));
-      };
-      img.onerror = reject;
+  const formatDateTime = (date: Date) => {
+    return date.toLocaleDateString('es-ES', {
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit'
     });
   };
 
-  const exportToPDF = async () => {
-    if (!reportRef.current || !balanceData) return;
-
-    try {
-      setExportingPDF(true);
-
-      let logoData = null;
-      try {
-        logoData = await loadImage('/assets/images/logo.png');
-      } catch (e) {
-        console.warn('Could not load logo', e);
-      }
-
-      const imgData = await toPng(reportRef.current, {
-        backgroundColor: '#ffffff',
-        pixelRatio: 1.5,
-        filter: (node) => {
-          return node.id !== 'pdf-exclude-summary';
-        }
-      });
-
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-
-      const headerColor = [8, 145, 178];
-      pdf.setFillColor(headerColor[0], headerColor[1], headerColor[2]);
-      pdf.rect(0, 0, pdfWidth, 40, 'F');
-
-      if (logoData) {
-        const logoWidth = 30;
-        const logoHeight = 30;
-        pdf.addImage(logoData, 'PNG', 15, 5, logoWidth, logoHeight);
-      }
-
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(24);
-      pdf.text('Reporte Financiero', logoData ? 50 : 20, 20);
-
-      pdf.setFontSize(12);
-      pdf.text(`Generado: ${format(new Date(), "d 'de' MMMM, yyyy HH:mm", { locale: es })}`, logoData ? 50 : 20, 30);
-
-      pdf.setFillColor(255, 255, 255);
-      pdf.roundedRect(pdfWidth - 70, 10, 60, 20, 3, 3, 'F');
-      pdf.setTextColor(8, 145, 178);
-      pdf.setFontSize(10);
-      pdf.text('Período:', pdfWidth - 65, 16);
-      pdf.setFontSize(12);
-      pdf.setFont('helvetica', 'bold');
-      const periodLabel = periodOptions.find(p => p.value === selectedPeriod)?.label || selectedPeriod;
-      pdf.text(periodLabel, pdfWidth - 65, 24);
-
-      let currentY = 50;
-
-      pdf.setTextColor(50, 50, 50);
-      pdf.setFontSize(16);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('Resumen Financiero', 15, currentY);
-      currentY += 10;
-
-      const summaryData = [
-        ['Ventas Totales', formatCurrency(balanceData.summary.totalSales)],
-        ['Ganancia Bruta', formatCurrency(balanceData.summary.grossProfit)],
-        ['Gastos Operativos', formatCurrency(balanceData.summary.totalExpenses)],
-        ['Ganancia Neta', formatCurrency(balanceData.summary.netProfit)],
-        ['Margen', `${balanceData.summary.profitMargin.toFixed(1)}%`],
-        ['Deudas', formatCurrency(balanceData.summary.totalDebts)]
-      ];
-
-      const cardWidth = (pdfWidth - 40) / 2;
-      const cardHeight = 12;
-
-      summaryData.forEach((item, index) => {
-        const x = 15 + (index % 2) * (cardWidth + 10);
-        const y = currentY + Math.floor(index / 2) * (cardHeight + 5);
-
-        pdf.setFillColor(245, 247, 250);
-        pdf.roundedRect(x, y, cardWidth, cardHeight, 2, 2, 'F');
-
-        pdf.setFontSize(10);
-        pdf.setTextColor(100, 100, 100);
-        pdf.setFont('helvetica', 'normal');
-        pdf.text(item[0], x + 5, y + 8);
-
-        pdf.setFontSize(11);
-        pdf.setTextColor(30, 30, 30);
-        pdf.setFont('helvetica', 'bold');
-        pdf.text(item[1], x + cardWidth - 5, y + 8, { align: 'right' });
-      });
-
-      currentY += Math.ceil(summaryData.length / 2) * (cardHeight + 5) + 10;
-
-      pdf.setFontSize(14);
-      pdf.setTextColor(8, 145, 178);
-      pdf.text('Métodos de Pago', 15, currentY);
-      currentY += 5;
-
-      const paymentHeaders = [['Método', 'Transacciones', 'Total']];
-      const paymentRows = balanceData.paymentMethods.map(pm => [
-        pm._id === 'cash' ? 'Efectivo' : pm._id === 'card' ? 'Tarjeta' : pm._id === 'transfer' ? 'Transferencia' : 'Otro',
-        pm.count,
-        formatCurrency(pm.total)
-      ]);
-
-      autoTable(pdf, {
-        startY: currentY,
-        head: paymentHeaders,
-        body: paymentRows,
-        theme: 'grid',
-        headStyles: { fillColor: [8, 145, 178], textColor: 255 },
-        styles: { fontSize: 10, cellPadding: 3 },
-        columnStyles: { 2: { halign: 'right' } },
-        margin: { left: 15, right: 15 }
-      });
-
-      currentY = (pdf as any).lastAutoTable.finalY + 15;
-
-      pdf.setFontSize(14);
-      pdf.setTextColor(8, 145, 178);
-      pdf.text('Productos Más Vendidos', 15, currentY);
-      currentY += 5;
-
-      const productHeaders = [['Producto', 'Cantidad', 'Precio Prom.', 'Total']];
-      const productRows = balanceData.topProducts.slice(0, 10).map(p => [
-        p._id,
-        p.totalQuantity,
-        formatCurrency(p.averagePrice),
-        formatCurrency(p.totalRevenue)
-      ]);
-
-      autoTable(pdf, {
-        startY: currentY,
-        head: productHeaders,
-        body: productRows,
-        theme: 'grid',
-        headStyles: { fillColor: [8, 145, 178], textColor: 255 },
-        styles: { fontSize: 10, cellPadding: 3 },
-        columnStyles: { 2: { halign: 'right' }, 3: { halign: 'right' } },
-        margin: { left: 15, right: 15 }
-      });
-
-      currentY = (pdf as any).lastAutoTable.finalY + 15;
-
-      if (currentY + 100 > pdfHeight) {
-        pdf.addPage();
-        currentY = 20;
-      }
-
-      pdf.setFontSize(14);
-      pdf.setTextColor(8, 145, 178);
-      pdf.text('Gráficos Detallados', 15, currentY);
-      currentY += 10;
-
-      const imgProps = pdf.getImageProperties(imgData);
-      const pdfImgWidth = pdfWidth - 30;
-      const pdfImgHeight = (imgProps.height * pdfImgWidth) / imgProps.width;
-
-      pdf.addImage(imgData, 'PNG', 15, currentY, pdfImgWidth, pdfImgHeight);
-
-      const pageCount = (pdf as any).internal.getNumberOfPages();
-      for (let i = 1; i <= pageCount; i++) {
-        pdf.setPage(i);
-        pdf.setFontSize(8);
-        pdf.setTextColor(150, 150, 150);
-        pdf.text(
-          `Página ${i} de ${pageCount} - Multiciber Dashboard`,
-          pdfWidth / 2,
-          pdfHeight - 10,
-          { align: 'center' }
-        );
-      }
-
-      pdf.save(`balance-${selectedPeriod}-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
-
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      alert('Hubo un error al generar el PDF. Por favor intenta de nuevo.');
-    } finally {
-      setExportingPDF(false);
-    }
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('es-ES', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    });
   };
+
+  const filteredTransactions = transactions.filter(t => 
+    activeSubTab === 'income' ? t.type === 'sale' : t.type === 'expense'
+  );
+
+  const filteredDebts = debts.filter(d => 
+    debtSubTab === 'receivable' ? d.type === 'receivable' : d.type === 'payable'
+  );
+
+  const { label } = getDateRange();
 
   return (
     <DashboardLayout>
-      <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Balance Financiero</h1>
-            <p className="text-gray-500">Resumen de ingresos, gastos y rentabilidad</p>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <div className="flex bg-white rounded-lg shadow-sm p-1 border border-gray-200">
-              {periodOptions.map((option) => (
+      <div className="min-h-screen pb-24">
+        {/* Pestañas Principales */}
+        <div className="bg-white rounded-2xl shadow-md p-1 mb-4 mx-4 mt-4 border border-purple-100">
+          <div className="flex">
                 <button
-                  key={option.value}
-                  onClick={() => handlePeriodChange(option.value)}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${selectedPeriod === option.value
-                      ? 'bg-teal-600 text-white shadow-sm'
-                      : 'text-gray-600 hover:bg-gray-100'
-                    }`}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-
-            <button
-              onClick={exportToPDF}
-              disabled={exportingPDF || loading}
-              className="flex items-center px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium shadow-sm transition-colors disabled:opacity-50"
+              onClick={() => setActiveTab('activity')}
+              className={`flex-1 py-3 text-center font-semibold rounded-xl transition-all ${
+                activeTab === 'activity'
+                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md'
+                  : 'text-gray-500 hover:bg-gray-50'
+              }`}
             >
-              {exportingPDF ? (
-                <span className="animate-pulse">Generando...</span>
-              ) : (
-                <>
-                  <Download className="w-4 h-4 mr-2" />
-                  Exportar PDF
-                </>
-              )}
+              Actividad Diaria
+                </button>
+            <button
+              onClick={() => setActiveTab('debts')}
+              className={`flex-1 py-3 text-center font-semibold rounded-xl transition-all ${
+                activeTab === 'debts'
+                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md'
+                  : 'text-gray-500 hover:bg-gray-50'
+              }`}
+            >
+              Deudas Pendientes
             </button>
           </div>
         </div>
 
-        {notifications.length > 0 && (
-          <div className="space-y-2">
-            {notifications.map((notification) => (
-              <div
-                key={notification.id}
-                className={`flex items-center justify-between p-4 rounded-lg border ${getNotificationColors(notification.type)}`}
-              >
-                <div className="flex items-center space-x-3">
-                  {getNotificationIcon(notification.type)}
-                  <span className="font-medium">{notification.message}</span>
+        {activeTab === 'activity' ? (
+          <>
+            {/* Tarjeta de Resumen */}
+            <div className="bg-white rounded-3xl shadow-xl p-6 mb-6 mx-4 border border-purple-100">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex-1">
+                  <p className="text-sm text-gray-500 mb-1">Balance del {label}</p>
+                  <h2 className={`text-4xl font-bold ${
+                    summary.balance < 0 
+                      ? 'text-red-600' 
+                      : 'bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent'
+                  }`}>
+                    {formatCurrency(summary.balance)}
+                  </h2>
                 </div>
+                {summary.balance >= 0 && (
+                  <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold flex items-center">
+                    <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                    Positivo
+                  </span>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center">
+                    <TrendingUp className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Ingresos</p>
+                    <p className="text-lg font-bold text-green-600">{formatCurrency(summary.totalIncome)}</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center">
+                    <TrendingDown className="w-5 h-5 text-red-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Egresos</p>
+                    <p className="text-lg font-bold text-red-600">{formatCurrency(summary.totalExpenses)}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Selector de Período */}
+            <div className="bg-white rounded-2xl shadow-md p-4 mb-4 mx-4 border border-purple-100">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-gray-700">Período</h3>
                 <button
-                  onClick={() => dismissNotification(notification.id)}
-                  className="p-1 hover:bg-black/5 rounded-full transition-colors"
+                  onClick={() => {
+                    const input = document.createElement('input');
+                    input.type = 'date';
+                    input.value = selectedDate.toISOString().split('T')[0];
+                    input.onchange = (e: any) => {
+                      setSelectedDate(new Date(e.target.value));
+                      setDateRange('custom');
+                    };
+                    input.click();
+                  }}
+                  className="p-2 rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-100 transition-colors"
                 >
-                  <X className="w-4 h-4" />
+                  <Calendar className="w-5 h-5" />
                 </button>
               </div>
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                {(['today', 'yesterday', 'last7days'] as const).map((range) => (
+                  <button
+                    key={range}
+                    onClick={() => setDateRange(range)}
+                    className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
+                      dateRange === range
+                        ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {range === 'today' ? 'Hoy' : range === 'yesterday' ? 'Ayer' : 'Últimos 7 días'}
+                  </button>
             ))}
           </div>
-        )}
+            </div>
 
-        {showCustomDate && (
-          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-wrap gap-4 items-end animate-in fade-in slide-in-from-top-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Desde</label>
-              <input
-                type="date"
-                value={customDateRange.startDate}
-                onChange={(e) => setCustomDateRange(prev => ({ ...prev, startDate: e.target.value }))}
-                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 sm:text-sm p-2 border"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Hasta</label>
-              <input
-                type="date"
-                value={customDateRange.endDate}
-                onChange={(e) => setCustomDateRange(prev => ({ ...prev, endDate: e.target.value }))}
-                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 sm:text-sm p-2 border"
-              />
-            </div>
+            {/* Pestañas de Movimientos */}
+            <div className="bg-white rounded-3xl shadow-lg mb-6 mx-4 border border-purple-100 overflow-hidden">
+              <div className="flex border-b border-gray-100">
+                <button
+                  onClick={() => setActiveSubTab('income')}
+                  className={`flex-1 py-4 text-center font-semibold transition-colors ${
+                    activeSubTab === 'income'
+                      ? 'text-green-600 border-b-2 border-green-600'
+                      : 'text-gray-500'
+                  }`}
+                >
+                  Ingresos
+                </button>
             <button
-              onClick={fetchBalanceData}
-              className="px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 font-medium shadow-sm"
-            >
-              Aplicar Filtro
+                  onClick={() => setActiveSubTab('expenses')}
+                  className={`flex-1 py-4 text-center font-semibold transition-colors ${
+                    activeSubTab === 'expenses'
+                      ? 'text-red-600 border-b-2 border-red-600'
+                      : 'text-gray-500'
+                  }`}
+                >
+                  Egresos
             </button>
           </div>
-        )}
 
+              <div className="p-4">
         {loading ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
-          </div>
-        ) : balanceData ? (
-          <div ref={reportRef} className="space-y-6 bg-gray-50 p-4 rounded-xl">
-            <div id="pdf-exclude-summary" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="bg-teal-100 p-3 rounded-lg">
-                    <DollarSign className="w-6 h-6 text-teal-600" />
+                  <div className="flex justify-center items-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
                   </div>
-                  <span className="text-sm font-medium text-gray-500">Ventas Totales</span>
+                ) : filteredTransactions.length === 0 ? (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                      {activeSubTab === 'income' ? (
+                        <ArrowUp className="w-8 h-8 text-gray-400" />
+                      ) : (
+                        <ArrowDown className="w-8 h-8 text-gray-400" />
+                      )}
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900">{formatCurrency(balanceData.summary.totalSales)}</h3>
-                <p className="text-sm text-teal-600 mt-1 flex items-center">
-                  <TrendingUp className="w-3 h-3 mr-1" />
-                  {balanceData.summary.totalTransactions} transacciones
-                </p>
+                    <p className="text-gray-500 text-sm">
+                      No hay {activeSubTab === 'income' ? 'ingresos' : 'egresos'} para este período
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {filteredTransactions.map((transaction) => (
+                      <div
+                        key={transaction.id}
+                        className="flex items-center p-3 rounded-2xl hover:bg-gray-50 transition-colors"
+                      >
+                        {/* Icono */}
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center mr-4 flex-shrink-0 ${
+                          transaction.type === 'sale' ? 'bg-green-100' : 'bg-red-100'
+                        }`}>
+                          {transaction.type === 'sale' ? (
+                            <ArrowUp className="w-6 h-6 text-green-600" />
+                          ) : (
+                            <ArrowDown className="w-6 h-6 text-red-600" />
+                          )}
+                </div>
+
+                        {/* Información */}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-gray-800 truncate">
+                            {transaction.concept}
+                          </p>
+                          <div className="flex items-center space-x-2 mt-1 flex-wrap">
+                            <div className="flex items-center text-xs text-gray-500">
+                              <DollarSign className="w-3 h-3 mr-1" />
+                              <span>{transaction.paymentMethod || 'Efectivo'}</span>
+              </div>
+                            <span className="text-gray-400">•</span>
+                            <div className="flex items-center text-xs text-gray-500">
+                              <Clock className="w-3 h-3 mr-1" />
+                              {formatDateTime(transaction.date)}
+                  </div>
+                </div>
               </div>
 
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="bg-green-100 p-3 rounded-lg">
-                    <TrendingUp className="w-6 h-6 text-green-600" />
-                  </div>
-                  <span className="text-sm font-medium text-gray-500">Ganancia Neta</span>
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900">{formatCurrency(balanceData.summary.netProfit)}</h3>
-                <p className={`text-sm mt-1 flex items-center ${balanceData.summary.profitMargin >= 30 ? 'text-green-600' : 'text-yellow-600'}`}>
-                  {balanceData.summary.profitMargin >= 30 ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
-                  {balanceData.summary.profitMargin.toFixed(1)}% Margen
-                </p>
-              </div>
-
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="bg-orange-100 p-3 rounded-lg">
-                    <FileText className="w-6 h-6 text-orange-600" />
-                  </div>
-                  <span className="text-sm font-medium text-gray-500">Gastos Operativos</span>
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900">{formatCurrency(balanceData.summary.totalExpenses)}</h3>
-                <p className="text-sm text-gray-500 mt-1">Del período</p>
-              </div>
-
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="bg-red-100 p-3 rounded-lg">
-                    <AlertTriangle className="w-6 h-6 text-red-600" />
-                  </div>
-                  <span className="text-sm font-medium text-gray-500">Deudas Pendientes</span>
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900">{formatCurrency(balanceData.summary.totalDebts)}</h3>
-                <p className="text-sm text-red-600 mt-1">Por cobrar</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-4 md:p-6">
-                <div className="flex items-center space-x-2 mb-4">
-                  <div className="bg-teal-100 p-1.5 rounded-lg">
-                    <BarChart3 className="w-4 h-4 text-teal-600" />
-                  </div>
-                  <h3 className="text-lg md:text-xl font-bold text-gray-900">Ventas Diarias</h3>
-                </div>
-                <ResponsiveContainer width="100%" height={250}>
-                  <BarChart data={balanceData.charts.dailySales}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip formatter={(value: number) => [formatCurrency(value), 'Ventas']} />
-                    <Bar dataKey="sales" fill="#0891b2" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-
-              <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-4 md:p-6">
-                <div className="flex items-center space-x-2 mb-4">
-                  <div className="bg-purple-100 p-1.5 rounded-lg">
-                    <TrendingUp className="w-4 h-4 text-purple-600" />
-                  </div>
-                  <h3 className="text-lg md:text-xl font-bold text-gray-900">Rentabilidad Diaria</h3>
-                </div>
-                <ResponsiveContainer width="100%" height={250}>
-                  <AreaChart data={balanceData.charts.dailySales}>
-                    <defs>
-                      <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#0891b2" stopOpacity={0.8} />
-                        <stop offset="95%" stopColor="#0891b2" stopOpacity={0} />
-                      </linearGradient>
-                      <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
-                        <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <Tooltip formatter={(value: number) => formatCurrency(value)} />
-                    <Legend />
-                    <Area type="monotone" dataKey="sales" name="Ingresos" stroke="#0891b2" fillOpacity={1} fill="url(#colorSales)" />
-                    <Area type="monotone" dataKey="profit" name="Ganancia Neta" stroke="#10b981" fillOpacity={1} fill="url(#colorProfit)" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-
-              <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-4 md:p-6">
-                <div className="flex items-center space-x-2 mb-4">
-                  <div className="bg-blue-100 p-1.5 rounded-lg">
-                    <DollarSign className="w-4 h-4 text-blue-600" />
-                  </div>
-                  <h3 className="text-lg md:text-xl font-bold text-gray-900">Métodos de Pago</h3>
-                </div>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={balanceData.charts.paymentMethods}
-                      cx="50%"
-                      cy="40%"
-                      outerRadius={70}
-                      dataKey="total"
-                      label={false}
-                    >
-                      {balanceData.charts.paymentMethods.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value: number) => [formatCurrency(value), 'Total']} />
-                    <Legend
-                      verticalAlign="bottom"
-                      height={36}
-                      iconType="circle"
-                      formatter={(value) => <span style={{ fontSize: '12px' }}>{value}</span>}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-
-              <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-4 md:p-6">
-                <div className="flex items-center space-x-2 mb-4">
-                  <div className="bg-green-100 p-1.5 rounded-lg">
-                    <TrendingUp className="w-4 h-4 text-green-600" />
-                  </div>
-                  <h3 className="text-lg md:text-xl font-bold text-gray-900">Tendencia Semanal</h3>
-                </div>
-                <ResponsiveContainer width="100%" height={250}>
-                  <LineChart data={balanceData.charts.weeklyTrend}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="day" />
-                    <YAxis />
-                    <Tooltip formatter={(value: number) => [formatCurrency(value), 'Ventas']} />
-                    <Line type="monotone" dataKey="sales" stroke="#10b981" strokeWidth={3} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-
-              <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-4 md:p-6 col-span-1 lg:col-span-2">
-                <div className="flex items-center space-x-2 mb-4">
-                  <div className="bg-orange-100 p-1.5 rounded-lg">
-                    <FileText className="w-4 h-4 text-orange-600" />
-                  </div>
-                  <h3 className="text-lg md:text-xl font-bold text-gray-900">Productos Más Vendidos</h3>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {balanceData.charts.topProducts.map((product: { _id: string; totalQuantity: number; totalRevenue: number }, index: number) => (
-                    <div key={product._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
-                      <div className="flex items-center space-x-3">
-                        <div className="bg-teal-600 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold shadow-sm">
-                          {index + 1}
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-900 truncate max-w-[150px]">{product._id}</p>
-                          <p className="text-xs text-gray-500">{product.totalQuantity} unidades</p>
+                        {/* Monto */}
+                        <div className="ml-4 flex-shrink-0">
+                          <p className={`text-lg font-bold ${
+                            transaction.type === 'sale' ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            {transaction.type === 'sale' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                          </p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-teal-700">{formatCurrency(product.totalRevenue)}</p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Pestañas de Deudas */}
+            <div className="bg-white rounded-3xl shadow-lg mb-6 mx-4 border border-purple-100 overflow-hidden">
+              <div className="flex border-b border-gray-100">
+                <button
+                  onClick={() => setDebtSubTab('receivable')}
+                  className={`flex-1 py-4 text-center font-semibold transition-colors ${
+                    debtSubTab === 'receivable'
+                      ? 'text-gray-900 border-b-2 border-gray-900'
+                      : 'text-gray-400'
+                  }`}
+                >
+                  Por Cobrar
+                </button>
+                <button
+                  onClick={() => setDebtSubTab('payable')}
+                  className={`flex-1 py-4 text-center font-semibold transition-colors ${
+                    debtSubTab === 'payable'
+                      ? 'text-gray-900 border-b-2 border-gray-900'
+                      : 'text-gray-400'
+                  }`}
+                >
+                  Por Pagar
+                </button>
+              </div>
+
+              <div className="p-4 min-h-[400px]">
+                {loading ? (
+                  <div className="flex justify-center items-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                  </div>
+                ) : filteredDebts.length === 0 ? (
+                  <div className="text-center py-12 flex flex-col items-center justify-center h-full">
+                    {/* Ilustración de billetes con X */}
+                    <div className="relative mb-6">
+                      {/* Stack de billetes verdes */}
+                      <div className="relative">
+                        <div className="w-24 h-32 bg-gradient-to-br from-green-400 to-green-600 rounded-lg shadow-lg transform rotate-[-8deg] relative z-10">
+                          <div className="absolute inset-0 bg-gradient-to-b from-green-300/50 to-transparent rounded-lg"></div>
+                          <div className="absolute top-2 left-2 right-2 h-1 bg-green-200/30 rounded"></div>
+                          <div className="absolute top-6 left-2 right-2 h-1 bg-green-200/30 rounded"></div>
+                          <div className="absolute top-10 left-2 right-2 h-1 bg-green-200/30 rounded"></div>
+                        </div>
+                        <div className="w-24 h-32 bg-gradient-to-br from-green-500 to-green-700 rounded-lg shadow-md transform rotate-[4deg] absolute top-2 left-2 z-0">
+                          <div className="absolute inset-0 bg-gradient-to-b from-green-400/50 to-transparent rounded-lg"></div>
+                        </div>
+                        {/* Banda amarilla/clara */}
+                        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-28 h-3 bg-yellow-200 rounded-full z-20 shadow-sm"></div>
+                        {/* X roja en círculo */}
+                        <div className="absolute -top-2 -right-2 w-12 h-12 bg-red-500 rounded-full flex items-center justify-center shadow-lg z-30 border-4 border-white">
+                          <X className="w-6 h-6 text-white" />
+                        </div>
+                </div>
+              </div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">
+                      No tienes deudas {debtSubTab === 'receivable' ? 'por cobrar' : 'por pagar'}
+                    </h3>
+                    <p className="text-gray-500 text-sm">
+                      {debtSubTab === 'receivable' 
+                        ? "Créalas en 'Nueva venta'" 
+                        : "Créalas en 'Nuevo gasto'"}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {filteredDebts.map((debt) => {
+                      const isOverdue = debt.dueDate && debt.dueDate < new Date();
+                      return (
+                        <div
+                          key={debt.id}
+                          className="flex items-center p-3 rounded-2xl hover:bg-gray-50 transition-colors border border-gray-100"
+                        >
+                          {/* Icono */}
+                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center mr-4 flex-shrink-0 ${
+                            debt.type === 'receivable' ? 'bg-green-100' : 'bg-red-100'
+                          }`}>
+                            {debt.type === 'receivable' ? (
+                              <ArrowUp className="w-6 h-6 text-green-600" />
+                            ) : (
+                              <ArrowDown className="w-6 h-6 text-red-600" />
+                            )}
+              </div>
+
+                          {/* Información */}
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-gray-800 truncate">
+                              {debt.concept}
+                            </p>
+                            <div className="flex items-center space-x-2 mt-1 flex-wrap">
+                              {debt.dueDate && (
+                                <>
+                                  <div className={`flex items-center text-xs ${
+                                    isOverdue ? 'text-red-600 font-semibold' : 'text-gray-500'
+                                  }`}>
+                                    <Calendar className="w-3 h-3 mr-1" />
+                                    <span>Vence: {formatDate(debt.dueDate)}</span>
+                                  </div>
+                                  <span className="text-gray-400">•</span>
+                                </>
+                              )}
+                              <div className="flex items-center text-xs text-gray-500">
+                                <Clock className="w-3 h-3 mr-1" />
+                                {formatDate(debt.createdAt)}
+                  </div>
+                              {isOverdue && (
+                                <>
+                                  <span className="text-gray-400">•</span>
+                                  <span className="text-xs text-red-600 font-semibold flex items-center">
+                                    <AlertCircle className="w-3 h-3 mr-1" />
+                                    Vencida
+                                  </span>
+                                </>
+                              )}
+                </div>
+              </div>
+
+                          {/* Monto */}
+                          <div className="ml-4 flex-shrink-0">
+                            <p className={`text-lg font-bold ${
+                              debt.type === 'receivable' ? 'text-green-600' : 'text-red-600'
+                            }`}>
+                              {formatCurrency(debt.amount)}
+                            </p>
+                </div>
+                        </div>
+                      );
+                    })}
+                        </div>
+                )}
                       </div>
                     </div>
-                  ))}
-                </div>
+
+            {/* Botones de Acción Inferiores */}
+            <div className="fixed bottom-24 left-0 right-0 px-4 pb-4 z-40">
+              <div className="flex gap-3 max-w-md mx-auto">
+                <button
+                  onClick={() => router.push('/sales/new')}
+                  className="flex-1 bg-green-600 hover:bg-green-700 text-white rounded-xl px-4 py-3 flex items-center space-x-2 shadow-lg transition-all duration-200 active:scale-95"
+                >
+                  <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center flex-shrink-0">
+                    <Plus className="w-4 h-4 text-green-600" />
+                  </div>
+                  <span className="text-base font-semibold">Nueva venta</span>
+                </button>
+                <button
+                  onClick={() => router.push('/expenses/new')}
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white rounded-xl px-4 py-3 flex items-center space-x-2 shadow-lg transition-all duration-200 active:scale-95"
+                >
+                  <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center flex-shrink-0">
+                    <Minus className="w-4 h-4 text-red-600" />
+                  </div>
+                  <span className="text-base font-semibold">Nuevo gasto</span>
+                </button>
               </div>
             </div>
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <p className="text-gray-500">No hay datos disponibles para el período seleccionado.</p>
-          </div>
+          </>
         )}
       </div>
     </DashboardLayout>

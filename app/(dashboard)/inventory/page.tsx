@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { productsService } from '@/services/api';
 import DefaultProductImage from '@/components/DefaultProductImage';
 import BarcodeScanner from '@/components/BarcodeScanner';
 import { Search, Scan, ArrowLeft, Package, AlertTriangle, TrendingUp } from 'lucide-react';
+import ProductQuickEditModal from '@/components/ProductQuickEditModal';
 
 interface Category {
     name: string;
@@ -33,6 +34,41 @@ const InventoryPage = () => {
     const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
     const [pagination, setPagination] = useState<Pagination>({ current: 1, pages: 1, total: 0 });
     const [page, setPage] = useState(1);
+    const [selectedProduct, setSelectedProduct] = useState<any>(null);
+    const [showQuickEditModal, setShowQuickEditModal] = useState(false);
+
+    // Función para cargar productos
+    const fetchProducts = useCallback(async () => {
+        if (!selectedCategory) return;
+        
+        try {
+            setLoading(true);
+            const response = await productsService.getProducts({
+                page,
+                limit: 20,
+                category: selectedCategory,
+                search: searchTerm
+            });
+            if (response.success) {
+                setProducts(response.data);
+                setPagination(response.pagination);
+            }
+        } catch (error) {
+            console.error("Error fetching products:", error);
+        } finally {
+            setLoading(false);
+        }
+    }, [selectedCategory, page, searchTerm]);
+
+    // Resetear a vista de categorías cuando no hay categoría seleccionada
+    useEffect(() => {
+        if (!selectedCategory && view !== 'categories') {
+            setView('categories');
+            setProducts([]);
+            setSearchTerm('');
+            setPage(1);
+        }
+    }, [selectedCategory, view]);
 
     // Cargar categorías
     useEffect(() => {
@@ -51,10 +87,10 @@ const InventoryPage = () => {
             }
         };
 
-        if (view === 'categories') {
+        if (!selectedCategory) {
             fetchCategories();
         }
-    }, [view]);
+    }, [selectedCategory]);
 
     // Cargar productos cuando se selecciona una categoría
     useEffect(() => {
@@ -62,27 +98,7 @@ const InventoryPage = () => {
             setView('products');
             fetchProducts();
         }
-    }, [selectedCategory, page, searchTerm]);
-
-    const fetchProducts = async () => {
-        try {
-            setLoading(true);
-            const response = await productsService.getProducts({
-                page,
-                limit: 20,
-                category: selectedCategory,
-                search: searchTerm
-            });
-            if (response.success) {
-                setProducts(response.data);
-                setPagination(response.pagination);
-            }
-        } catch (error) {
-            console.error("Error fetching products:", error);
-        } finally {
-            setLoading(false);
-        }
-    };
+    }, [selectedCategory, fetchProducts]);
 
     const handleCategoryClick = (categoryName: string) => {
         router.push(`/inventory?category=${encodeURIComponent(categoryName)}`);
@@ -121,6 +137,23 @@ const InventoryPage = () => {
 
     const isStockCritical = (product: any) => {
         return product.stock <= product.minStock;
+    };
+
+    const handleProductClick = (product: any) => {
+        setSelectedProduct(product);
+        setShowQuickEditModal(true);
+    };
+
+    const handleCloseQuickEdit = () => {
+        setShowQuickEditModal(false);
+        setSelectedProduct(null);
+    };
+
+    const handleProductUpdate = () => {
+        // Refrescar los productos después de actualizar
+        if (selectedCategory) {
+            fetchProducts();
+        }
     };
 
     return (
@@ -165,7 +198,7 @@ const InventoryPage = () => {
             </div>
 
             {/* Vista de Categorías */}
-            {view === 'categories' && !selectedCategory && (
+            {!selectedCategory && (
                 <>
                     {loading ? (
                         <div className="text-center py-12">
@@ -203,7 +236,7 @@ const InventoryPage = () => {
             )}
 
             {/* Vista de Productos */}
-            {view === 'products' && selectedCategory && (
+            {selectedCategory && (
                 <>
                     {/* Botón de regreso */}
                     <button
@@ -260,7 +293,8 @@ const InventoryPage = () => {
                                 return (
                                     <div
                                         key={product._id}
-                                        className={`bg-white rounded-2xl p-4 shadow-md hover:shadow-lg transition-all border-2 ${
+                                        onClick={() => handleProductClick(product)}
+                                        className={`bg-white rounded-2xl p-4 shadow-md hover:shadow-lg transition-all border-2 cursor-pointer active:scale-[0.98] ${
                                             isCritical ? 'border-red-200 bg-red-50/30' : 'border-gray-100'
                                         }`}
                                     >
@@ -368,6 +402,14 @@ const InventoryPage = () => {
                 isOpen={showBarcodeScanner}
                 onScan={handleBarcodeScanned}
                 onClose={() => setShowBarcodeScanner(false)}
+            />
+
+            {/* Product Quick Edit Modal */}
+            <ProductQuickEditModal
+                isOpen={showQuickEditModal}
+                product={selectedProduct}
+                onClose={handleCloseQuickEdit}
+                onUpdate={handleProductUpdate}
             />
         </div>
     );

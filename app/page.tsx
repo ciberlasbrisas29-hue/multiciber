@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { dashboardService } from '@/services/api';
+import SaleTypeModal from '@/components/SaleTypeModal';
 import { 
   Plus, 
   DollarSign,
@@ -12,7 +13,8 @@ import {
   ArrowUp,
   ArrowDown,
   Clock,
-  ArrowRightLeft
+  ArrowRightLeft,
+  FileText
 } from 'lucide-react';
 
 interface Movement {
@@ -32,6 +34,7 @@ const HomePage = () => {
   const [recentMovements, setRecentMovements] = useState<Movement[]>([]);
   const [loadingMovements, setLoadingMovements] = useState(true);
   const [mounted, setMounted] = useState(false);
+  const [isSaleModalOpen, setIsSaleModalOpen] = useState(false);
 
   // Asegurar que el componente está montado (solo en cliente)
   useEffect(() => {
@@ -228,7 +231,7 @@ const HomePage = () => {
         {/* Fila de Botones de Acción */}
         <div className="flex justify-between mb-6">
           <button 
-            onClick={() => router.push('/sales/new')}
+            onClick={() => setIsSaleModalOpen(true)}
             className="flex-1 mx-2 first:ml-0 last:mr-0 flex flex-col items-center justify-center bg-white rounded-2xl p-4 shadow-md hover:shadow-lg transition-all duration-200 active:scale-95 border border-purple-100"
           >
             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center mb-2">
@@ -257,11 +260,14 @@ const HomePage = () => {
             <span className="text-xs font-medium text-gray-700">Inventario</span>
           </button>
 
-          <button className="flex-1 mx-2 first:ml-0 last:mr-0 flex flex-col items-center justify-center bg-white rounded-2xl p-4 shadow-md hover:shadow-lg transition-all duration-200 active:scale-95 border border-purple-100">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gray-400 to-gray-500 flex items-center justify-center mb-2">
-              <MoreVertical className="w-6 h-6 text-white" />
+          <button 
+            onClick={() => router.push('/balance?tab=debts')}
+            className="flex-1 mx-2 first:ml-0 last:mr-0 flex flex-col items-center justify-center bg-white rounded-2xl p-4 shadow-md hover:shadow-lg transition-all duration-200 active:scale-95 border border-purple-100"
+          >
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center mb-2">
+              <FileText className="w-6 h-6 text-white" />
             </div>
-            <span className="text-xs font-medium text-gray-700">Más</span>
+            <span className="text-xs font-medium text-gray-700">Deudas</span>
           </button>
         </div>
 
@@ -353,6 +359,12 @@ const HomePage = () => {
             </div>
           )}
         </div>
+
+        {/* Modal de selección de tipo de venta */}
+        <SaleTypeModal 
+          isOpen={isSaleModalOpen} 
+          onClose={() => setIsSaleModalOpen(false)} 
+        />
     </div>
   );
 };
