@@ -13,11 +13,15 @@ interface ShareCatalogModalProps {
 const ShareCatalogModal: React.FC<ShareCatalogModalProps> = ({ isOpen, onClose, userId }) => {
   const [copied, setCopied] = useState(false);
   const [catalogUrl, setCatalogUrl] = useState('');
+  const [canShare, setCanShare] = useState(false);
 
   useEffect(() => {
     if (userId && typeof window !== 'undefined') {
       const baseUrl = window.location.origin;
       setCatalogUrl(`${baseUrl}/catalog/${userId}`);
+      
+      // Verificar si la API de compartir está disponible
+      setCanShare(typeof navigator !== 'undefined' && 'share' in navigator);
     }
   }, [userId]);
 
@@ -121,7 +125,7 @@ const ShareCatalogModal: React.FC<ShareCatalogModalProps> = ({ isOpen, onClose, 
 
         {/* Botones de acción */}
         <div className="space-y-3">
-          {navigator.share && (
+          {canShare && (
             <button
               onClick={handleShare}
               className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-3 rounded-xl font-semibold flex items-center justify-center space-x-2 hover:shadow-lg transition-all"
