@@ -53,41 +53,78 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScan, onClose, isOpen
       try {
         const videoDevices = await codeReader.current.listVideoInputDevices();
         
-        // Filtrar solo cámaras traseras (excluir frontales)
+        // Filtrar y excluir cámaras frontales más agresivamente
         const backCameras = videoDevices.filter(device => {
           const label = device.label.toLowerCase();
-          // Excluir cámaras frontales
-          const isFrontal = label.includes('front') || 
-                           label.includes('user') || 
-                           label.includes('facing') ||
-                           label.includes('selfie') ||
-                           label.includes('1'); // Muchos dispositivos marcan la frontal como "1"
+          
+          // Excluir cámaras frontales - lista más exhaustiva
+          const isFrontal = 
+            label.includes('front') || 
+            label.includes('user') || 
+            label.includes('facing') ||
+            label.includes('selfie') ||
+            label.includes('frontal') ||
+            label.includes('1') ||  // Muchos dispositivos marcan la frontal como "1"
+            label.includes('facing: user') ||
+            label === 'camera' && videoDevices.length > 1; // Si hay múltiples y una se llama solo "camera", es probablemente frontal
+          
           // Incluir solo cámaras traseras
-          const isBack = label.includes('back') || 
-                        label.includes('rear') || 
-                        label.includes('environment') ||
-                        label.includes('2'); // Muchos dispositivos marcan la trasera como "2"
-          return !isFrontal && (isBack || videoDevices.length === 1);
+          const isBack = 
+            label.includes('back') || 
+            label.includes('rear') || 
+            label.includes('environment') ||
+            label.includes('trasera') ||
+            label.includes('2') ||  // Muchos dispositivos marcan la trasera como "2"
+            label.includes('facing: environment') ||
+            (!label.includes('front') && !label.includes('user') && !label.includes('facing'));
+          
+          // Solo incluir si NO es frontal Y es claramente trasera o no hay otra opción
+          if (videoDevices.length === 1) {
+            return true; // Si solo hay una cámara, usarla
+          }
+          return !isFrontal && isBack;
         });
         
-        // Si hay cámaras filtradas, usarlas; si no, usar todas (pero forzar environment)
-        const availableDevices = backCameras.length > 0 ? backCameras : videoDevices;
+        // Solo usar las cámaras traseras filtradas
+        const availableDevices = backCameras.length > 0 ? backCameras : [];
         setDevices(availableDevices);
         
         if (availableDevices.length > 0) {
-          // Preferir la primera cámara trasera encontrada
-          const backCamera = availableDevices.find(device => {
+          // Buscar la mejor cámara trasera
+          let selectedCamera = availableDevices.find(device => {
             const label = device.label.toLowerCase();
             return label.includes('back') || 
                    label.includes('rear') || 
-                   label.includes('environment');
+                   label.includes('environment') ||
+                   label.includes('trasera');
           });
           
-          const deviceId = backCamera?.deviceId || availableDevices[0].deviceId;
-          setSelectedDeviceId(deviceId);
-          startScanning(deviceId);
+          // Si no encontramos una claramente trasera, usar la primera disponible (que ya fue filtrada)
+          if (!selectedCamera) {
+            selectedCamera = availableDevices[0];
+          }
+          
+          // Verificar una vez más que no sea frontal antes de usar el deviceId
+          const label = selectedCamera.label.toLowerCase();
+          const isFrontal = label.includes('front') || 
+                           label.includes('user') || 
+                           label.includes('frontal') ||
+                           label.includes('selfie');
+          
+          if (isFrontal) {
+            // Si resulta ser frontal después de todo, no usar deviceId y forzar environment
+            console.warn('Device seleccionado parece ser frontal, usando solo facingMode');
+            setSelectedDeviceId('');
+            startScanning('');
+          } else {
+            const deviceId = selectedCamera.deviceId;
+            setSelectedDeviceId(deviceId);
+            startScanning(deviceId);
+          }
         } else {
-          // Fallback: intentar sin deviceId específico pero forzando environment
+          // Si no hay cámaras traseras filtradas, intentar sin deviceId pero forzando environment
+          console.warn('No se encontraron cámaras traseras, usando modo environment');
+          setSelectedDeviceId('');
           startScanning('');
         }
       } catch (deviceError) {
@@ -129,69 +166,42 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScan, onClose, isOpen
       // Start decoding from video device with fallback constraints
       let constraints;
       
-      if (deviceId) {
-        constraints = {
-          video: {
-            deviceId: { exact: deviceId },
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-            facingMode: 'environment' // Forzar cámara trasera incluso con deviceId específico
-          }
-        };
-      } else {
-        // Forzar solo cámara trasera (environment) - usar 'exact' en lugar de 'ideal'
-        constraints = {
-          video: {
-            width: { ideal: 1280, max: 1920 },
-            height: { ideal: 720, max: 1080 },
-            facingMode: { exact: 'environment' } // Usar 'exact' para forzar solo trasera
-          }
-        };
-      }
+      // SIEMPRE usar solo facingMode para forzar cámara trasera, sin deviceId
+      // Esto evita conflictos entre deviceId y facingMode
+      // Si el deviceId es de una cámara frontal, no funcionará con facingMode: environment
+      constraints = {
+        video: {
+          width: { ideal: 1280, max: 1920 },
+          height: { ideal: 720, max: 1080 },
+          facingMode: { exact: 'environment' } // Usar 'exact' para forzar SOLO cámara trasera
+        }
+      };
 
       // Solicitar permisos de cámara (esto mostrará el diálogo nativo)
       const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
       setStream(mediaStream);
       videoRef.current.srcObject = mediaStream;
 
-      // Start continuous scanning with fallback
+      // Start continuous scanning - siempre usar null deviceId y dejar que facingMode maneje
+      // Esto asegura que solo se use la cámara trasera
       try {
-        if (deviceId) {
-          codeReader.current.decodeFromVideoDevice(
-            deviceId,
-            videoRef.current,
-            (result, err) => {
-              if (result) {
-                const scannedText = result.getText();
-                console.log('Barcode scanned:', scannedText);
-                onScan(scannedText);
-                stopScanner();
-              }
-              
-              if (err && !(err instanceof NotFoundException)) {
-                console.warn('Scan error:', err);
-              }
+        // Siempre usar null para deviceId y dejar que facingMode: environment seleccione la cámara trasera
+        codeReader.current.decodeFromVideoDevice(
+          null, // null deviceId permite que facingMode funcione correctamente
+          videoRef.current,
+          (result, err) => {
+            if (result) {
+              const scannedText = result.getText();
+              console.log('Barcode scanned:', scannedText);
+              onScan(scannedText);
+              stopScanner();
             }
-          );
-        } else {
-          // Fallback: decode from video device with null deviceId
-          codeReader.current.decodeFromVideoDevice(
-            null,
-            videoRef.current,
-            (result, err) => {
-              if (result) {
-                const scannedText = result.getText();
-                console.log('Barcode scanned:', scannedText);
-                onScan(scannedText);
-                stopScanner();
-              }
-              
-              if (err && !(err instanceof NotFoundException)) {
-                console.warn('Scan error:', err);
-              }
+            
+            if (err && !(err instanceof NotFoundException)) {
+              console.warn('Scan error:', err);
             }
-          );
-        }
+          }
+        );
       } catch (decodeError) {
         console.error('Decode error:', decodeError);
         setError('Error al inicializar el escáner');
