@@ -47,7 +47,11 @@ const DebtPaymentPage = () => {
   const [showSuccessNotification, setShowSuccessNotification] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
-  const paymentMethods = [
+  const paymentMethods: Array<{
+    value: 'cash' | 'card' | 'transfer' | 'check' | 'other';
+    label: string;
+    icon: React.ComponentType<{ className?: string }>;
+  }> = [
     { value: 'cash', label: 'Efectivo', icon: Wallet },
     { value: 'card', label: 'Tarjeta', icon: CreditCard },
     { value: 'transfer', label: 'Transferencia', icon: Building2 },
@@ -301,7 +305,7 @@ const DebtPaymentPage = () => {
                   <button
                     key={method.value}
                     type="button"
-                    onClick={() => setPaymentMethod(method.value)}
+                    onClick={() => setPaymentMethod(method.value as 'cash' | 'card' | 'transfer' | 'check' | 'other')}
                     className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all shadow-sm ${
                       isSelected
                         ? 'bg-gradient-to-br from-purple-500 to-indigo-500 border-purple-600 text-white shadow-md'
