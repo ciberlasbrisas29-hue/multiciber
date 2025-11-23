@@ -14,7 +14,7 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({ children }) => {
   
   // Rutas públicas que no deben mostrar el layout móvil
   const publicRoutes = ['/login', '/register'];
-  const isPublicRoute = publicRoutes.includes(pathname);
+  const isPublicRoute = publicRoutes.includes(pathname) || pathname?.startsWith('/catalog');
 
   // Si es una ruta pública, renderizar sin el layout móvil
   if (isPublicRoute) {

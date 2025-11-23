@@ -59,6 +59,7 @@ export async function PUT(req) {
       businessDescription,
       businessAddress,
       businessPhone,
+      whatsappPhone,
       businessEmail,
       businessLogo,
       currency,
@@ -78,6 +79,7 @@ export async function PUT(req) {
     if (businessDescription !== undefined) settings.businessDescription = businessDescription?.trim() || '';
     if (businessAddress !== undefined) settings.businessAddress = businessAddress?.trim() || '';
     if (businessPhone !== undefined) settings.businessPhone = businessPhone?.trim() || '';
+    if (whatsappPhone !== undefined) settings.whatsappPhone = whatsappPhone?.trim() || '';
     if (businessEmail !== undefined) settings.businessEmail = businessEmail?.trim().toLowerCase() || '';
     if (businessLogo !== undefined) settings.businessLogo = businessLogo?.trim() || '';
 

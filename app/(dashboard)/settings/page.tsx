@@ -20,6 +20,7 @@ interface BusinessSettings {
   businessDescription?: string;
   businessAddress?: string;
   businessPhone?: string;
+  whatsappPhone?: string;
   businessEmail?: string;
   businessLogo?: string;
   currency?: string;
@@ -45,6 +46,7 @@ const SettingsPage = () => {
     businessDescription: '',
     businessAddress: '',
     businessPhone: '',
+    whatsappPhone: '',
     businessEmail: '',
     businessLogo: ''
   });
@@ -75,6 +77,7 @@ const SettingsPage = () => {
           businessDescription: data.businessDescription || '',
           businessAddress: data.businessAddress || '',
           businessPhone: data.businessPhone || '',
+          whatsappPhone: data.whatsappPhone || '',
           businessEmail: data.businessEmail || '',
           businessLogo: data.businessLogo || ''
         });
@@ -260,8 +263,8 @@ const SettingsPage = () => {
               />
             </div>
 
-            {/* Teléfono y Email en fila */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Teléfono, WhatsApp y Email en fila */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Teléfono
@@ -270,6 +273,18 @@ const SettingsPage = () => {
                   type="tel"
                   value={businessProfile.businessPhone}
                   onChange={(e) => setBusinessProfile({ ...businessProfile, businessPhone: e.target.value })}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="+1234567890"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  WhatsApp
+                </label>
+                <input
+                  type="tel"
+                  value={businessProfile.whatsappPhone}
+                  onChange={(e) => setBusinessProfile({ ...businessProfile, whatsappPhone: e.target.value })}
                   className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   placeholder="+1234567890"
                 />

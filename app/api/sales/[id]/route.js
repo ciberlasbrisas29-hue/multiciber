@@ -82,6 +82,9 @@ export async function PUT(req, { params }) {
       sale.paidAmount = newPaidAmount;
       sale.debtAmount = newDebtAmount;
       
+      // Actualizar updatedAt para que aparezca en los últimos movimientos
+      sale.updatedAt = new Date();
+      
       // Si se pagó completamente, cambiar status a 'paid'
       if (newDebtAmount <= 0) {
         sale.status = 'paid';

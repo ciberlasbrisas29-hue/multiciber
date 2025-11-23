@@ -5,8 +5,9 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { productsService } from '@/services/api';
 import DefaultProductImage from '@/components/DefaultProductImage';
 import BarcodeScanner from '@/components/BarcodeScanner';
-import { Search, Scan, ArrowLeft, Package, AlertTriangle, TrendingUp } from 'lucide-react';
+import { Search, Scan, ArrowLeft, Package, AlertTriangle, TrendingUp, Share2 } from 'lucide-react';
 import ProductQuickEditModal from '@/components/ProductQuickEditModal';
+import ShareCatalogModal from '@/components/ShareCatalogModal';
 
 interface Category {
     name: string;
@@ -38,6 +39,8 @@ const InventoryPage = () => {
     const [selectedProduct, setSelectedProduct] = useState<any>(null);
     const [showQuickEditModal, setShowQuickEditModal] = useState(false);
     const [shouldFocusQuantity, setShouldFocusQuantity] = useState(false);
+    const [showShareModal, setShowShareModal] = useState(false);
+    const [userId, setUserId] = useState<string | null>(null);
 
     // Función para cargar productos
     const fetchProducts = useCallback(async () => {
@@ -71,6 +74,22 @@ const InventoryPage = () => {
             setPage(1);
         }
     }, [selectedCategory, view]);
+
+    // Obtener userId del usuario autenticado
+    useEffect(() => {
+        const fetchUserId = async () => {
+            try {
+                const response = await fetch('/api/auth/me');
+                const data = await response.json();
+                if (data.success && data.data?.user?._id) {
+                    setUserId(data.data.user._id);
+                }
+            } catch (error) {
+                console.error("Error obteniendo userId:", error);
+            }
+        };
+        fetchUserId();
+    }, []);
 
     // Cargar categorías
     useEffect(() => {
@@ -175,62 +194,73 @@ const InventoryPage = () => {
     };
 
     return (
-        <div className="p-4 md:p-8 pb-24">
+        <div className="space-y-6 pb-24">
             {/* Header */}
-            <div className="flex justify-between items-center mb-6">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-800">Inventario</h1>
-                    <p className="text-gray-500">Gestión de productos y stock.</p>
-                </div>
-                <button
-                    onClick={() => router.push('/inventory/create')}
-                    className="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-300 flex items-center"
-                >
-                    <Package className="w-4 h-4 mr-2" />
-                    Crear Producto
-                </button>
+            <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-4 flex items-center space-x-3 rounded-b-3xl shadow-lg -mt-4 mb-4">
+                <Package className="w-6 h-6" />
+                <h1 className="text-2xl font-bold">Inventario</h1>
             </div>
 
-            {/* Buscador */}
-            <div className="mb-6 flex gap-2">
-                <div className="flex-1 relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <input
-                        type="text"
-                        value={searchTerm}
-                        onChange={(e) => {
-                            setSearchTerm(e.target.value);
-                            setPage(1);
-                        }}
-                        placeholder="Buscar por nombre, categoría o código de barras..."
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    />
+            <div className="px-6 space-y-4">
+                {/* Search and Action Buttons */}
+                <div className="flex gap-3">
+                    <div className="flex-1 relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                        <input
+                            type="text"
+                            value={searchTerm}
+                            onChange={(e) => {
+                                setSearchTerm(e.target.value);
+                                setPage(1);
+                            }}
+                            placeholder="Buscar por nombre, categoría o código de barras..."
+                            className="w-full pl-10 pr-4 py-3 bg-white rounded-2xl border border-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        />
+                    </div>
+                    <button
+                        onClick={() => setShowBarcodeScanner(true)}
+                        className="px-4 py-3 bg-purple-500 text-white rounded-2xl hover:bg-purple-600 transition-colors flex items-center justify-center"
+                        title="Escanear código de barras"
+                    >
+                        <Scan className="w-5 h-5" />
+                    </button>
                 </div>
-                <button
-                    onClick={() => setShowBarcodeScanner(true)}
-                    className="px-4 py-3 bg-purple-500 text-white rounded-xl hover:bg-purple-600 transition-colors flex items-center justify-center"
-                    title="Escanear código de barras"
-                >
-                    <Scan className="w-5 h-5" />
-                </button>
-            </div>
 
-            {/* Vista de Categorías */}
-            {!selectedCategory && (
-                <>
-                    {loading ? (
-                        <div className="text-center py-12">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-                            <p className="text-gray-600">Cargando categorías...</p>
-                        </div>
-                    ) : categories.length === 0 ? (
-                        <div className="text-center bg-white p-12 rounded-2xl shadow-md">
-                            <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                            <h3 className="text-xl font-semibold text-gray-700 mb-2">No hay categorías</h3>
-                            <p className="text-gray-500">Crea productos para ver las categorías aquí.</p>
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {/* Action Buttons Row */}
+                <div className="flex gap-3">
+                    <button
+                        onClick={() => setShowShareModal(true)}
+                        className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold py-3 px-4 rounded-2xl transition-all duration-300 flex items-center justify-center space-x-2 shadow-md"
+                        title="Compartir catálogo"
+                    >
+                        <Share2 className="w-5 h-5" />
+                        <span>Compartir</span>
+                    </button>
+                    <button
+                        onClick={() => router.push('/inventory/create')}
+                        className="flex-1 bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white font-semibold py-3 px-4 rounded-2xl transition-all duration-300 flex items-center justify-center space-x-2 shadow-md"
+                    >
+                        <Package className="w-5 h-5" />
+                        <span>Nuevo</span>
+                    </button>
+                </div>
+
+                {/* Vista de Categorías */}
+                {!selectedCategory && (
+                    <>
+                        {loading ? (
+                            <div className="text-center py-12">
+                                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+                                <p className="text-gray-600">Cargando categorías...</p>
+                            </div>
+                        ) : categories.length === 0 ? (
+                            <div className="text-center bg-white p-12 rounded-2xl shadow-md">
+                                <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                                <h3 className="text-xl font-semibold text-gray-700 mb-2">No hay categorías</h3>
+                                <p className="text-gray-500">Crea productos para ver las categorías aquí.</p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                             {categories.map((category) => (
                                 <button
                                     key={category.name}
@@ -247,33 +277,33 @@ const InventoryPage = () => {
                                         {category.count} {category.count === 1 ? 'producto' : 'productos'}
                                     </p>
                                 </button>
-                            ))}
+                                ))}
+                            </div>
+                        )}
+                    </>
+                )}
+
+                {/* Vista de Productos */}
+                {selectedCategory && (
+                    <>
+                        {/* Botón de regreso */}
+                        <button
+                            onClick={handleBackToCategories}
+                            className="flex items-center text-purple-600 hover:text-purple-700 transition-colors mb-2"
+                        >
+                            <ArrowLeft className="w-5 h-5 mr-2" />
+                            <span>Volver a categorías</span>
+                        </button>
+
+                        {/* Título de categoría */}
+                        <div className="mb-4">
+                            <h2 className="text-2xl font-bold text-gray-800 mb-1">
+                                {formatCategoryName(selectedCategory)}
+                            </h2>
+                            <p className="text-gray-500 text-sm">
+                                {pagination.total || 0} {pagination.total === 1 ? 'producto' : 'productos'}
+                            </p>
                         </div>
-                    )}
-                </>
-            )}
-
-            {/* Vista de Productos */}
-            {selectedCategory && (
-                <>
-                    {/* Botón de regreso */}
-                    <button
-                        onClick={handleBackToCategories}
-                        className="mb-4 flex items-center text-purple-600 hover:text-purple-700 transition-colors"
-                    >
-                        <ArrowLeft className="w-5 h-5 mr-2" />
-                        <span>Volver a categorías</span>
-                    </button>
-
-                    {/* Título de categoría */}
-                    <div className="mb-6">
-                        <h2 className="text-2xl font-bold text-gray-800 mb-2">
-                            {formatCategoryName(selectedCategory)}
-                        </h2>
-                        <p className="text-gray-500">
-                            {pagination.total || 0} {pagination.total === 1 ? 'producto' : 'productos'}
-                        </p>
-                    </div>
 
                     {loading ? (
                         <div className="text-center py-12">
@@ -390,30 +420,31 @@ const InventoryPage = () => {
                         </div>
                     )}
 
-                    {/* Paginación */}
-                    {pagination.pages > 1 && (
-                        <div className="flex justify-between items-center mt-6">
-                            <button
-                                onClick={() => setPage(p => Math.max(1, p - 1))}
-                                disabled={page === 1}
-                                className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                Anterior
-                            </button>
-                            <span className="text-sm text-gray-700">
-                                Página {pagination.current} de {pagination.pages}
-                            </span>
-                            <button
-                                onClick={() => setPage(p => Math.min(pagination.pages, p + 1))}
-                                disabled={page === pagination.pages}
-                                className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                Siguiente
-                            </button>
-                        </div>
-                    )}
-                </>
-            )}
+                        {/* Paginación */}
+                        {pagination.pages > 1 && (
+                            <div className="flex justify-between items-center mt-6">
+                                <button
+                                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                                    disabled={page === 1}
+                                    className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    Anterior
+                                </button>
+                                <span className="text-sm text-gray-700">
+                                    Página {pagination.current} de {pagination.pages}
+                                </span>
+                                <button
+                                    onClick={() => setPage(p => Math.min(pagination.pages, p + 1))}
+                                    disabled={page === pagination.pages}
+                                    className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    Siguiente
+                                </button>
+                            </div>
+                        )}
+                    </>
+                )}
+            </div>
 
             {/* Barcode Scanner Modal */}
             <BarcodeScanner
@@ -436,6 +467,13 @@ const InventoryPage = () => {
                     window.dispatchEvent(new CustomEvent('stock-updated'));
                 }}
                 autoFocusQuantity={shouldFocusQuantity}
+            />
+
+            {/* Share Catalog Modal */}
+            <ShareCatalogModal
+                isOpen={showShareModal}
+                onClose={() => setShowShareModal(false)}
+                userId={userId || undefined}
             />
         </div>
     );

@@ -70,7 +70,7 @@ const HomePage = () => {
 
     fetchStats();
     
-    // Escuchar eventos de actualización cuando haya cambios en ventas o gastos
+    // Escuchar eventos de actualización cuando haya cambios en ventas, gastos o deudas
     const handleUpdate = () => {
       fetchStats();
     };
@@ -78,10 +78,12 @@ const HomePage = () => {
     // Eventos personalizados que se dispararán cuando haya cambios
     window.addEventListener('sale-created', handleUpdate);
     window.addEventListener('expense-created', handleUpdate);
+    window.addEventListener('debt-updated', handleUpdate);
 
     return () => {
       window.removeEventListener('sale-created', handleUpdate);
       window.removeEventListener('expense-created', handleUpdate);
+      window.removeEventListener('debt-updated', handleUpdate);
     };
   }, []);
 
@@ -98,6 +100,7 @@ const HomePage = () => {
 
         // Procesar ventas
         if (salesResponse.success && salesResponse.data) {
+          console.log('Dashboard: Procesando ventas recientes:', salesResponse.data.length);
           salesResponse.data.forEach((sale: any) => {
             // Determinar si es venta libre o de productos
             const isFreeSale = sale.type === 'free';
@@ -169,7 +172,8 @@ const HomePage = () => {
               subtitle,
               // Para el cálculo del balance, usar solo el abono si hay deuda
               amount: isDebt ? paidAmount : saleTotal,
-              date: new Date(sale.createdAt),
+              // Usar updatedAt para que los abonos recientes aparezcan primero
+              date: new Date(sale.updatedAt || sale.createdAt),
               description,
               // Para mostrar en la UI: guardar el total y el abono si hay deuda
               totalAmount: isDebt ? saleTotal : undefined,
@@ -230,7 +234,7 @@ const HomePage = () => {
 
     fetchRecentMovements();
     
-    // Escuchar eventos de actualización cuando haya cambios en ventas o gastos
+    // Escuchar eventos de actualización cuando haya cambios en ventas, gastos o deudas
     const handleUpdate = () => {
       fetchRecentMovements();
     };
@@ -238,10 +242,12 @@ const HomePage = () => {
     // Eventos personalizados que se dispararán cuando haya cambios
     window.addEventListener('sale-created', handleUpdate);
     window.addEventListener('expense-created', handleUpdate);
+    window.addEventListener('debt-updated', handleUpdate);
 
     return () => {
       window.removeEventListener('sale-created', handleUpdate);
       window.removeEventListener('expense-created', handleUpdate);
+      window.removeEventListener('debt-updated', handleUpdate);
     };
   }, []);
 

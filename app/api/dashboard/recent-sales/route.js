@@ -18,10 +18,11 @@ export async function GET(req) {
 
     // Incluir todas las ventas (de productos y libres) tanto pagadas como deudas
     // Para los últimos movimientos, mostramos todas las ventas recientes
+    // Ordenar por updatedAt para que los abonos recientes aparezcan primero
     const recentSales = await Sale.find({
       createdBy: userId
     })
-    .sort({ createdAt: -1 })
+    .sort({ updatedAt: -1 })
     .limit(limit)
     .populate('createdBy', 'username')
     .lean();
