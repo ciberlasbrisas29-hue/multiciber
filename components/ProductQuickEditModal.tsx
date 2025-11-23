@@ -11,11 +11,11 @@ interface Product {
     name: string;
     description?: string;
     price: number;
-    cost: number;
+    cost?: number;
     category: string;
     stock: number;
     minStock: number;
-    unit: string;
+    unit?: string;
     image?: string;
 }
 
