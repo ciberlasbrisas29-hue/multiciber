@@ -10,9 +10,9 @@ interface Product {
     _id: string;
     name: string;
     description?: string;
-    price: number;
+    price?: number;
     cost?: number;
-    category: string;
+    category?: string;
     stock: number;
     minStock: number;
     unit?: string;
@@ -60,7 +60,8 @@ const ProductQuickEditModal: React.FC<ProductQuickEditModalProps> = ({
 
     if (!isOpen || !product) return null;
 
-    const formatCategoryName = (name: string) => {
+    const formatCategoryName = (name: string | undefined) => {
+        if (!name) return 'Sin categoría';
         return name?.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Sin categoría';
     };
 
@@ -171,9 +172,11 @@ const ProductQuickEditModal: React.FC<ProductQuickEditModalProps> = ({
                             <h3 className="text-xl font-bold text-gray-900 mb-1 truncate">
                                 {product.name}
                             </h3>
-                            <p className="text-sm text-gray-500 mb-2">
-                                {formatCategoryName(product.category)}
-                            </p>
+                            {product.category && (
+                                <p className="text-sm text-gray-500 mb-2">
+                                    {formatCategoryName(product.category)}
+                                </p>
+                            )}
                             <p className="text-lg font-semibold text-purple-600">
                                 ${product.price?.toLocaleString() || '0'}
                             </p>
