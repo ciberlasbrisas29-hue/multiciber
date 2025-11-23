@@ -52,26 +52,47 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScan, onClose, isOpen
       // Try to get available video devices with fallback
       try {
         const videoDevices = await codeReader.current.listVideoInputDevices();
-        setDevices(videoDevices);
         
-        if (videoDevices.length > 0) {
-          // Prefer back camera on mobile devices
-          const backCamera = videoDevices.find(device => 
-            device.label.toLowerCase().includes('back') || 
-            device.label.toLowerCase().includes('rear') ||
-            device.label.toLowerCase().includes('environment')
-          );
+        // Filtrar solo cámaras traseras (excluir frontales)
+        const backCameras = videoDevices.filter(device => {
+          const label = device.label.toLowerCase();
+          // Excluir cámaras frontales
+          const isFrontal = label.includes('front') || 
+                           label.includes('user') || 
+                           label.includes('facing') ||
+                           label.includes('selfie') ||
+                           label.includes('1'); // Muchos dispositivos marcan la frontal como "1"
+          // Incluir solo cámaras traseras
+          const isBack = label.includes('back') || 
+                        label.includes('rear') || 
+                        label.includes('environment') ||
+                        label.includes('2'); // Muchos dispositivos marcan la trasera como "2"
+          return !isFrontal && (isBack || videoDevices.length === 1);
+        });
+        
+        // Si hay cámaras filtradas, usarlas; si no, usar todas (pero forzar environment)
+        const availableDevices = backCameras.length > 0 ? backCameras : videoDevices;
+        setDevices(availableDevices);
+        
+        if (availableDevices.length > 0) {
+          // Preferir la primera cámara trasera encontrada
+          const backCamera = availableDevices.find(device => {
+            const label = device.label.toLowerCase();
+            return label.includes('back') || 
+                   label.includes('rear') || 
+                   label.includes('environment');
+          });
           
-          const deviceId = backCamera?.deviceId || videoDevices[0].deviceId;
+          const deviceId = backCamera?.deviceId || availableDevices[0].deviceId;
           setSelectedDeviceId(deviceId);
           startScanning(deviceId);
         } else {
-          // Fallback: try without specific device ID
+          // Fallback: intentar sin deviceId específico pero forzando environment
           startScanning('');
         }
       } catch (deviceError) {
         console.warn('Could not enumerate devices, trying fallback:', deviceError);
-        // Fallback: try without device enumeration
+        // Fallback: intentar sin enumeración de dispositivos pero forzando environment
         startScanning('');
       }
     } catch (err) {
@@ -113,15 +134,17 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScan, onClose, isOpen
           video: {
             deviceId: { exact: deviceId },
             width: { ideal: 1280 },
-            height: { ideal: 720 }
+            height: { ideal: 720 },
+            facingMode: 'environment' // Forzar cámara trasera incluso con deviceId específico
           }
         };
       } else {
+        // Forzar solo cámara trasera (environment) - usar 'exact' en lugar de 'ideal'
         constraints = {
           video: {
             width: { ideal: 1280, max: 1920 },
             height: { ideal: 720, max: 1080 },
-            facingMode: { ideal: 'environment' }
+            facingMode: { exact: 'environment' } // Usar 'exact' para forzar solo trasera
           }
         };
       }
@@ -288,18 +311,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScan, onClose, isOpen
 
           {/* Controls */}
           <div className="flex justify-center space-x-3">
-            {devices.length > 1 && (
-              <button
-                onClick={switchCamera}
-                disabled={!isScanning}
-                className="flex items-center space-x-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors disabled:bg-blue-400"
-                type="button"
-              >
-                <Camera className="w-4 h-4" />
-                <span>Cambiar Cámara</span>
-              </button>
-            )}
-            
+            {/* Removido el botón de cambiar cámara - solo se permite cámara trasera */}
             <button
               onClick={onClose}
               className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
