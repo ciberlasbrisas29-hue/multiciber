@@ -8,6 +8,7 @@ import BarcodeScanner from '@/components/BarcodeScanner';
 import { Search, Scan, ArrowLeft, Package, AlertTriangle, TrendingUp, Share2 } from 'lucide-react';
 import ProductQuickEditModal from '@/components/ProductQuickEditModal';
 import ShareCatalogModal from '@/components/ShareCatalogModal';
+import Toast from '@/components/Toast';
 
 interface Category {
     name: string;
@@ -41,6 +42,7 @@ const InventoryPage = () => {
     const [shouldFocusQuantity, setShouldFocusQuantity] = useState(false);
     const [showShareModal, setShowShareModal] = useState(false);
     const [userId, setUserId] = useState<string | null>(null);
+    const [toast, setToast] = useState({ message: '', type: 'success' as 'success' | 'error' | 'warning', isVisible: false });
 
     // Función para cargar productos
     const fetchProducts = useCallback(async () => {
@@ -148,10 +150,60 @@ const InventoryPage = () => {
         setPage(1);
     };
 
-    const handleBarcodeScanned = (barcode: string) => {
-        setSearchTerm(barcode);
+    const handleBarcodeScanned = async (barcode: string) => {
         setShowBarcodeScanner(false);
-        setPage(1);
+        
+        try {
+            // Buscar productos (sin filtros de categoría para buscar en todos)
+            const response = await productsService.getProducts({
+                page: 1,
+                limit: 1000, // Obtener todos los productos para buscar el código de barras
+                isActive: true
+            });
+            
+            if (response.success && response.data && response.data.length > 0) {
+                // Buscar producto que coincida exactamente con el código de barras
+                const product = response.data.find((p: any) => 
+                    p.barcode && p.barcode.toString().trim().toLowerCase() === barcode.trim().toLowerCase()
+                );
+                
+                if (product) {
+                    // Producto encontrado
+                    // Navegar a la categoría del producto con el productId en la URL
+                    // El useEffect existente se encargará de abrir el modal cuando se carguen los productos
+                    const categoryUrl = `/inventory?category=${encodeURIComponent(product.category)}&productId=${product._id}`;
+                    router.push(categoryUrl);
+                    
+                    // Mostrar notificación de éxito
+                    setToast({
+                        message: `Producto encontrado: ${product.name}`,
+                        type: 'success',
+                        isVisible: true
+                    });
+                } else {
+                    // Producto no encontrado
+                    setToast({
+                        message: `No se encontró ningún producto con el código de barras: ${barcode}`,
+                        type: 'error',
+                        isVisible: true
+                    });
+                }
+            } else {
+                // No se pudieron cargar los productos
+                setToast({
+                    message: 'No se pudieron cargar los productos',
+                    type: 'error',
+                    isVisible: true
+                });
+            }
+        } catch (error) {
+            console.error('Error buscando producto por código de barras:', error);
+            setToast({
+                message: 'Error al buscar el producto. Por favor, intenta nuevamente.',
+                type: 'error',
+                isVisible: true
+            });
+        }
     };
 
     const formatCategoryName = (name: string) => {
@@ -474,6 +526,15 @@ const InventoryPage = () => {
                 isOpen={showShareModal}
                 onClose={() => setShowShareModal(false)}
                 userId={userId || undefined}
+            />
+
+            {/* Toast Notification */}
+            <Toast
+                message={toast.message}
+                type={toast.type}
+                isVisible={toast.isVisible}
+                onClose={() => setToast(prev => ({ ...prev, isVisible: false }))}
+                duration={toast.type === 'success' ? 2000 : 4000}
             />
         </div>
     );
