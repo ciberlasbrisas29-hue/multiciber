@@ -136,24 +136,24 @@ const HomePage = () => {
               description = sale.concept || (sale.client?.name ? `Cliente: ${sale.client.name}` : 'Venta libre registrada');
             } else {
               // Para ventas de productos, usar la lógica anterior
-              if (sale.client?.name) {
-                title = `Venta: Cliente ${sale.client.name}`;
-                subtitle = sale.saleNumber ? `#${sale.saleNumber}` : '';
-              } else if (sale.saleNumber) {
-                title = `Venta #${sale.saleNumber}`;
-              } else {
+            if (sale.client?.name) {
+              title = `Venta: Cliente ${sale.client.name}`;
+              subtitle = sale.saleNumber ? `#${sale.saleNumber}` : '';
+            } else if (sale.saleNumber) {
+              title = `Venta #${sale.saleNumber}`;
+            } else {
                 title = 'Venta de Productos';
-              }
+            }
 
-              // Si no hay información específica, mostrar fecha/hora en subtitle
-              if (!subtitle && !sale.client?.name && !sale.saleNumber) {
-                const saleDate = new Date(sale.createdAt);
-                subtitle = formatDateTime(saleDate);
-              } else if (!subtitle) {
-                subtitle = sale.items?.length > 0 
-                  ? `${sale.items.length} producto${sale.items.length > 1 ? 's' : ''}`
-                  : '';
-              }
+            // Si no hay información específica, mostrar fecha/hora en subtitle
+            if (!subtitle && !sale.client?.name && !sale.saleNumber) {
+              const saleDate = new Date(sale.createdAt);
+              subtitle = formatDateTime(saleDate);
+            } else if (!subtitle) {
+              subtitle = sale.items?.length > 0 
+                ? `${sale.items.length} producto${sale.items.length > 1 ? 's' : ''}`
+                : '';
+            }
               
               description = sale.items?.length > 0 
                 ? `${sale.items.length} producto${sale.items.length > 1 ? 's' : ''}`
@@ -164,7 +164,7 @@ const HomePage = () => {
             const saleTotal = sale.total || sale.subtotal || sale.freeSaleAmount || 0;
             const paidAmount = sale.paidAmount || 0;
             const isDebt = sale.status === 'debt' && paidAmount > 0 && paidAmount < saleTotal;
-            
+
             movements.push({
               id: sale._id,
               type: 'sale',
@@ -441,11 +441,11 @@ const HomePage = () => {
                             </span>
                           </>
                         ) : (
-                          <span className={`text-sm font-bold ${
-                            isIncome ? 'text-green-600' : 'text-red-600'
-                          }`}>
-                            {isIncome ? '+' : '-'}${movement.amount.toFixed(2)}
-                          </span>
+                        <span className={`text-sm font-bold ${
+                          isIncome ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {isIncome ? '+' : '-'}${movement.amount.toFixed(2)}
+                        </span>
                         )}
                         <span className="text-gray-400">•</span>
                         <div className="flex items-center text-xs text-gray-500">

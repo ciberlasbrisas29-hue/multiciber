@@ -248,7 +248,7 @@ const InventoryPage = () => {
     return (
         <div className="space-y-6 pb-24">
             {/* Header */}
-            <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-4 flex items-center space-x-3 rounded-b-3xl shadow-lg -mt-4 mb-4">
+            <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-4 flex items-center space-x-3 rounded-b-2xl mb-6 -mx-6">
                 <Package className="w-6 h-6" />
                 <h1 className="text-2xl font-bold">Inventario</h1>
             </div>

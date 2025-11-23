@@ -2,8 +2,10 @@ export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
+import mongoose from 'mongoose';
 import Sale from '@/lib/models/Sale';
 import Product from '@/lib/models/Product';
+import Expense from '@/lib/models/Expense';
 import { verifyAuth } from '@/lib/auth';
 
 export async function GET(req) {
@@ -53,28 +55,58 @@ export async function GET(req) {
     }
 
     // 1. Resumen financiero diario
+    // Incluir TODAS las ventas (paid y debt) y usar updatedAt para considerar abonos recientes
     const sales = await Sale.find({
       createdBy: userId,
-      createdAt: { $gte: startDate, $lte: endDate },
-      status: 'paid'
+      $or: [
+        { createdAt: { $gte: startDate, $lte: endDate } },
+        { updatedAt: { $gte: startDate, $lte: endDate } }
+      ]
     }).populate('items.product');
 
-    const totalSales = sales.reduce((sum, sale) => sum + sale.total, 0);
+    // Calcular ingresos reales:
+    // - Para ventas pagadas completamente: usar total
+    // - Para ventas con deuda: usar paidAmount (lo que realmente se recibió)
+    // - Para ventas libres: usar freeSaleAmount o total
+    const totalSales = sales.reduce((sum, sale) => {
+      if (sale.status === 'paid') {
+        // Venta completamente pagada
+        return sum + sale.total;
+      } else if (sale.status === 'debt') {
+        // Venta con deuda: solo contar lo pagado (abonos)
+        return sum + (sale.paidAmount || 0);
+      }
+      return sum;
+    }, 0);
+
+    // Contar todas las transacciones (incluyendo ventas libres)
     const totalTransactions = sales.length;
     const averageTicket = totalTransactions > 0 ? totalSales / totalTransactions : 0;
 
-    // Calcular margen bruto (simplificado: total - costos estimados)
-    // Para un cálculo más preciso, necesitaríamos los costos de los productos
+    // Obtener egresos/gastos del período
+    const expenses = await Expense.find({
+      createdBy: userId,
+      expenseDate: { $gte: startDate, $lte: endDate },
+      status: 'paid'
+    });
+
+    const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+
+    // Calcular margen bruto (simplificado: ingresos - costos estimados - egresos)
     const estimatedCost = sales.reduce((sum, sale) => {
+      const saleAmount = sale.status === 'paid' ? sale.total : (sale.paidAmount || 0);
       if (sale.items && sale.items.length > 0) {
         // Estimación: 60% del total como costo (ajustable)
-        return sum + (sale.total * 0.6);
+        return sum + (saleAmount * 0.6);
       }
-      return sum + (sale.total * 0.5); // Para ventas libres, estimar 50%
+      return sum + (saleAmount * 0.5); // Para ventas libres, estimar 50%
     }, 0);
-    const grossProfit = totalSales - estimatedCost;
+    
+    // Rentabilidad = Ingresos - Costos estimados - Egresos
+    const grossProfit = totalSales - estimatedCost - totalExpenses;
 
     // 2. Tendencia semanal (últimos 7 días)
+    // Usar updatedAt para considerar abonos recientes
     const sevenDaysAgo = new Date(today);
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     sevenDaysAgo.setHours(0, 0, 0, 0);
@@ -82,15 +114,36 @@ export async function GET(req) {
     const weeklyTrend = await Sale.aggregate([
       {
         $match: {
-          createdBy: userId,
-          createdAt: { $gte: sevenDaysAgo },
-          status: 'paid'
+          createdBy: new mongoose.Types.ObjectId(userId),
+          $or: [
+            { createdAt: { $gte: sevenDaysAgo } },
+            { updatedAt: { $gte: sevenDaysAgo } }
+          ]
         }
       },
       {
         $group: {
-          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
-          revenue: { $sum: '$total' },
+          _id: { 
+            $dateToString: { 
+              format: '%Y-%m-%d', 
+              date: { 
+                $cond: [
+                  { $gte: ['$updatedAt', sevenDaysAgo] },
+                  '$updatedAt',
+                  '$createdAt'
+                ]
+              }
+            } 
+          },
+          revenue: { 
+            $sum: {
+              $cond: [
+                { $eq: ['$status', 'paid'] },
+                '$total',
+                { $ifNull: ['$paidAmount', 0] }
+              ]
+            }
+          },
           transactions: { $sum: 1 }
         }
       },
@@ -113,18 +166,29 @@ export async function GET(req) {
     }
 
     // 3. Métodos de pago (gráfico circular)
+    // Incluir todas las ventas y usar paidAmount para ventas con deuda
     const paymentMethods = await Sale.aggregate([
       {
         $match: {
-          createdBy: userId,
-          createdAt: { $gte: startDate, $lte: endDate },
-          status: 'paid'
+          createdBy: new mongoose.Types.ObjectId(userId),
+          $or: [
+            { createdAt: { $gte: startDate, $lte: endDate } },
+            { updatedAt: { $gte: startDate, $lte: endDate } }
+          ]
         }
       },
       {
         $group: {
           _id: '$paymentMethod',
-          total: { $sum: '$total' },
+          total: { 
+            $sum: {
+              $cond: [
+                { $eq: ['$status', 'paid'] },
+                '$total',
+                { $ifNull: ['$paidAmount', 0] }
+              ]
+            }
+          },
           count: { $sum: 1 }
         }
       }
@@ -144,14 +208,18 @@ export async function GET(req) {
     });
 
     // 4. Rendimiento de inventario
-    // Producto estrella (más ingresos)
+    // Producto estrella (más ingresos) - incluir todas las ventas de productos
     const topProductsByRevenue = await Sale.aggregate([
       {
         $match: {
-          createdBy: userId,
-          createdAt: { $gte: startDate, $lte: endDate },
-          status: 'paid',
-          type: 'product'
+          createdBy: new mongoose.Types.ObjectId(userId),
+          $or: [
+            { createdAt: { $gte: startDate, $lte: endDate } },
+            { updatedAt: { $gte: startDate, $lte: endDate } }
+          ],
+          type: 'product',
+          // Incluir ventas pagadas completamente y ventas con deuda (solo si tienen items)
+          items: { $exists: true, $ne: [] }
         }
       },
       { $unwind: '$items' },
@@ -171,10 +239,14 @@ export async function GET(req) {
     const topProductsByQuantity = await Sale.aggregate([
       {
         $match: {
-          createdBy: userId,
-          createdAt: { $gte: startDate, $lte: endDate },
-          status: 'paid',
-          type: 'product'
+          createdBy: new mongoose.Types.ObjectId(userId),
+          $or: [
+            { createdAt: { $gte: startDate, $lte: endDate } },
+            { updatedAt: { $gte: startDate, $lte: endDate } }
+          ],
+          type: 'product',
+          // Incluir ventas pagadas completamente y ventas con deuda (solo si tienen items)
+          items: { $exists: true, $ne: [] }
         }
       },
       { $unwind: '$items' },
@@ -232,7 +304,8 @@ export async function GET(req) {
           totalSales,
           grossProfit,
           averageTicket,
-          totalTransactions
+          totalTransactions,
+          totalExpenses // Agregar egresos al resumen
         },
         weeklyTrend: weeklyChartData,
         paymentMethods: paymentChartData,

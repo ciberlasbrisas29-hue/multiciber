@@ -3,10 +3,12 @@ import type { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
   appId: 'com.multiciber.app',
   appName: 'Multiciber',
-  webDir: 'out',
+  webDir: '.next',
+  // URL de producción en Vercel
   server: {
-    url: 'http://localhost:3000',
-    cleartext: true
+    url: 'https://multiciber-fzio.vercel.app/',
+    cleartext: false,
+    androidScheme: 'https'
   }
 };
 

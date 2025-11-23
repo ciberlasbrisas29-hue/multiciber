@@ -120,15 +120,15 @@ const NewExpensePage = () => {
 
   return (
     <>
-      {/* Header con gradiente morado/índigo - se combina con el header principal */}
-      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-4 flex items-center space-x-3 rounded-b-3xl shadow-lg -mt-4 mb-4">
+      {/* Header con gradiente morado/índigo */}
+      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-4 flex items-center space-x-3 rounded-b-2xl mb-6 -mx-6">
         <button
           onClick={() => router.back()}
           className="p-2 hover:bg-white/20 rounded-full transition-colors"
         >
           <ArrowLeft className="w-6 h-6 text-white" />
         </button>
-        <h1 className="text-xl font-bold text-white">Nuevo gasto</h1>
+        <h1 className="text-2xl font-bold text-white">Nuevo gasto</h1>
       </div>
 
       <div className="px-6 py-4 pb-24 space-y-4">
