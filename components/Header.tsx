@@ -5,11 +5,15 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Bell, LogOut } from 'lucide-react';
 import Logo from '@/components/Logo';
+import NotificationsDropdown from './NotificationsDropdown';
+import { useLowStock } from '@/hooks/useLowStock';
 
 const Header = () => {
   const { user, logout } = useAuth();
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const { lowStockData } = useLowStock(true); // Escuchar eventos de actualización
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -46,13 +50,33 @@ const Header = () => {
           </div>
         </div>
         <div className="flex items-center space-x-2">
-          <button className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30 relative">
-            <Bell className="w-5 h-5" />
-            {/* Badge de notificación */}
-            <span className="absolute -top-1 -right-1 w-5 h-5 bg-gray-900 rounded-full flex items-center justify-center">
-              <span className="text-[10px] font-bold text-white">N</span>
-            </span>
-          </button>
+          <div className="relative">
+            <button 
+              onClick={() => setShowNotifications(!showNotifications)}
+              className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30 hover:bg-white/30 transition-colors relative"
+              title="Notificaciones"
+            >
+              <Bell className="w-5 h-5" />
+              {/* Badge de notificación con contador de stock bajo */}
+              {lowStockData && lowStockData.count > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[20px] h-5 bg-red-500 rounded-full flex items-center justify-center px-1 shadow-lg border-2 border-white">
+                  <span className="text-[10px] font-bold text-white">
+                    {lowStockData.count > 9 ? '9+' : lowStockData.count}
+                  </span>
+                </span>
+              )}
+            </button>
+            {/* Dropdown de notificaciones */}
+            {showNotifications && (
+              <NotificationsDropdown
+                isOpen={showNotifications}
+                onClose={() => setShowNotifications(false)}
+                onStockUpdated={() => {
+                  // Las notificaciones se actualizarán automáticamente con el hook
+                }}
+              />
+            )}
+          </div>
           <button
             onClick={handleLogout}
             disabled={isLoggingOut}

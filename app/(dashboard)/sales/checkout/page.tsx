@@ -121,6 +121,10 @@ const CheckoutPage = () => {
       const response = await salesService.createSale(saleData);
       
       if (response.success) {
+        // Disparar evento personalizado para actualizar notificaciones de stock bajo
+        window.dispatchEvent(new CustomEvent('sale-created'));
+        window.dispatchEvent(new CustomEvent('stock-updated'));
+        
         setToast({
           message: 'Venta registrada exitosamente',
           type: 'success',

@@ -1,21 +1,29 @@
 import { NextResponse } from 'next/server';
-import { headers } from 'next/headers';
 import dbConnect from '@/lib/db';
 import Sale from '@/lib/models/Sale';
+import { verifyAuth } from '@/lib/auth';
+import mongoose from 'mongoose';
 
 // @desc    Obtener una venta específica
 export async function GET(req, { params }) {
   await dbConnect();
 
   try {
-    const headersList = headers();
-    const userId = headersList.get('x-user-id');
-    const { id } = params;
+    const userId = await verifyAuth();
+    if (!userId) {
+      return NextResponse.json({ success: false, message: 'No autorizado' }, { status: 401 });
+    }
+
+    const { id } = await params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ success: false, message: 'ID de venta inválido' }, { status: 400 });
+    }
 
     const sale = await Sale.findOne({
-      _id: id,
+      _id: new mongoose.Types.ObjectId(id),
       createdBy: userId
-    }).populate('createdBy', 'username');
+    }).populate('createdBy', 'username').lean();
 
     if (!sale) {
       return NextResponse.json({ success: false, message: 'Venta no encontrada' }, { status: 404 });
@@ -37,13 +45,20 @@ export async function PUT(req, { params }) {
   await dbConnect();
   
   try {
-    const headersList = headers();
-    const userId = headersList.get('x-user-id');
-    const { id } = params;
+    const userId = await verifyAuth();
+    if (!userId) {
+      return NextResponse.json({ success: false, message: 'No autorizado' }, { status: 401 });
+    }
+
+    const { id } = await params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ success: false, message: 'ID de venta inválido' }, { status: 400 });
+    }
     const body = await req.json();
 
     const sale = await Sale.findOne({
-      _id: id,
+      _id: new mongoose.Types.ObjectId(id),
       createdBy: userId
     });
 
@@ -59,14 +74,21 @@ export async function PUT(req, { params }) {
       }
     });
 
-    // Recalcular si es necesario
-    if (body.paidAmount !== undefined && sale.status === 'debt') {
-        if (sale.paidAmount >= sale.total) {
-            sale.status = 'paid';
-            sale.debtAmount = 0;
-        } else {
-            sale.debtAmount = sale.total - sale.paidAmount;
-        }
+    // Recalcular debtAmount y status si se actualiza paidAmount
+    if (body.paidAmount !== undefined) {
+      const newPaidAmount = body.paidAmount;
+      const newDebtAmount = Math.max(0, sale.total - newPaidAmount);
+      
+      sale.paidAmount = newPaidAmount;
+      sale.debtAmount = newDebtAmount;
+      
+      // Si se pagó completamente, cambiar status a 'paid'
+      if (newDebtAmount <= 0) {
+        sale.status = 'paid';
+        sale.debtAmount = 0;
+      } else {
+        sale.status = 'debt';
+      }
     }
 
 

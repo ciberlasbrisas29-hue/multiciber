@@ -4,11 +4,13 @@ import React, { useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Home, Package, Plus, DollarSign, Settings } from 'lucide-react';
 import SaleTypeModal from './SaleTypeModal';
+import { useLowStock } from '@/hooks/useLowStock';
 
 const BottomNavbar = () => {
   const router = useRouter();
   const pathname = usePathname();
   const [isSaleModalOpen, setIsSaleModalOpen] = useState(false);
+  const { lowStockData } = useLowStock(true, 60000); // Actualizar cada minuto
 
   const navItems = [
     { 
@@ -70,12 +72,20 @@ const BottomNavbar = () => {
                   <Icon className="w-7 h-7 text-white" />
                 </div>
               ) : (
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                  isActive 
-                    ? 'bg-gradient-to-br from-purple-500 to-indigo-600' 
-                    : 'bg-gray-100'
-                }`}>
-                  <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-gray-600'}`} />
+                <div className="relative">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                    isActive 
+                      ? 'bg-gradient-to-br from-purple-500 to-indigo-600' 
+                      : 'bg-gray-100'
+                  }`}>
+                    <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-gray-600'}`} />
+                  </div>
+                  {/* Badge de stock bajo en el botón de Inventario */}
+                  {item.label === 'Inventario' && lowStockData && lowStockData.count > 0 && (
+                    <span className="absolute -top-1 -right-1 min-w-[20px] h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold px-1 shadow-lg border-2 border-white">
+                      {lowStockData.count > 9 ? '9+' : lowStockData.count}
+                    </span>
+                  )}
                 </div>
               )}
               <span className={`text-xs font-medium ${

@@ -25,6 +25,7 @@ const InventoryPage = () => {
     const router = useRouter();
     const searchParams = useSearchParams();
     const selectedCategory = searchParams.get('category');
+    const productIdFromUrl = searchParams.get('productId');
     
     const [view, setView] = useState<'categories' | 'products'>('categories');
     const [categories, setCategories] = useState<Category[]>([]);
@@ -36,6 +37,7 @@ const InventoryPage = () => {
     const [page, setPage] = useState(1);
     const [selectedProduct, setSelectedProduct] = useState<any>(null);
     const [showQuickEditModal, setShowQuickEditModal] = useState(false);
+    const [shouldFocusQuantity, setShouldFocusQuantity] = useState(false);
 
     // Función para cargar productos
     const fetchProducts = useCallback(async () => {
@@ -99,6 +101,22 @@ const InventoryPage = () => {
             fetchProducts();
         }
     }, [selectedCategory, fetchProducts]);
+
+    // Abrir automáticamente el modal de edición rápida cuando hay productId en la URL
+    useEffect(() => {
+        if (productIdFromUrl && products.length > 0 && !showQuickEditModal) {
+            const product = products.find(p => p._id === productIdFromUrl);
+            if (product) {
+                setSelectedProduct(product);
+                setShowQuickEditModal(true);
+                setShouldFocusQuantity(true);
+                // Limpiar el parámetro de la URL sin recargar la página
+                const url = new URL(window.location.href);
+                url.searchParams.delete('productId');
+                window.history.replaceState({}, '', url.toString());
+            }
+        }
+    }, [productIdFromUrl, products, showQuickEditModal]);
 
     const handleCategoryClick = (categoryName: string) => {
         router.push(`/inventory?category=${encodeURIComponent(categoryName)}`);
@@ -408,11 +426,21 @@ const InventoryPage = () => {
             <ProductQuickEditModal
                 isOpen={showQuickEditModal}
                 product={selectedProduct}
-                onClose={handleCloseQuickEdit}
-                onUpdate={handleProductUpdate}
+                onClose={() => {
+                    handleCloseQuickEdit();
+                    setShouldFocusQuantity(false);
+                }}
+                onUpdate={() => {
+                    handleProductUpdate();
+                    // Disparar evento para actualizar notificaciones
+                    window.dispatchEvent(new CustomEvent('stock-updated'));
+                }}
+                autoFocusQuantity={shouldFocusQuantity}
             />
         </div>
     );
 };
 
 export default InventoryPage;
+
+

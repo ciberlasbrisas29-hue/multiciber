@@ -217,20 +217,28 @@ const BalancePage = () => {
         salesResponse.value.data.forEach((sale: any) => {
           const remainingAmount = (sale.total || 0) - (sale.paidAmount || 0);
           if (remainingAmount > 0) {
+            // Priorizar concepto o cliente para ventas libres
+            let conceptText = 'Venta';
+            if (sale.type === 'free' && sale.concept) {
+              conceptText = sale.concept;
+            } else if (sale.client?.name) {
+              conceptText = `Venta: ${sale.client.name}`;
+            } else if (sale.saleNumber) {
+              conceptText = `Venta #${sale.saleNumber}`;
+            }
+
             debtsList.push({
               id: sale._id,
               type: 'receivable',
-              concept: sale.client?.name 
-                ? `Venta: ${sale.client.name}` 
-                : sale.saleNumber 
-                  ? `Venta #${sale.saleNumber}` 
-                  : 'Venta',
+              concept: conceptText,
               amount: remainingAmount,
               dueDate: sale.dueDate ? new Date(sale.dueDate) : undefined,
               createdAt: new Date(sale.createdAt),
-              description: sale.items?.length > 0 
-                ? `${sale.items.length} producto${sale.items.length > 1 ? 's' : ''}`
-                : undefined
+              description: sale.type === 'free' 
+                ? (sale.client?.name ? `Cliente: ${sale.client.name}` : 'Venta libre')
+                : (sale.items?.length > 0 
+                  ? `${sale.items.length} producto${sale.items.length > 1 ? 's' : ''}`
+                  : undefined)
             });
           }
         });
@@ -588,9 +596,20 @@ const BalancePage = () => {
                     {filteredDebts.map((debt) => {
                       const isOverdue = debt.dueDate && debt.dueDate < new Date();
                       return (
-                        <div
+                        <button
                           key={debt.id}
-                          className="flex items-center p-3 rounded-2xl hover:bg-gray-50 transition-colors border border-gray-100"
+                          onClick={() => {
+                            // Solo hacer clicable las deudas por cobrar (ventas)
+                            if (debt.type === 'receivable') {
+                              router.push(`/balance/debt/${debt.id}/payment`);
+                            }
+                          }}
+                          disabled={debt.type !== 'receivable'}
+                          className={`w-full flex items-center p-3 rounded-2xl transition-colors border border-gray-100 ${
+                            debt.type === 'receivable'
+                              ? 'hover:bg-gray-50 active:bg-gray-100 cursor-pointer'
+                              : 'cursor-default'
+                          }`}
                         >
                           {/* Icono */}
                           <div className={`w-12 h-12 rounded-xl flex items-center justify-center mr-4 flex-shrink-0 ${
@@ -644,7 +663,7 @@ const BalancePage = () => {
                               {formatCurrency(debt.amount)}
                             </p>
                 </div>
-                        </div>
+                        </button>
                       );
                     })}
                         </div>

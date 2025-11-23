@@ -46,6 +46,7 @@ export async function GET(req) {
     sevenDaysAgo.setHours(0, 0, 0, 0);
 
     // Run queries in parallel
+    // Para ventas: incluir tanto pagadas como deudas, pero calcular ingresos solo con lo pagado
     const [
       todaySales,
       monthSales,
@@ -54,15 +55,26 @@ export async function GET(req) {
       expensesByCategory,
       productCount,
     ] = await Promise.all([
-      Sale.find({ createdBy: userIdObj, createdAt: { $gte: startOfDay, $lte: endOfDay }, status: 'paid' }),
-      Sale.find({ createdBy: userIdObj, createdAt: { $gte: startOfMonth, $lte: endOfMonth }, status: 'paid' }),
+      // Ventas del día: incluir todas las ventas (pagadas y con deuda)
+      Sale.find({ createdBy: userIdObj, createdAt: { $gte: startOfDay, $lte: endOfDay } }),
+      // Ventas del mes: incluir todas las ventas (pagadas y con deuda)
+      Sale.find({ createdBy: userIdObj, createdAt: { $gte: startOfMonth, $lte: endOfMonth } }),
       Expense.find({ createdBy: userIdObj, createdAt: { $gte: startOfMonth, $lte: endOfMonth }, status: 'paid' }),
       Sale.aggregate([
-        { $match: { createdBy: userIdObj, createdAt: { $gte: sevenDaysAgo }, status: 'paid' } },
+        { $match: { createdBy: userIdObj, createdAt: { $gte: sevenDaysAgo } } },
         {
           $group: {
             _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
-            revenue: { $sum: '$total' },
+            // Sumar solo lo pagado: si está completamente pagada, sumar total; si tiene deuda, sumar paidAmount
+            revenue: { 
+              $sum: {
+                $cond: [
+                  { $eq: ['$status', 'paid'] },
+                  '$total',
+                  { $ifNull: ['$paidAmount', 0] }
+                ]
+              }
+            },
             transactions: { $sum: 1 },
           }
         },
@@ -81,10 +93,25 @@ export async function GET(req) {
     ]);
 
     // Process results
-    const todayRevenue = todaySales.reduce((sum, sale) => sum + sale.total, 0);
+    // Para calcular ingresos: si la venta está completamente pagada, sumar total; si tiene deuda, sumar solo paidAmount
+    const todayRevenue = todaySales.reduce((sum, sale) => {
+      if (sale.status === 'paid') {
+        return sum + sale.total;
+      } else {
+        // Si tiene deuda, sumar solo lo pagado
+        return sum + (sale.paidAmount || 0);
+      }
+    }, 0);
     const todayTransactions = todaySales.length;
 
-    const monthRevenue = monthSales.reduce((sum, sale) => sum + sale.total, 0);
+    const monthRevenue = monthSales.reduce((sum, sale) => {
+      if (sale.status === 'paid') {
+        return sum + sale.total;
+      } else {
+        // Si tiene deuda, sumar solo lo pagado
+        return sum + (sale.paidAmount || 0);
+      }
+    }, 0);
     const monthTransactions = monthSales.length;
     const monthExpenseTotal = monthExpenses.reduce((sum, expense) => sum + expense.amount, 0);
     const monthProfit = monthRevenue - monthExpenseTotal;

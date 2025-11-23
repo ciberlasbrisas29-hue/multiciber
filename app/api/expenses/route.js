@@ -110,8 +110,21 @@ export async function POST(req) {
       return NextResponse.json({ success: false, message: 'Faltan campos requeridos' }, { status: 400 });
     }
 
+    // Generar número de gasto si no existe
+    let expenseNumber = body.expenseNumber;
+    if (!expenseNumber) {
+      try {
+        const count = await Expense.countDocuments();
+        expenseNumber = `G-${String(count + 1).padStart(6, '0')}`;
+      } catch (error) {
+        // Si hay error, usar timestamp como fallback
+        expenseNumber = `G-${Date.now().toString().slice(-6)}`;
+      }
+    }
+
     const expense = new Expense({
       ...body,
+      expenseNumber,
       createdBy: user._id,
     });
 

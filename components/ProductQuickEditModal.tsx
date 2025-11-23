@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { X, Plus, Minus, Edit, Package } from 'lucide-react';
 import DefaultProductImage from './DefaultProductImage';
@@ -24,15 +24,18 @@ interface ProductQuickEditModalProps {
     product: Product | null;
     onClose: () => void;
     onUpdate: () => void; // Callback para refrescar la lista
+    autoFocusQuantity?: boolean; // Prop para auto-enfocar el campo de cantidad
 }
 
 const ProductQuickEditModal: React.FC<ProductQuickEditModalProps> = ({ 
     isOpen, 
     product, 
     onClose,
-    onUpdate 
+    onUpdate,
+    autoFocusQuantity = false
 }) => {
     const router = useRouter();
+    const stockInputRef = useRef<HTMLInputElement>(null);
     const [stock, setStock] = useState(0);
     const [isUpdating, setIsUpdating] = useState(false);
     const [error, setError] = useState('');
@@ -43,6 +46,17 @@ const ProductQuickEditModal: React.FC<ProductQuickEditModalProps> = ({
             setError('');
         }
     }, [product]);
+
+    // Auto-enfocar el campo de cantidad cuando se abre desde notificación
+    useEffect(() => {
+        if (isOpen && autoFocusQuantity && stockInputRef.current) {
+            // Pequeño delay para asegurar que el modal esté completamente renderizado
+            setTimeout(() => {
+                stockInputRef.current?.focus();
+                stockInputRef.current?.select(); // Seleccionar el valor actual para reemplazarlo fácilmente
+            }, 300);
+        }
+    }, [isOpen, autoFocusQuantity]);
 
     if (!isOpen || !product) return null;
 
@@ -85,6 +99,9 @@ const ProductQuickEditModal: React.FC<ProductQuickEditModalProps> = ({
             });
 
             if (response.data.success) {
+                // Disparar evento personalizado para actualizar notificaciones de stock bajo
+                window.dispatchEvent(new CustomEvent('stock-updated'));
+                window.dispatchEvent(new CustomEvent('product-updated'));
                 onUpdate();
                 onClose();
             } else {
@@ -183,6 +200,7 @@ const ProductQuickEditModal: React.FC<ProductQuickEditModalProps> = ({
                             </button>
                             
                             <input
+                                ref={stockInputRef}
                                 type="number"
                                 value={stock}
                                 onChange={handleStockChange}

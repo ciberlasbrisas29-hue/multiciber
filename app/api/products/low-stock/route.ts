@@ -48,8 +48,8 @@ export async function GET() {
             isActive: true,
             $expr: { $lte: ['$stock', '$minStock'] }
         })
-            .select('name stock minStock category price')
-            .sort({ stock: 1 }) // Sort by lowest stock first
+            .select('name stock minStock category price cost unit image description barcode updatedAt createdAt')
+            .sort({ stock: 1, updatedAt: -1 }) // Sort by lowest stock first, then by most recently updated
             .limit(20);
 
         // Calculate severity for each product

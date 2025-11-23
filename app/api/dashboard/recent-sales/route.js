@@ -16,13 +16,28 @@ export async function GET(req) {
     const { searchParams } = new URL(req.url);
     const limit = parseInt(searchParams.get('limit') || '10');
 
+    // Incluir todas las ventas (de productos y libres) tanto pagadas como deudas
+    // Para los últimos movimientos, mostramos todas las ventas recientes
     const recentSales = await Sale.find({
-      createdBy: userId,
-      status: 'paid'
+      createdBy: userId
     })
     .sort({ createdAt: -1 })
     .limit(limit)
-    .populate('createdBy', 'username');
+    .populate('createdBy', 'username')
+    .lean();
+
+    console.log(`GET /api/dashboard/recent-sales: Encontradas ${recentSales.length} ventas recientes para el usuario ${userId}`);
+    if (recentSales.length > 0) {
+      console.log(`GET /api/dashboard/recent-sales: Ventas encontradas:`, recentSales.map(s => ({ 
+        id: s._id, 
+        type: s.type, 
+        status: s.status, 
+        total: s.total, 
+        concept: s.concept,
+        client: s.client?.name,
+        saleNumber: s.saleNumber 
+      })));
+    }
 
     return NextResponse.json({
       success: true,

@@ -71,9 +71,9 @@ self.addEventListener('fetch', (event) => {
             .then((cache) => {
               // Solo cachear si es una petición GET válida
               if (event.request.method === 'GET') {
-                cache.put(event.request, responseToCache).catch(() => {
-                  // Ignorar errores de cacheo silenciosamente
-                });
+              cache.put(event.request, responseToCache).catch(() => {
+                // Ignorar errores de cacheo silenciosamente
+              });
               }
             }).catch(() => {
               // Ignorar errores de apertura de cache

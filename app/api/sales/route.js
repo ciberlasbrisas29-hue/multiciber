@@ -104,19 +104,25 @@ export async function POST(req) {
     console.log(`POST /api/sales: Usuario autenticado: ${user.username} (${user._id})`);
 
     const body = await req.json();
-    const { items, paymentMethod, totalAmount } = body;
-    console.log('POST /api/sales: Datos de entrada recibidos:', { items, paymentMethod, totalAmount });
+    const { items, paymentMethod, totalAmount, total, type, status, subtotal, discount, discountType, freeSaleAmount, client, concept, paidAmount, debtAmount } = body;
+    console.log('POST /api/sales: Datos de entrada recibidos:', { items, paymentMethod, totalAmount, total, type, status, subtotal, discount });
 
-    // Validaciones
-    if (!items || !Array.isArray(items) || items.length === 0) {
-      console.log('POST /api/sales: Error de validación - No hay ítems en la venta.');
-      return NextResponse.json({ 
-        success: false, 
-        message: 'Debe incluir al menos un producto en la venta' 
-      }, { status: 400 });
+    const saleType = type || 'product'; // 'product' o 'free'
+
+    // Validaciones para ventas de productos
+    if (saleType === 'product') {
+      if (!items || !Array.isArray(items) || items.length === 0) {
+        console.log('POST /api/sales: Error de validación - No hay ítems en la venta.');
+        return NextResponse.json({ 
+          success: false, 
+          message: 'Debe incluir al menos un producto en la venta' 
+        }, { status: 400 });
+      }
     }
 
-    if (!paymentMethod || !['cash', 'card', 'transfer'].includes(paymentMethod)) {
+    // Validación de método de pago (expandir opciones)
+    const validPaymentMethods = ['cash', 'card', 'transfer', 'check', 'other'];
+    if (!paymentMethod || !validPaymentMethods.includes(paymentMethod)) {
       console.log(`POST /api/sales: Error de validación - Método de pago inválido: ${paymentMethod}`);
       return NextResponse.json({ 
         success: false, 
@@ -124,20 +130,32 @@ export async function POST(req) {
       }, { status: 400 });
     }
 
-    if (isNaN(totalAmount) || totalAmount <= 0) {
-      console.log(`POST /api/sales: Error de validación - Total de venta inválido: ${totalAmount}`);
-      return NextResponse.json({ 
-        success: false, 
-        message: 'El total de la venta debe ser un número positivo' 
-      }, { status: 400 });
+    // Validación de total (para ambos tipos)
+    // Para ventas libres, usar el total calculado en el frontend
+    // Para ventas de productos, calcularlo desde items
+    let finalTotal;
+    if (saleType === 'free') {
+      finalTotal = total || totalAmount || (subtotal - (discount || 0));
+      if (isNaN(finalTotal) || finalTotal <= 0) {
+        console.log(`POST /api/sales: Error de validación - Total de venta libre inválido: ${finalTotal}`);
+        return NextResponse.json({ 
+          success: false, 
+          message: 'El total de la venta libre debe ser un número positivo' 
+        }, { status: 400 });
+      }
+    } else {
+      // Para ventas de productos, se calculará desde los items
+      finalTotal = totalAmount || total;
     }
 
     let actualCalculatedTotal = 0;
     const itemsForSale = [];
 
-    // Verificar stock y calcular el total real en el backend
-    for (const item of items) {
-      console.log(`POST /api/sales: Procesando ítem - productId: ${item.productId}, quantity: ${item.quantity}`);
+    // Procesar items solo para ventas de productos
+    if (saleType === 'product') {
+      // Verificar stock y calcular el total real en el backend
+      for (const item of items) {
+        console.log(`POST /api/sales: Procesando ítem - productId: ${item.productId}, quantity: ${item.quantity}`);
       const product = await Product.findById(item.productId);
       if (!product) {
         console.log(`POST /api/sales: Producto no encontrado con ID: ${item.productId}`);
@@ -176,43 +194,84 @@ export async function POST(req) {
         totalPrice: priceToUse * item.quantity,
       });
 
-      // Reducir stock del producto
-      product.stock -= item.quantity;
-      await product.save();
-      productsToRevert.push({ id: product._id, quantity: item.quantity }); // Almacenar para un posible rollback
-      console.log(`POST /api/sales: Stock de ${product.name} actualizado a ${product.stock}`);
-    }
-    console.log(`POST /api/sales: Total calculado en backend: ${actualCalculatedTotal.toFixed(2)}`);
-    console.log(`POST /api/sales: Total recibido del frontend: ${totalAmount.toFixed(2)}`);
-
-    // Verificar que el totalAmount enviado por el frontend coincida con el calculado en el backend
-    if (Math.abs(actualCalculatedTotal - totalAmount) > 0.01) { // Tolerancia para errores de punto flotante
-      console.log('POST /api/sales: Discrepancia en el total de la venta.');
-      // Revertir stock si hay una discrepancia en el total
-      for (const p of productsToRevert) {
-          await Product.findByIdAndUpdate(p.id, { $inc: { stock: p.quantity } });
-          console.log(`POST /api/sales: Stock revertido por discrepancia en total para ${p.id}, cantidad: ${p.quantity}`);
+        // Reducir stock del producto
+        product.stock -= item.quantity;
+        await product.save();
+        productsToRevert.push({ id: product._id, quantity: item.quantity }); // Almacenar para un posible rollback
+        console.log(`POST /api/sales: Stock de ${product.name} actualizado a ${product.stock}`);
       }
-      return NextResponse.json({ 
-        success: false, 
-        message: 'Discrepancia en el total de la venta. Por favor, reintente.' 
-      }, { status: 400 });
+      
+      console.log(`POST /api/sales: Total calculado en backend: ${actualCalculatedTotal.toFixed(2)}`);
+      const receivedTotal = finalTotal || totalAmount;
+      if (receivedTotal) {
+        console.log(`POST /api/sales: Total recibido del frontend: ${receivedTotal.toFixed(2)}`);
+        
+        // Verificar que el totalAmount enviado por el frontend coincida con el calculado en el backend
+        if (Math.abs(actualCalculatedTotal - receivedTotal) > 0.01) { // Tolerancia para errores de punto flotante
+          console.log('POST /api/sales: Discrepancia en el total de la venta.');
+          // Revertir stock si hay una discrepancia en el total
+          for (const p of productsToRevert) {
+              await Product.findByIdAndUpdate(p.id, { $inc: { stock: p.quantity } });
+              console.log(`POST /api/sales: Stock revertido por discrepancia en total para ${p.id}, cantidad: ${p.quantity}`);
+          }
+          return NextResponse.json({ 
+            success: false, 
+            message: 'Discrepancia en el total de la venta. Por favor, reintente.' 
+          }, { status: 400 });
+        }
+      }
+      finalTotal = actualCalculatedTotal;
     }
+
+    // Calcular valores finales
+    const finalSubtotal = saleType === 'product' ? actualCalculatedTotal : (subtotal || finalTotal);
+    const finalDiscount = discount || 0;
+    const finalTotalAmount = finalSubtotal - finalDiscount;
+    const finalPaidAmount = paidAmount !== undefined ? paidAmount : (saleType === 'product' ? finalTotalAmount : finalTotalAmount);
+    const finalDebtAmount = debtAmount !== undefined ? debtAmount : (status === 'debt' ? (finalTotalAmount - finalPaidAmount) : 0);
 
     // Crear la venta
-    const sale = new Sale({
+    const saleData = {
       items: itemsForSale,
       paymentMethod,
-      subtotal: actualCalculatedTotal,
-      total: actualCalculatedTotal,
-      paidAmount: actualCalculatedTotal, // Asumiendo pago exacto por ahora
+      subtotal: finalSubtotal,
+      total: finalTotalAmount,
+      paidAmount: finalPaidAmount,
       change: 0,
-      status: 'paid', // Asumiendo que las ventas registradas son pagadas
-      type: 'product', // Corrección: Coincidir con el enum ['product', 'free'] del modelo Sale.js
+      status: status || 'paid',
+      type: saleType,
       createdBy: user._id,
       createdAt: new Date()
-    });
+    };
 
+    // Agregar campos específicos para ventas libres
+    if (saleType === 'free') {
+      // Para ventas libres, siempre incluir freeSaleAmount
+      saleData.freeSaleAmount = freeSaleAmount || finalSubtotal;
+      if (discount !== undefined && discount !== null) saleData.discount = discount;
+      if (discountType !== undefined && discountType !== null) saleData.discountType = discountType;
+      if (debtAmount !== undefined && debtAmount !== null) saleData.debtAmount = debtAmount;
+      
+      // Manejar cliente - asegurar que sea un objeto válido o no incluirlo
+      if (client && typeof client === 'object' && client.name) {
+        saleData.client = {
+          name: client.name || '',
+          phone: client.phone || undefined,
+          email: client.email || undefined
+        };
+      }
+      
+      // Manejar concepto
+      if (concept && typeof concept === 'string' && concept.trim()) {
+        saleData.concept = concept.trim();
+      }
+    }
+
+    console.log('POST /api/sales: Datos de venta a crear:', JSON.stringify(saleData, null, 2));
+    console.log('POST /api/sales: Campos requeridos - type:', saleData.type, 'status:', saleData.status, 'subtotal:', saleData.subtotal, 'total:', saleData.total, 'paymentMethod:', saleData.paymentMethod, 'createdBy:', saleData.createdBy);
+
+    const sale = new Sale(saleData);
+    console.log('POST /api/sales: Venta creada, intentando guardar...');
     await sale.save();
     console.log('POST /api/sales: Venta guardada exitosamente:', sale._id);
 
@@ -228,6 +287,7 @@ export async function POST(req) {
 
   } catch (error) {
     console.error('POST /api/sales: Error inesperado procesando venta:', error);
+    console.error('POST /api/sales: Stack trace:', error.stack);
     
     // Si ocurre un error inesperado (no capturado por validaciones o stock),
     // intentar revertir el stock de los productos que ya se descontaron.
@@ -245,6 +305,7 @@ export async function POST(req) {
     if (error.name === 'ValidationError') {
       const messages = Object.values(error.errors).map(val => val.message);
       console.error('POST /api/sales: Mongoose ValidationError:', messages);
+      console.error('POST /api/sales: ValidationError details:', JSON.stringify(error.errors, null, 2));
       return NextResponse.json(
         { success: false, message: `Error de validación: ${messages.join(', ')}` },
         { status: 400 }
@@ -253,7 +314,7 @@ export async function POST(req) {
     
     return NextResponse.json({ 
       success: false, 
-      message: 'Error interno del servidor al procesar la venta. Verifique los logs del servidor.' 
+      message: `Error interno del servidor: ${error.message || 'Error desconocido'}. Verifique los logs del servidor.` 
     }, { status: 500 });
   }
 }

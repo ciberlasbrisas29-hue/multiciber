@@ -14,7 +14,9 @@ import {
   ArrowDown,
   Clock,
   ArrowRightLeft,
-  FileText
+  FileText,
+  Building2,
+  User
 } from 'lucide-react';
 
 interface Movement {
@@ -25,6 +27,8 @@ interface Movement {
   amount: number;
   date: Date;
   description?: string;
+  totalAmount?: number; // Para ventas con deuda: mostrar el total
+  paidAmount?: number; // Para ventas con deuda: mostrar el abono
 }
 
 const HomePage = () => {
@@ -65,6 +69,20 @@ const HomePage = () => {
     };
 
     fetchStats();
+    
+    // Escuchar eventos de actualización cuando haya cambios en ventas o gastos
+    const handleUpdate = () => {
+      fetchStats();
+    };
+
+    // Eventos personalizados que se dispararán cuando haya cambios
+    window.addEventListener('sale-created', handleUpdate);
+    window.addEventListener('expense-created', handleUpdate);
+
+    return () => {
+      window.removeEventListener('sale-created', handleUpdate);
+      window.removeEventListener('expense-created', handleUpdate);
+    };
   }, []);
 
   useEffect(() => {
@@ -81,39 +99,81 @@ const HomePage = () => {
         // Procesar ventas
         if (salesResponse.success && salesResponse.data) {
           salesResponse.data.forEach((sale: any) => {
-            // Prioridad 1: Nombre de cliente
+            // Determinar si es venta libre o de productos
+            const isFreeSale = sale.type === 'free';
+            
             let title = 'Venta Rápida';
             let subtitle = '';
+            let description = 'Venta registrada';
             
-            if (sale.client?.name) {
-              title = `Venta: Cliente ${sale.client.name}`;
-              subtitle = sale.saleNumber ? `#${sale.saleNumber}` : '';
-            } else if (sale.saleNumber) {
-              title = `Venta #${sale.saleNumber}`;
+            if (isFreeSale) {
+              // Para ventas libres, priorizar: concepto > cliente > saleNumber
+              if (sale.concept) {
+                title = sale.concept;
+                subtitle = sale.saleNumber ? `#${sale.saleNumber}` : '';
+              } else if (sale.client?.name) {
+                title = `Venta Libre: ${sale.client.name}`;
+                subtitle = sale.saleNumber ? `#${sale.saleNumber}` : '';
+              } else if (sale.saleNumber) {
+                title = `Venta Libre #${sale.saleNumber}`;
+              } else {
+                title = 'Venta Libre';
+              }
+              
+              // Si no hay subtitle, mostrar información del cliente o fecha
+              if (!subtitle) {
+                if (sale.client?.name) {
+                  subtitle = `Cliente: ${sale.client.name}`;
+                } else {
+                  const saleDate = new Date(sale.createdAt);
+                  subtitle = formatDateTime(saleDate);
+                }
+              }
+              
+              description = sale.concept || (sale.client?.name ? `Cliente: ${sale.client.name}` : 'Venta libre registrada');
             } else {
-              title = 'Venta Rápida';
-            }
+              // Para ventas de productos, usar la lógica anterior
+              if (sale.client?.name) {
+                title = `Venta: Cliente ${sale.client.name}`;
+                subtitle = sale.saleNumber ? `#${sale.saleNumber}` : '';
+              } else if (sale.saleNumber) {
+                title = `Venta #${sale.saleNumber}`;
+              } else {
+                title = 'Venta de Productos';
+              }
 
-            // Si no hay información específica, mostrar fecha/hora en subtitle
-            if (!subtitle && !sale.client?.name && !sale.saleNumber) {
-              const saleDate = new Date(sale.createdAt);
-              subtitle = formatDateTime(saleDate);
-            } else if (!subtitle) {
-              subtitle = sale.items?.length > 0 
+              // Si no hay información específica, mostrar fecha/hora en subtitle
+              if (!subtitle && !sale.client?.name && !sale.saleNumber) {
+                const saleDate = new Date(sale.createdAt);
+                subtitle = formatDateTime(saleDate);
+              } else if (!subtitle) {
+                subtitle = sale.items?.length > 0 
+                  ? `${sale.items.length} producto${sale.items.length > 1 ? 's' : ''}`
+                  : '';
+              }
+              
+              description = sale.items?.length > 0 
                 ? `${sale.items.length} producto${sale.items.length > 1 ? 's' : ''}`
-                : '';
+                : 'Venta registrada';
             }
 
+            // Para ventas con deuda, guardar tanto el total como el abono
+            const saleTotal = sale.total || sale.subtotal || sale.freeSaleAmount || 0;
+            const paidAmount = sale.paidAmount || 0;
+            const isDebt = sale.status === 'debt' && paidAmount > 0 && paidAmount < saleTotal;
+            
             movements.push({
               id: sale._id,
               type: 'sale',
               title,
               subtitle,
-              amount: sale.total || sale.subtotal || 0,
+              // Para el cálculo del balance, usar solo el abono si hay deuda
+              amount: isDebt ? paidAmount : saleTotal,
               date: new Date(sale.createdAt),
-              description: sale.items?.length > 0 
-                ? `${sale.items.length} producto${sale.items.length > 1 ? 's' : ''}`
-                : 'Venta registrada'
+              description,
+              // Para mostrar en la UI: guardar el total y el abono si hay deuda
+              totalAmount: isDebt ? saleTotal : undefined,
+              paidAmount: isDebt ? paidAmount : undefined
             });
           });
         }
@@ -170,9 +230,19 @@ const HomePage = () => {
 
     fetchRecentMovements();
     
-    // Actualizar cada 30 segundos
-    const interval = setInterval(fetchRecentMovements, 30000);
-    return () => clearInterval(interval);
+    // Escuchar eventos de actualización cuando haya cambios en ventas o gastos
+    const handleUpdate = () => {
+      fetchRecentMovements();
+    };
+
+    // Eventos personalizados que se dispararán cuando haya cambios
+    window.addEventListener('sale-created', handleUpdate);
+    window.addEventListener('expense-created', handleUpdate);
+
+    return () => {
+      window.removeEventListener('sale-created', handleUpdate);
+      window.removeEventListener('expense-created', handleUpdate);
+    };
   }, []);
 
   // No renderizar contenido hasta que esté montado (evita problemas de SSR)
@@ -229,20 +299,10 @@ const HomePage = () => {
         </div>
 
         {/* Fila de Botones de Acción */}
-        <div className="flex justify-between mb-6">
-          <button 
-            onClick={() => setIsSaleModalOpen(true)}
-            className="flex-1 mx-2 first:ml-0 last:mr-0 flex flex-col items-center justify-center bg-white rounded-2xl p-4 shadow-md hover:shadow-lg transition-all duration-200 active:scale-95 border border-purple-100"
-          >
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center mb-2">
-              <Plus className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-xs font-medium text-gray-700">Agregar</span>
-          </button>
-
+        <div className="grid grid-cols-5 gap-2 mb-6">
           <button 
             onClick={() => router.push('/balance')}
-            className="flex-1 mx-2 first:ml-0 last:mr-0 flex flex-col items-center justify-center bg-white rounded-2xl p-4 shadow-md hover:shadow-lg transition-all duration-200 active:scale-95 border border-purple-100"
+            className="flex flex-col items-center justify-center bg-white rounded-2xl p-4 shadow-md hover:shadow-lg transition-all duration-200 active:scale-95 border border-purple-100"
           >
             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center mb-2">
               <DollarSign className="w-6 h-6 text-white" />
@@ -252,7 +312,7 @@ const HomePage = () => {
 
           <button 
             onClick={() => router.push('/inventory')}
-            className="flex-1 mx-2 first:ml-0 last:mr-0 flex flex-col items-center justify-center bg-white rounded-2xl p-4 shadow-md hover:shadow-lg transition-all duration-200 active:scale-95 border border-purple-100"
+            className="flex flex-col items-center justify-center bg-white rounded-2xl p-4 shadow-md hover:shadow-lg transition-all duration-200 active:scale-95 border border-purple-100"
           >
             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-500 to-pink-600 flex items-center justify-center mb-2">
               <Package className="w-6 h-6 text-white" />
@@ -262,12 +322,32 @@ const HomePage = () => {
 
           <button 
             onClick={() => router.push('/balance?tab=debts')}
-            className="flex-1 mx-2 first:ml-0 last:mr-0 flex flex-col items-center justify-center bg-white rounded-2xl p-4 shadow-md hover:shadow-lg transition-all duration-200 active:scale-95 border border-purple-100"
+            className="flex flex-col items-center justify-center bg-white rounded-2xl p-4 shadow-md hover:shadow-lg transition-all duration-200 active:scale-95 border border-purple-100"
           >
             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center mb-2">
               <FileText className="w-6 h-6 text-white" />
             </div>
             <span className="text-xs font-medium text-gray-700">Deudas</span>
+          </button>
+
+          <button 
+            onClick={() => router.push('/clients')}
+            className="flex flex-col items-center justify-center bg-white rounded-2xl p-4 shadow-md hover:shadow-lg transition-all duration-200 active:scale-95 border border-purple-100"
+          >
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center mb-2">
+              <User className="w-6 h-6 text-white" />
+            </div>
+            <span className="text-xs font-medium text-gray-700">Clientes</span>
+          </button>
+
+          <button 
+            onClick={() => router.push('/suppliers')}
+            className="flex flex-col items-center justify-center bg-white rounded-2xl p-4 shadow-md hover:shadow-lg transition-all duration-200 active:scale-95 border border-purple-100"
+          >
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center mb-2">
+              <Building2 className="w-6 h-6 text-white" />
+            </div>
+            <span className="text-xs font-medium text-gray-700">Proveedores</span>
           </button>
         </div>
 
@@ -341,11 +421,26 @@ const HomePage = () => {
                             <span className="text-gray-400">•</span>
                           </>
                         )}
-                        <span className={`text-sm font-bold ${
-                          isIncome ? 'text-green-600' : 'text-red-600'
-                        }`}>
-                          {isIncome ? '+' : '-'}${movement.amount.toFixed(2)}
-                        </span>
+                        {/* Si hay deuda, mostrar total y abono */}
+                        {movement.totalAmount && movement.paidAmount ? (
+                          <>
+                            <span className="text-xs text-gray-600">
+                              Total: <span className="font-semibold">${movement.totalAmount.toFixed(2)}</span>
+                            </span>
+                            <span className="text-gray-400">•</span>
+                            <span className={`text-xs font-bold ${
+                              isIncome ? 'text-green-600' : 'text-red-600'
+                            }`}>
+                              Abono: {isIncome ? '+' : '-'}${movement.paidAmount.toFixed(2)}
+                            </span>
+                          </>
+                        ) : (
+                          <span className={`text-sm font-bold ${
+                            isIncome ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            {isIncome ? '+' : '-'}${movement.amount.toFixed(2)}
+                          </span>
+                        )}
                         <span className="text-gray-400">•</span>
                         <div className="flex items-center text-xs text-gray-500">
                           <Clock className="w-3 h-3 mr-1" />

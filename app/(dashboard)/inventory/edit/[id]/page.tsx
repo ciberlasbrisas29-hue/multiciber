@@ -227,6 +227,10 @@ const EditProductPage = () => {
       });
 
       if (response.data.success) {
+        // Disparar evento personalizado para actualizar notificaciones de stock bajo
+        window.dispatchEvent(new CustomEvent('product-updated'));
+        window.dispatchEvent(new CustomEvent('stock-updated'));
+        
         setSuccess('Producto actualizado exitosamente');
         setTimeout(() => {
           router.push('/inventory?success=updated');

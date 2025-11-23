@@ -9,13 +9,7 @@ import {
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { LucideIcon } from 'lucide-react';
-
-interface LowStockData {
-  count: number;
-  critical: number;
-  warning: number;
-  products: any[];
-}
+import LowStockAlert from '@/components/LowStockAlert';
 
 interface DashboardStats {
   today?: {
@@ -90,7 +84,6 @@ const StatCard = ({ title, value, change, icon: Icon, iconColor, trend }: StatCa
 const DashboardPage = () => {
   const router = useRouter();
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [lowStockData, setLowStockData] = useState<LowStockData | null>(null);
   const [weeklyData, setWeeklyData] = useState<WeeklyDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -103,13 +96,6 @@ const DashboardPage = () => {
         const statsResponse = await dashboardService.getStats();
         if (statsResponse.success) {
           setStats(statsResponse.data);
-        }
-
-        // Fetch low stock alerts
-        const lowStockResponse = await fetch('/api/products/low-stock');
-        const lowStockJson = await lowStockResponse.json();
-        if (lowStockJson.success) {
-          setLowStockData(lowStockJson.data);
         }
 
         // Fetch weekly trend from balance API
@@ -157,35 +143,8 @@ const DashboardPage = () => {
         <p className="text-gray-500">Resumen ejecutivo de tu negocio</p>
       </div>
 
-      {/* Low Stock Alert */}
-      {lowStockData && lowStockData.count > 0 && (
-        <div className="mb-6 bg-gradient-to-r from-red-50 to-orange-50 border-l-4 border-red-500 rounded-xl p-6 shadow-sm">
-          <div className="flex items-start justify-between">
-            <div className="flex items-start space-x-4">
-              <div className="bg-red-100 p-3 rounded-lg">
-                <AlertTriangle className="w-6 h-6 text-red-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-red-900 mb-1">
-                  ⚠️ {lowStockData.count} producto{lowStockData.count > 1 ? 's' : ''} con stock bajo
-                </h3>
-                <p className="text-sm text-red-700 mb-3">
-                  {lowStockData.critical > 0 && `${lowStockData.critical} críticos`}
-                  {lowStockData.critical > 0 && lowStockData.warning > 0 && ' • '}
-                  {lowStockData.warning > 0 && `${lowStockData.warning} en advertencia`}
-                </p>
-                <button
-                  onClick={() => router.push('/inventory')}
-                  className="flex items-center text-sm font-medium text-red-700 hover:text-red-900 transition-colors"
-                >
-                  Ver inventario
-                  <ArrowRight className="w-4 h-4 ml-1" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Low Stock Alert - Componente Mejorado */}
+      <LowStockAlert />
 
       {/* Executive Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">

@@ -32,3 +32,109 @@ body {
 .animate-slide-down {
   animation: slide-down 0.3s ease-out;
 }
+
+@keyframes pulse-once {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.animate-pulse-once {
+  animation: pulse-once 2s ease-in-out;
+}
+
+/* Animaciones para el dropdown de notificaciones */
+@keyframes slide-down-fade {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-slide-down-fade {
+  animation: slide-down-fade 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+/* Animación para items individuales de notificaciones */
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s ease-out forwards;
+}
+
+/* Animación para panel deslizante - desliza desde arriba suave (estilo Instagram) */
+@keyframes slide-down-smooth {
+  from {
+    opacity: 0;
+    transform: translateY(-40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-down-smooth {
+  animation: slide-down-smooth 0.4s cubic-bezier(0.16, 1, 0.3, 1) ease-out;
+}
+
+/* Animación para items individuales - fade in desde abajo */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.4s ease-out forwards;
+}
+
+/* Animación para notificaciones de éxito */
+@keyframes slide-up-fade {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-slide-up-fade {
+  animation: slide-up-fade 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}

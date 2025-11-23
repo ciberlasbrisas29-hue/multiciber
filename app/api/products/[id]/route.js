@@ -197,11 +197,11 @@ export async function PUT(req, { params }) {
       if (body.tags !== undefined) product.tags = Array.isArray(body.tags) ? body.tags : [];
       
       // Update other fields that might exist in JSON body
-      Object.keys(body).forEach(key => {
+    Object.keys(body).forEach(key => {
         if (!['name', 'description', 'price', 'cost', 'category', 'unit', 'stock', 'minStock', 'barcode', 'image', 'tags'].includes(key) && body[key] !== undefined) {
-          product[key] = body[key];
-        }
-      });
+        product[key] = body[key];
+      }
+    });
     }
 
     await product.save();
