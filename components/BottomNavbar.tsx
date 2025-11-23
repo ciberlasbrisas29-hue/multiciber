@@ -10,7 +10,7 @@ const BottomNavbar = () => {
   const router = useRouter();
   const pathname = usePathname();
   const [isSaleModalOpen, setIsSaleModalOpen] = useState(false);
-  const { lowStockData } = useLowStock(true, 60000); // Actualizar cada minuto
+  const { lowStockData } = useLowStock(true); // Escuchar eventos de actualización
 
   const navItems = [
     { 
