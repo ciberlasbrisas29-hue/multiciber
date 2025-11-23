@@ -384,19 +384,19 @@ const NewSalePage = () => {
   return (
     <>
       {/* Encabezado interno */}
-      <div className="bg-yellow-400 px-6 py-4 mb-4 -mx-6 rounded-b-2xl">
+      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-4 mb-4 -mx-6 rounded-b-3xl shadow-lg -mt-4">
         <div className="flex items-center justify-between">
           <button
             onClick={() => router.back()}
-            className="w-10 h-10 flex items-center justify-center active:opacity-70"
+            className="w-10 h-10 flex items-center justify-center active:opacity-70 rounded-full hover:bg-white/20 transition-colors"
           >
-            <ArrowLeft className="w-6 h-6 text-gray-900" />
+            <ArrowLeft className="w-6 h-6 text-white" />
           </button>
-          <h1 className="text-lg font-bold text-gray-900">Seleccionar productos</h1>
+          <h1 className="text-xl font-bold text-white">Seleccionar productos</h1>
           <div className="flex items-center space-x-3">
             <button
               onClick={() => setIsScannerOpen(true)}
-              className="w-8 h-8 flex items-center justify-center bg-gray-900 rounded-md active:opacity-80"
+              className="w-10 h-10 flex items-center justify-center bg-white/20 backdrop-blur-sm rounded-xl active:opacity-80 hover:bg-white/30 transition-colors border border-white/30"
             >
               <Scan className="w-5 h-5 text-white" />
             </button>
@@ -407,12 +407,12 @@ const NewSalePage = () => {
       {/* Botón Nuevo Producto */}
       <button
         onClick={() => router.push('/inventory/create')}
-        className="w-full bg-white border border-gray-200 rounded-2xl p-4 mb-4 flex items-center space-x-3 shadow-sm hover:shadow-md transition-shadow"
+        className="w-full bg-white border border-purple-100 rounded-2xl p-4 mb-4 flex items-center space-x-3 shadow-md hover:shadow-lg transition-all duration-200 active:scale-[0.98]"
       >
-        <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
-          <Plus className="w-5 h-5 text-purple-600" />
+        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-sm">
+          <Plus className="w-5 h-5 text-white" />
         </div>
-        <span className="text-gray-900 font-medium">Nuevo producto</span>
+        <span className="text-gray-900 font-semibold">Nuevo producto</span>
       </button>
 
       {/* Selector de Categorías */}
@@ -431,7 +431,7 @@ const NewSalePage = () => {
               }
               setIsSortMenuOpen(!isSortMenuOpen);
             }}
-            className="w-10 h-10 rounded-xl bg-gray-800 flex items-center justify-center relative z-10"
+            className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center relative z-10 shadow-md hover:shadow-lg transition-all active:scale-95"
           >
             <ArrowUpDown className="w-5 h-5 text-white" />
           </button>
@@ -439,21 +439,21 @@ const NewSalePage = () => {
         
         <button 
           onClick={() => setIsCreateCategoryOpen(true)}
-          className="w-10 h-10 rounded-xl bg-gray-200 flex items-center justify-center flex-shrink-0"
+          className="w-10 h-10 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center flex-shrink-0 transition-colors border border-gray-200 active:scale-95"
         >
-          <Pencil className="w-5 h-5 text-gray-700" />
+          <Pencil className="w-5 h-5 text-purple-600" />
         </button>
         
         {categories.map((category) => (
           <button
             key={category.value}
             onClick={() => setSelectedCategory(category.value)}
-            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap flex-shrink-0 transition-colors ${
+            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap flex-shrink-0 transition-all duration-200 active:scale-95 ${
               selectedCategory === category.value
-                ? 'bg-yellow-400 text-gray-900'
-                : 'bg-gray-200 text-gray-700'
+                ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md'
+                : 'bg-white border border-purple-100 text-gray-700 hover:bg-purple-50'
             }`}
-            style={category.color && selectedCategory === category.value ? { backgroundColor: category.color } : {}}
+            style={category.color && selectedCategory === category.value && !category.color.includes('gradient') ? { backgroundColor: category.color } : {}}
           >
             {category.label}
           </button>
@@ -602,15 +602,19 @@ const NewSalePage = () => {
           products.map((product: any) => {
             const selectedItem = selectedProducts.find((p: any) => p.id === product._id);
             const quantity = selectedItem?.quantity || 0;
+            
+            // Determinar si el stock es crítico (stock <= minStock)
+            const isStockLow = product.minStock !== undefined && product.stock <= product.minStock;
+            const hasStock = product.stock > 0;
 
             return (
               <div
                 key={product._id}
-                className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100"
+                className="bg-white rounded-2xl p-4 shadow-md border border-purple-100 hover:shadow-lg transition-shadow"
               >
                 <div className="flex items-center space-x-4">
                   {/* Imagen del producto */}
-                  <div className="w-20 h-20 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                  <div className="w-20 h-20 rounded-2xl bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0 border border-purple-100 shadow-sm">
                     {product.image && product.image !== '/assets/images/products/default-product.jpg' ? (
                       <img
                         src={product.image}
@@ -618,8 +622,8 @@ const NewSalePage = () => {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-purple-200 to-indigo-200 flex items-center justify-center">
-                        <span className="text-2xl font-bold text-purple-600">
+                      <div className="w-full h-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
+                        <span className="text-2xl font-bold text-white">
                           {product.name.charAt(0).toUpperCase()}
                         </span>
                       </div>
@@ -632,12 +636,18 @@ const NewSalePage = () => {
                       {product.name}
                     </h3>
                     <div className="flex items-center space-x-2 mb-1">
-                      <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded-full text-xs font-medium flex items-center">
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold flex items-center border ${
+                        isStockLow
+                          ? 'bg-red-50 text-red-700 border-red-200'
+                          : hasStock
+                          ? 'bg-green-50 text-green-700 border-green-200'
+                          : 'bg-gray-50 text-gray-700 border-gray-200'
+                      }`}>
                         <Clock className="w-3 h-3 mr-1" />
                         {product.stock} disponibles
                       </span>
                     </div>
-                    <p className="text-lg font-bold text-gray-900">
+                    <p className="text-lg font-bold text-purple-600">
                       ${product.price.toFixed(2)}
                     </p>
                   </div>
@@ -647,24 +657,24 @@ const NewSalePage = () => {
                     <button
                       onClick={() => updateProductQuantity(product._id, -1)}
                       disabled={quantity === 0}
-                      className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                      className={`w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-95 ${
                         quantity === 0
                           ? 'bg-gray-100 text-gray-400'
-                          : 'bg-purple-100 text-purple-600'
+                          : 'bg-gradient-to-br from-purple-500 to-indigo-600 text-white shadow-md hover:shadow-lg'
                       }`}
                     >
                       <Minus className="w-4 h-4" />
                     </button>
-                    <span className="w-8 text-center font-semibold text-gray-900">
+                    <span className="w-10 text-center font-bold text-gray-900 text-lg">
                       {quantity}
                     </span>
                     <button
                       onClick={() => updateProductQuantity(product._id, 1)}
                       disabled={quantity >= product.stock}
-                      className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                      className={`w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-95 ${
                         quantity >= product.stock
                           ? 'bg-gray-100 text-gray-400'
-                          : 'bg-purple-100 text-purple-600'
+                          : 'bg-gradient-to-br from-purple-500 to-indigo-600 text-white shadow-md hover:shadow-lg'
                       }`}
                     >
                       <Plus className="w-4 h-4" />
@@ -678,23 +688,23 @@ const NewSalePage = () => {
       </div>
 
       {/* Footer Fijo - Ajustado para no interferir con BottomNavbar */}
-      <div className="fixed bottom-24 left-0 right-0 bg-gray-100 px-6 py-4 rounded-t-3xl border-t border-gray-200 shadow-lg z-40">
+      <div className="fixed bottom-24 left-0 right-0 bg-white px-6 py-4 rounded-t-3xl border-t border-purple-100 shadow-xl z-40">
         <div className="flex items-center justify-between max-w-md mx-auto">
           <button
             onClick={handleAddProducts}
-            className="flex-1 text-left text-gray-900 font-medium"
+            className="flex-1 text-left text-gray-900 font-semibold"
           >
             Añadir productos
           </button>
           <div className="flex items-center space-x-2">
-            <span className="text-lg font-bold text-gray-900">
+            <span className="text-xl font-bold text-purple-600">
               ${getTotal().toFixed(2)}
             </span>
             <button
               onClick={handleAddProducts}
-              className="w-10 h-10 rounded-full bg-gray-900 flex items-center justify-center"
+              className="w-12 h-12 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 flex items-center justify-center shadow-lg hover:shadow-xl transition-all active:scale-95"
             >
-              <ChevronRight className="w-5 h-5 text-white" />
+              <ChevronRight className="w-6 h-6 text-white" />
             </button>
           </div>
         </div>
