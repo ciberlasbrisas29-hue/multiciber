@@ -10,7 +10,7 @@ interface BarcodeScannerProps {
   onClose: () => void;
   isOpen: boolean;
   continuousMode?: boolean; // Modo continuo: no se cierra después de escanear
-  scannedProducts?: Array<{ id: string; name: string; quantity: number; price: number; image?: string }>; // Productos escaneados
+  scannedProducts?: Array<{ id: string; name: string; quantity: number; price: number; image?: string; stock: number }>; // Productos escaneados
   onUpdateQuantity?: (productId: string, change: number) => void; // Callback para actualizar cantidad
   onFinish?: () => void; // Callback para finalizar escaneo
 }
