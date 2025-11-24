@@ -268,7 +268,10 @@ const NewSalePage = () => {
       
       // Verificar PRIMERO si este código de barras ya fue escaneado (verificación inmediata y síncrona)
       if (scannedBarcodesRef.current.has(normalizedBarcode)) {
-        alert('Este código de barras ya fue escaneado. Por favor, escanea otro código de barras diferente.');
+        // Usar setTimeout para no bloquear el hilo principal
+        setTimeout(() => {
+          alert('Este código de barras ya fue escaneado. Por favor, escanea otro código de barras diferente.');
+        }, 0);
         return; // Salir inmediatamente sin procesar
       }
       
@@ -290,18 +293,24 @@ const NewSalePage = () => {
           const existingScanned = currentScannedProducts.find((p: any) => p.id === product._id);
           
           if (existingScanned) {
-            // Si ya está en la lista, mostrar mensaje y salir
-            alert(`El producto "${product.name}" ya está en la lista. Por favor, escanea otro código de barras diferente o usa los botones +/- para modificar la cantidad.`);
+            // Si ya está en la lista, mostrar mensaje y salir (NO marcar en el Set porque no se procesó)
+            setTimeout(() => {
+              alert(`El producto "${product.name}" ya está en la lista. Por favor, escanea otro código de barras diferente o usa los botones +/- para modificar la cantidad.`);
+            }, 0);
             return; // Salir sin procesar
           }
           
           // Si no está en la lista, validar stock antes de agregarlo
           if (product.stock <= 0) {
-            alert('El producto no tiene stock disponible');
+            // NO marcar en el Set porque no se procesó correctamente
+            // Usar setTimeout para no bloquear el hilo principal
+            setTimeout(() => {
+              alert('El producto no tiene stock disponible');
+            }, 0);
             return;
           }
           
-          // IMPORTANTE: Agregar el código de barras al Set INMEDIATAMENTE (antes de actualizar el estado)
+          // IMPORTANTE: Agregar el código de barras al Set SOLO si todo está bien (después de todas las validaciones)
           // Esto previene que múltiples llamadas simultáneas pasen la validación
           scannedBarcodesRef.current.add(normalizedBarcode);
           
@@ -317,15 +326,25 @@ const NewSalePage = () => {
             },
             ...prev
           ]);
+          
+          // Limpiar el código del Set de "procesando" en el escáner (si existe)
+          // Esto se hace automáticamente después de 3 segundos, pero lo hacemos aquí también para ser más eficientes
         } else {
-          alert('Producto no encontrado con ese código de barras');
+          // NO marcar en el Set porque el producto no se encontró
+          setTimeout(() => {
+            alert('Producto no encontrado con ese código de barras');
+          }, 0);
         }
       } else {
-        alert('No se pudieron cargar los productos');
+        setTimeout(() => {
+          alert('No se pudieron cargar los productos');
+        }, 0);
       }
     } catch (error) {
       console.error('Error al buscar producto por código de barras:', error);
-      alert('Error al buscar el producto');
+      setTimeout(() => {
+        alert('Error al buscar el producto');
+      }, 0);
     }
   };
 

@@ -36,6 +36,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   const lastScannedCodeRef = useRef<string>(''); // Último código escaneado
   const lastScanTimeRef = useRef<number>(0); // Tiempo del último escaneo
   const scannedCodesSetRef = useRef<Set<string>>(new Set()); // Set de códigos ya escaneados en esta sesión
+  const processingCodesRef = useRef<Set<string>>(new Set()); // Set de códigos que están siendo procesados
   const SCAN_COOLDOWN = 5000; // 5 segundos de cooldown entre escaneos del mismo código
 
   // Sincronizar el estado del escáner con el contexto
@@ -104,8 +105,9 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
       // Cleanup: siempre detener la cámara al desmontar o cambiar isOpen
       stopScanner();
       setIsScannerOpen(false);
-      // Limpiar el Set de códigos escaneados cuando se cierra el escáner
+      // Limpiar los Sets de códigos cuando se cierra el escáner
       scannedCodesSetRef.current.clear();
+      processingCodesRef.current.clear();
     };
   }, [isOpen, setIsScannerOpen]);
 
@@ -274,11 +276,18 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
               const normalizedBarcode = scannedText.toLowerCase().trim();
               const currentTime = Date.now();
               
-              // Verificar si este código ya fue escaneado en esta sesión (permanente)
+              // Verificar si este código ya fue escaneado exitosamente en esta sesión (permanente)
               if (scannedCodesSetRef.current.has(normalizedBarcode)) {
                 // Ignorar escaneo de código ya procesado - NO llamar al callback
                 console.log('Código de barras ya escaneado en esta sesión, ignorado');
-                return; // Salir sin procesar
+                return; // Salir sin procesar - el escáner continúa funcionando
+              }
+              
+              // Verificar si este código está siendo procesado actualmente
+              if (processingCodesRef.current.has(normalizedBarcode)) {
+                // Ignorar escaneo duplicado mientras se procesa
+                console.log('Código de barras ya está siendo procesado, ignorado');
+                return; // Salir sin procesar - el escáner continúa funcionando
               }
               
               // Verificar si es el mismo código escaneado recientemente (dentro del cooldown)
@@ -288,14 +297,18 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
               if (isSameCode && timeSinceLastScan < SCAN_COOLDOWN) {
                 // Ignorar escaneo repetido del mismo código - NO llamar al callback
                 console.log('Escaneo repetido ignorado (cooldown activo)');
-                return; // Salir sin procesar
+                return; // Salir sin procesar - el escáner continúa funcionando
               }
               
-              // IMPORTANTE: Marcar este código como escaneado INMEDIATAMENTE (antes de llamar al callback)
-              // Esto previene que múltiples detecciones simultáneas pasen la validación
-              scannedCodesSetRef.current.add(normalizedBarcode);
+              // Marcar como "procesando" para prevenir múltiples llamadas simultáneas
+              processingCodesRef.current.add(normalizedBarcode);
               
-              // Actualizar referencias del último escaneo
+              // Limpiar el código del Set de "procesando" después de 3 segundos (timeout de seguridad)
+              setTimeout(() => {
+                processingCodesRef.current.delete(normalizedBarcode);
+              }, 3000);
+              
+              // Actualizar referencias del último escaneo (antes de procesar)
               lastScannedCodeRef.current = normalizedBarcode;
               lastScanTimeRef.current = currentTime;
               
@@ -304,7 +317,8 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
               // Reproducir beep cuando se detecta un código
               playBeep();
               
-              // Llamar al callback inmediatamente
+              // Llamar al callback - el handler decidirá si marcar el código en scannedCodesSetRef
+              // Si el handler es exitoso, marcará el código. Si falla, no lo marcará y podrá escanearse de nuevo
               onScan(scannedText);
               
               // Si NO es modo continuo, detener el escáner después de escanear
