@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { productsService, salesService } from '@/services/api';
 import BarcodeScanner from '@/components/BarcodeScanner';
+import Toast from '@/components/Toast';
 import { 
   ArrowLeft, 
   ArrowUpDown, 
@@ -31,6 +32,16 @@ const NewSalePage = () => {
   const [scannedProducts, setScannedProducts] = useState<Array<{ id: string; name: string; quantity: number; price: number; image?: string; stock: number }>>([]);
   const scannedBarcodesRef = useRef<Set<string>>(new Set()); // Set para rastrear códigos de barras ya escaneados
   const [searchTerm, setSearchTerm] = useState('');
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning'; isVisible: boolean }>({
+    message: '',
+    type: 'error',
+    isVisible: false
+  });
+
+  // Función helper para mostrar toasts
+  const showToast = (message: string, type: 'success' | 'error' | 'warning' = 'error') => {
+    setToast({ message, type, isVisible: true });
+  };
   const [searchResults, setSearchResults] = useState<{ [category: string]: any[] }>({});
   const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
   const [sortBy, setSortBy] = useState<{ field: string; direction: 'asc' | 'desc' } | null>(null);
@@ -268,10 +279,7 @@ const NewSalePage = () => {
       
       // Verificar PRIMERO si este código de barras ya fue escaneado (verificación inmediata y síncrona)
       if (scannedBarcodesRef.current.has(normalizedBarcode)) {
-        // Usar setTimeout para no bloquear el hilo principal
-        setTimeout(() => {
-          alert('Este código de barras ya fue escaneado. Por favor, escanea otro código de barras diferente.');
-        }, 0);
+        showToast('Este código de barras ya fue escaneado. Por favor, escanea otro código de barras diferente.', 'warning');
         return; // Salir inmediatamente sin procesar
       }
       
@@ -294,19 +302,14 @@ const NewSalePage = () => {
           
           if (existingScanned) {
             // Si ya está en la lista, mostrar mensaje y salir (NO marcar en el Set porque no se procesó)
-            setTimeout(() => {
-              alert(`El producto "${product.name}" ya está en la lista. Por favor, escanea otro código de barras diferente o usa los botones +/- para modificar la cantidad.`);
-            }, 0);
+            showToast(`El producto "${product.name}" ya está en la lista. Por favor, escanea otro código de barras diferente o usa los botones +/- para modificar la cantidad.`, 'warning');
             return; // Salir sin procesar
           }
           
           // Si no está en la lista, validar stock antes de agregarlo
           if (product.stock <= 0) {
             // NO marcar en el Set porque no se procesó correctamente
-            // Usar setTimeout para no bloquear el hilo principal
-            setTimeout(() => {
-              alert('El producto no tiene stock disponible');
-            }, 0);
+            showToast('El producto no tiene stock disponible', 'error');
             return;
           }
           
@@ -331,20 +334,14 @@ const NewSalePage = () => {
           // Esto se hace automáticamente después de 3 segundos, pero lo hacemos aquí también para ser más eficientes
         } else {
           // NO marcar en el Set porque el producto no se encontró
-          setTimeout(() => {
-            alert('Producto no encontrado con ese código de barras');
-          }, 0);
+          showToast('Producto no encontrado con ese código de barras', 'error');
         }
       } else {
-        setTimeout(() => {
-          alert('No se pudieron cargar los productos');
-        }, 0);
+        showToast('No se pudieron cargar los productos', 'error');
       }
     } catch (error) {
       console.error('Error al buscar producto por código de barras:', error);
-      setTimeout(() => {
-        alert('Error al buscar el producto');
-      }, 0);
+      showToast('Error al buscar el producto', 'error');
     }
   };
 
@@ -369,10 +366,7 @@ const NewSalePage = () => {
             return null;
           }
           if (newQuantity > product.stock) {
-            // Usar setTimeout para no bloquear el hilo principal
-            setTimeout(() => {
-              alert(`No hay suficiente stock. Disponible: ${product.stock}`);
-            }, 0);
+            showToast(`No hay suficiente stock. Disponible: ${product.stock}`, 'error');
             return product;
           }
           return { ...product, quantity: newQuantity };
@@ -461,10 +455,7 @@ const NewSalePage = () => {
 
       // Validar stock disponible
       if (newQty > product.stock) {
-        // Usar setTimeout para no bloquear el hilo principal
-        setTimeout(() => {
-          alert(`No hay suficiente stock. Disponible: ${product.stock}`);
-        }, 0);
+        showToast(`No hay suficiente stock. Disponible: ${product.stock}`, 'error');
         return prev;
       }
 
@@ -1024,6 +1015,15 @@ const NewSalePage = () => {
           onFinish={handleFinishScanning}
         />
       )}
+
+      {/* Toast Notification - z-index alto para mostrarse sobre el escáner */}
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.isVisible}
+        onClose={() => setToast(prev => ({ ...prev, isVisible: false }))}
+        duration={toast.type === 'success' ? 2000 : 4000}
+      />
 
     </>
   );

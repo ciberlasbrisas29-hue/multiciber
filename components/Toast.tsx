@@ -42,7 +42,7 @@ const Toast: React.FC<ToastProps> = ({
   }[type];
 
   return (
-    <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-[100] animate-slide-down">
+    <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-[10000] animate-slide-down">
       <div className={`${bgColor} text-white rounded-2xl shadow-2xl px-6 py-4 flex items-center space-x-3 min-w-[300px] max-w-[90vw]`}>
         <Icon className="w-6 h-6 flex-shrink-0" />
         <p className="flex-1 font-medium">{message}</p>
