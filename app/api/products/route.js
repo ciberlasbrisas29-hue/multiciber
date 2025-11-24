@@ -10,7 +10,7 @@ import jwt from 'jsonwebtoken';
 import logger from '@/lib/logger';
 import { handleError } from '@/lib/errors';
 import { verifyAuth } from '@/lib/auth';
-import { uploadImageFile } from '@/lib/cloudinary';
+import { uploadImageFile, deleteImageFromCloudinary } from '@/lib/cloudinary';
 
 // Helper function to get user from token
 async function getUserFromToken(req) {
@@ -189,6 +189,9 @@ export async function POST(req) {
       );
     }
 
+    // Asegurar que usamos el nombre normalizado de la categoría
+    const finalCategory = normalizedCategory;
+
     if (isNaN(priceNum) || isNaN(costNum) || priceNum <= 0 || costNum <= 0) {
       logger.error('Validation failed: Invalid price or cost', { priceNum, costNum });
       return NextResponse.json(
@@ -237,6 +240,7 @@ export async function POST(req) {
 
     // Handle image upload to Cloudinary
     let imagePath = '/assets/images/products/default-product.svg';
+    let uploadedImagePublicId = null; // Para poder eliminar la imagen si falla la creación
     
     // Verificar que Cloudinary esté configurado
     const cloudinaryConfigured = process.env.CLOUDINARY_CLOUD_NAME && 
@@ -261,6 +265,7 @@ export async function POST(req) {
           // Upload to Cloudinary in the 'products' folder
           const uploadResult = await uploadImageFile(imageFile, 'products');
           imagePath = uploadResult.secure_url;
+          uploadedImagePublicId = uploadResult.public_id; // Guardar el publicId para poder eliminarlo si falla
           
           logger.info('Product image uploaded successfully', { 
             url: uploadResult.secure_url,
@@ -282,7 +287,7 @@ export async function POST(req) {
       description: description.trim(),
       price: priceNum,
       cost: costNum,
-      category: category.trim(),
+      category: finalCategory, // Usar la categoría normalizada y validada
       unit: unit.trim(),
       stock: stockNum,
       minStock: minStockNum,
@@ -310,6 +315,27 @@ export async function POST(req) {
 
   } catch (error) {
     logger.error('Error al crear producto:', error);
+    
+    // Si se subió una imagen a Cloudinary pero falló la creación del producto, eliminarla
+    if (uploadedImagePublicId) {
+      try {
+        logger.info('Eliminando imagen de Cloudinary debido a error en la creación del producto', {
+          publicId: uploadedImagePublicId
+        });
+        await deleteImageFromCloudinary(uploadedImagePublicId);
+        logger.info('Imagen eliminada exitosamente de Cloudinary', {
+          publicId: uploadedImagePublicId
+        });
+      } catch (deleteError) {
+        logger.error('Error al eliminar imagen de Cloudinary después de fallo en creación:', {
+          publicId: uploadedImagePublicId,
+          error: deleteError.message,
+          stack: deleteError.stack
+        });
+        // No lanzar el error, solo loguearlo, ya que el error principal es la creación del producto
+      }
+    }
+    
     const errorResponse = handleError(error, req);
     
     return NextResponse.json(

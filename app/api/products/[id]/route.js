@@ -162,6 +162,7 @@ export async function PUT(req, { params }) {
     // Handle image upload to Cloudinary
     let imagePath = product.image; // Mantener la imagen actual por defecto
     let oldPublicId = null;
+    let uploadedImagePublicId = null; // Para poder eliminar la imagen si falla la actualización
     
     // Detectar si la imagen actual es de Cloudinary (contiene cloudinary.com)
     const currentImageIsCloudinary = product.image && 
@@ -198,6 +199,7 @@ export async function PUT(req, { params }) {
         // Upload to Cloudinary (si hay publicId, se sobrescribirá automáticamente)
         const uploadResult = await uploadImageFile(imageFile, 'products', publicId);
         imagePath = uploadResult.secure_url;
+        uploadedImagePublicId = uploadResult.public_id; // Guardar el publicId para poder eliminarlo si falla
         
         logger.info('Product image updated successfully', { 
           url: uploadResult.secure_url,
@@ -253,7 +255,28 @@ export async function PUT(req, { params }) {
     });
 
   } catch (error) {
-    console.error('Error al actualizar producto:', error);
+    logger.error('Error al actualizar producto:', error);
+    
+    // Si se subió una nueva imagen a Cloudinary pero falló la actualización del producto, eliminarla
+    if (uploadedImagePublicId) {
+      try {
+        logger.info('Eliminando imagen de Cloudinary debido a error en la actualización del producto', {
+          publicId: uploadedImagePublicId
+        });
+        await deleteImageFromCloudinary(uploadedImagePublicId);
+        logger.info('Imagen eliminada exitosamente de Cloudinary', {
+          publicId: uploadedImagePublicId
+        });
+      } catch (deleteError) {
+        logger.error('Error al eliminar imagen de Cloudinary después de fallo en actualización:', {
+          publicId: uploadedImagePublicId,
+          error: deleteError.message,
+          stack: deleteError.stack
+        });
+        // No lanzar el error, solo loguearlo, ya que el error principal es la actualización del producto
+      }
+    }
+    
     return NextResponse.json({ success: false, message: 'Error interno del servidor' }, { status: 500 });
   }
 }

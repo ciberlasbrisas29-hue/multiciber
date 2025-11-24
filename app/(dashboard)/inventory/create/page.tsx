@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import BarcodeScanner from '@/components/BarcodeScanner';
 import { Camera, Upload, X, Save, ArrowLeft, Image as ImageIcon, Scan, Tag, DollarSign, Package, ShoppingCart, BarChart3, Hash, Building2 } from 'lucide-react';
@@ -27,16 +27,51 @@ const CreateProductPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
   const [error, setError] = useState('');
+  const [categories, setCategories] = useState<Array<{ value: string; label: string }>>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
 
-  const categories = [
-    { value: 'accesorios-gaming', label: 'Accesorios Gaming' },
-    { value: 'almacenamiento', label: 'Almacenamiento' },
-    { value: 'conectividad', label: 'Conectividad' },
-    { value: 'accesorios-trabajo', label: 'Accesorios de Trabajo' },
-    { value: 'dispositivos-captura', label: 'Dispositivos de Captura' },
-    { value: 'mantenimiento', label: 'Mantenimiento' },
-    { value: 'otros', label: 'Otros' }
-  ];
+  // Cargar categorías desde la BD
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        setCategoriesLoading(true);
+        const response = await fetch('/api/products/categories');
+        const data = await response.json();
+        
+        if (data.success && data.data) {
+          // Convertir las categorías de la BD al formato esperado
+          const dbCategories = data.data.map((cat: any) => ({
+            value: cat.name,
+            label: cat.displayName
+          }));
+          
+          setCategories(dbCategories);
+          
+          // Si la categoría actual no existe en las nuevas categorías, usar la primera disponible
+          const currentCategory = formData.category;
+          if (currentCategory && !dbCategories.find((c: any) => c.value === currentCategory)) {
+            if (dbCategories.length > 0) {
+              setFormData(prev => ({ ...prev, category: dbCategories[0].value }));
+            }
+          } else if (!currentCategory && dbCategories.length > 0) {
+            // Si no hay categoría seleccionada, usar la primera
+            setFormData(prev => ({ ...prev, category: dbCategories[0].value }));
+          }
+        }
+      } catch (error) {
+        console.error('Error al cargar categorías:', error);
+        // Fallback a categorías por defecto si falla
+        setCategories([
+          { value: 'otros', label: 'Otros' }
+        ]);
+      } finally {
+        setCategoriesLoading(false);
+      }
+    };
+
+    fetchCategories();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const units = [
     { value: 'unidades', label: 'Unidades' },
@@ -318,10 +353,17 @@ const CreateProductPage = () => {
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all font-medium bg-white text-gray-900 appearance-none cursor-pointer"
                   required
+                  disabled={categoriesLoading}
                 >
-                  {categories.map(cat => (
-                    <option key={cat.value} value={cat.value}>{cat.label}</option>
-                  ))}
+                  {categoriesLoading ? (
+                    <option>Cargando categorías...</option>
+                  ) : categories.length === 0 ? (
+                    <option value="otros">Otros</option>
+                  ) : (
+                    categories.map(cat => (
+                      <option key={cat.value} value={cat.value}>{cat.label}</option>
+                    ))
+                  )}
                 </select>
               </div>
 
