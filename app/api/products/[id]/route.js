@@ -310,8 +310,57 @@ export async function DELETE(req, { params }) {
       return NextResponse.json({ success: false, message: 'Producto no encontrado' }, { status: 404 });
     }
 
+    // Extraer publicId de la imagen si es de Cloudinary
+    let imagePublicId = null;
+    if (product.image && product.image.includes('cloudinary.com') && product.image.includes('/products/')) {
+      try {
+        // Extraer public_id de la URL de Cloudinary
+        // Formato: https://res.cloudinary.com/cloud_name/image/upload/v1234567890/products/public_id.jpg
+        const urlParts = product.image.split('/products/');
+        if (urlParts.length > 1) {
+          const publicIdWithExt = urlParts[1].split('.')[0]; // Remover extensión y parámetros
+          imagePublicId = `products/${publicIdWithExt}`;
+          logger.info('Imagen de Cloudinary detectada para eliminación', {
+            productId: product._id,
+            publicId: imagePublicId,
+            imageUrl: product.image
+          });
+        }
+      } catch (e) {
+        logger.debug('No se pudo extraer public_id de la imagen del producto', { 
+          error: e,
+          imageUrl: product.image 
+        });
+      }
+    }
+
+    // Realizar soft delete del producto
     product.isActive = false;
     await product.save();
+
+    // Eliminar la imagen de Cloudinary si existe
+    if (imagePublicId) {
+      try {
+        logger.info('Eliminando imagen de Cloudinary después de desactivar producto', {
+          productId: product._id,
+          publicId: imagePublicId
+        });
+        await deleteImageFromCloudinary(imagePublicId);
+        logger.info('Imagen eliminada exitosamente de Cloudinary', {
+          productId: product._id,
+          publicId: imagePublicId
+        });
+      } catch (deleteError) {
+        logger.error('Error al eliminar imagen de Cloudinary después de desactivar producto:', {
+          productId: product._id,
+          publicId: imagePublicId,
+          error: deleteError.message,
+          stack: deleteError.stack
+        });
+        // No lanzar el error, solo loguearlo, ya que el producto ya fue desactivado
+        // La imagen quedará huérfana pero el producto está desactivado
+      }
+    }
 
     return NextResponse.json({
       success: true,
@@ -319,7 +368,7 @@ export async function DELETE(req, { params }) {
     });
     
   } catch (error) {
-    console.error('Error al eliminar producto:', error);
+    logger.error('Error al eliminar producto:', error);
     return NextResponse.json({ success: false, message: 'Error interno del servidor' }, { status: 500 });
   }
 }
