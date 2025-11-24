@@ -237,7 +237,7 @@ const BalancePage = () => {
               description: sale.type === 'free' 
                 ? (sale.client?.name ? `Cliente: ${sale.client.name}` : 'Venta libre')
                 : (sale.items?.length > 0 
-                  ? `${sale.items.length} producto${sale.items.length > 1 ? 's' : ''}`
+                ? `${sale.items.length} producto${sale.items.length > 1 ? 's' : ''}`
                   : undefined)
             });
           }

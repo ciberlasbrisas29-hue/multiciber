@@ -34,6 +34,7 @@ const InventoryPage = () => {
     const [products, setProducts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [searchResults, setSearchResults] = useState<{ [category: string]: any[] }>({});
     const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
     const [pagination, setPagination] = useState<Pagination>({ current: 1, pages: 1, total: 0 });
     const [page, setPage] = useState(1);
@@ -43,6 +44,45 @@ const InventoryPage = () => {
     const [showShareModal, setShowShareModal] = useState(false);
     const [userId, setUserId] = useState<string | null>(null);
     const [toast, setToast] = useState({ message: '', type: 'success' as 'success' | 'error' | 'warning', isVisible: false });
+
+    // Función para búsqueda dinámica (sin categoría específica)
+    const searchProducts = useCallback(async (term: string) => {
+        if (!term.trim()) {
+            setSearchResults({});
+            return;
+        }
+        
+        try {
+            setLoading(true);
+            // Buscar en todos los productos sin filtrar por categoría
+            const response = await productsService.getProducts({
+                page: 1,
+                limit: 1000, // Obtener muchos resultados para agrupar
+                search: term,
+                isActive: true
+            });
+            
+            if (response.success && response.data) {
+                // Agrupar productos por categoría
+                const grouped: { [category: string]: any[] } = {};
+                response.data.forEach((product: any) => {
+                    const category = product.category || 'otros';
+                    if (!grouped[category]) {
+                        grouped[category] = [];
+                    }
+                    grouped[category].push(product);
+                });
+                setSearchResults(grouped);
+            } else {
+                setSearchResults({});
+            }
+        } catch (error) {
+            console.error("Error searching products:", error);
+            setSearchResults({});
+        } finally {
+            setLoading(false);
+        }
+    }, []);
 
     // Función para cargar productos
     const fetchProducts = useCallback(async () => {
@@ -115,6 +155,19 @@ const InventoryPage = () => {
         }
     }, [selectedCategory]);
 
+    // Búsqueda dinámica con debounce
+    useEffect(() => {
+        if (searchTerm.trim() && !selectedCategory) {
+            const timeoutId = setTimeout(() => {
+                searchProducts(searchTerm);
+            }, 300); // Debounce de 300ms
+            
+            return () => clearTimeout(timeoutId);
+        } else if (!searchTerm.trim() && !selectedCategory) {
+            setSearchResults({});
+        }
+    }, [searchTerm, selectedCategory, searchProducts]);
+
     // Cargar productos cuando se selecciona una categoría
     useEffect(() => {
         if (selectedCategory) {
@@ -140,6 +193,8 @@ const InventoryPage = () => {
     }, [productIdFromUrl, products, showQuickEditModal]);
 
     const handleCategoryClick = (categoryName: string) => {
+        setSearchTerm(''); // Limpiar búsqueda al seleccionar categoría
+        setSearchResults({});
         router.push(`/inventory?category=${encodeURIComponent(categoryName)}`);
     };
 
@@ -256,27 +311,27 @@ const InventoryPage = () => {
             <div className="px-6 space-y-4">
                 {/* Search and Action Buttons */}
                 <div className="flex gap-3">
-                    <div className="flex-1 relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                        <input
-                            type="text"
-                            value={searchTerm}
-                            onChange={(e) => {
-                                setSearchTerm(e.target.value);
-                                setPage(1);
-                            }}
-                            placeholder="Buscar por nombre, categoría o código de barras..."
+                <div className="flex-1 relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <input
+                        type="text"
+                        value={searchTerm}
+                        onChange={(e) => {
+                            setSearchTerm(e.target.value);
+                            setPage(1);
+                        }}
+                        placeholder="Buscar por nombre, categoría o código de barras..."
                             className="w-full pl-10 pr-4 py-3 bg-white rounded-2xl border border-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                        />
-                    </div>
-                    <button
-                        onClick={() => setShowBarcodeScanner(true)}
-                        className="px-4 py-3 bg-purple-500 text-white rounded-2xl hover:bg-purple-600 transition-colors flex items-center justify-center"
-                        title="Escanear código de barras"
-                    >
-                        <Scan className="w-5 h-5" />
-                    </button>
+                    />
                 </div>
+                <button
+                    onClick={() => setShowBarcodeScanner(true)}
+                        className="px-4 py-3 bg-purple-500 text-white rounded-2xl hover:bg-purple-600 transition-colors flex items-center justify-center"
+                    title="Escanear código de barras"
+                >
+                    <Scan className="w-5 h-5" />
+                </button>
+            </div>
 
                 {/* Action Buttons Row */}
                 <div className="flex gap-3">
@@ -297,22 +352,145 @@ const InventoryPage = () => {
                     </button>
                 </div>
 
-                {/* Vista de Categorías */}
+                {/* Vista de Categorías o Resultados de Búsqueda */}
                 {!selectedCategory && (
                     <>
-                        {loading ? (
+                        {loading && searchTerm.trim() ? (
                             <div className="text-center py-12">
                                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-                                <p className="text-gray-600">Cargando categorías...</p>
+                                <p className="text-gray-600">Buscando productos...</p>
                             </div>
-                        ) : categories.length === 0 ? (
+                        ) : searchTerm.trim() && Object.keys(searchResults).length > 0 ? (
+                            // Mostrar resultados agrupados por categoría
+                            <div className="space-y-6">
+                                {Object.entries(searchResults).map(([categoryName, categoryProducts]) => (
+                                    <div key={categoryName} className="space-y-3">
+                                        {/* Header de categoría */}
+                                        <div className="mb-2">
+                                            <h2 className="text-2xl font-bold text-gray-800 mb-1">
+                                                {formatCategoryName(categoryName)}
+                                            </h2>
+                                            <p className="text-gray-500 text-sm">
+                                                {categoryProducts.length} {categoryProducts.length === 1 ? 'producto' : 'productos'}
+                                            </p>
+                                        </div>
+                                        
+                                        {/* Productos de esta categoría */}
+                                        <div className="space-y-3">
+                                            {categoryProducts.map((product) => {
+                                                const isCritical = isStockCritical(product);
+                                                const profit = (product.price - product.cost) || 0;
+                                                
+                                                return (
+                                                    <div
+                                                        key={product._id}
+                                                        onClick={() => handleProductClick(product)}
+                                                        className={`bg-white rounded-2xl p-4 shadow-md hover:shadow-lg transition-all border-2 cursor-pointer active:scale-[0.98] ${
+                                                            isCritical ? 'border-red-200 bg-red-50/30' : 'border-gray-100'
+                                                        }`}
+                                                    >
+                                                        <div className="flex items-start space-x-4">
+                                                            {/* Imagen del producto */}
+                                                            <div className="w-16 h-16 flex-shrink-0 rounded-xl overflow-hidden bg-gray-100">
+                                                                {product.image && product.image !== '/assets/images/products/default-product.svg' ? (
+                                                                    <img
+                                                                        className="w-full h-full object-cover"
+                                                                        src={product.image}
+                                                                        alt={product.name}
+                                                                        onError={(e) => {
+                                                                            e.currentTarget.style.display = 'none';
+                                                                        }}
+                                                                    />
+                                                                ) : null}
+                                                                {(!product.image || product.image === '/assets/images/products/default-product.svg') && (
+                                                                    <DefaultProductImage width={64} height={64} alt={product.name} />
+                                                                )}
+                                                            </div>
+
+                                                            {/* Información del producto */}
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="flex items-start justify-between mb-2">
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <h3 className="font-bold text-gray-900 text-lg truncate">
+                                                                            {product.name}
+                                                                        </h3>
+                                                                        <p className="text-sm text-gray-500 capitalize">
+                                                                            {formatCategoryName(product.category)}
+                                                                        </p>
+                                                                    </div>
+                                                                    {isCritical && (
+                                                                        <div className="ml-2 flex-shrink-0">
+                                                                            <AlertTriangle className="w-5 h-5 text-red-600" />
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+
+                                                                <div className="grid grid-cols-2 gap-4 mt-3">
+                                                                    {/* Stock */}
+                                                                    <div>
+                                                                        <p className="text-xs text-gray-500 mb-1">Stock</p>
+                                                                        <p className={`font-bold text-lg ${
+                                                                            isCritical ? 'text-red-600' : 'text-gray-900'
+                                                                        }`}>
+                                                                            {product.stock} {product.unit || 'unidades'}
+                                                                        </p>
+                                                                        {isCritical && (
+                                                                            <p className="text-xs text-red-600 mt-1">
+                                                                                {product.stock === 0 ? 'Agotado' : 'Stock crítico'}
+                                                                            </p>
+                                                                        )}
+                                                                    </div>
+
+                                                                    {/* Precio y Ganancia */}
+                                                                    <div className="text-right">
+                                                                        <p className="text-xs text-gray-500 mb-1">Precio</p>
+                                                                        <p className="font-bold text-lg text-gray-900">
+                                                                            ${product.price?.toLocaleString() || '0'}
+                                                                        </p>
+                                                                        {profit > 0 && (
+                                                                            <p className="text-sm text-green-600 font-semibold mt-1 flex items-center justify-end">
+                                                                                <TrendingUp className="w-4 h-4 mr-1" />
+                                                                                +${profit.toLocaleString()} ganancia
+                                                                            </p>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : searchTerm.trim() && Object.keys(searchResults).length === 0 ? (
                             <div className="text-center bg-white p-12 rounded-2xl shadow-md">
                                 <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                                <h3 className="text-xl font-semibold text-gray-700 mb-2">No hay categorías</h3>
-                                <p className="text-gray-500">Crea productos para ver las categorías aquí.</p>
+                                <h3 className="text-xl font-semibold text-gray-700 mb-2">No se encontraron productos</h3>
+                                <p className="text-gray-500 mb-4">
+                                    No hay productos que coincidan con "{searchTerm}"
+                                </p>
+                                <button
+                                    onClick={() => setSearchTerm('')}
+                                    className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors"
+                                >
+                                    Limpiar búsqueda
+                                </button>
                             </div>
-                        ) : (
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        ) : loading ? (
+                        <div className="text-center py-12">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+                            <p className="text-gray-600">Cargando categorías...</p>
+                        </div>
+                    ) : categories.length === 0 ? (
+                        <div className="text-center bg-white p-12 rounded-2xl shadow-md">
+                            <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                            <h3 className="text-xl font-semibold text-gray-700 mb-2">No hay categorías</h3>
+                            <p className="text-gray-500">Crea productos para ver las categorías aquí.</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                             {categories.map((category) => (
                                 <button
                                     key={category.name}
@@ -329,33 +507,33 @@ const InventoryPage = () => {
                                         {category.count} {category.count === 1 ? 'producto' : 'productos'}
                                     </p>
                                 </button>
-                                ))}
-                            </div>
-                        )}
-                    </>
-                )}
+                            ))}
+                        </div>
+                    )}
+                </>
+            )}
 
-                {/* Vista de Productos */}
+            {/* Vista de Productos */}
                 {selectedCategory && (
-                    <>
-                        {/* Botón de regreso */}
-                        <button
-                            onClick={handleBackToCategories}
+                <>
+                    {/* Botón de regreso */}
+                    <button
+                        onClick={handleBackToCategories}
                             className="flex items-center text-purple-600 hover:text-purple-700 transition-colors mb-2"
-                        >
-                            <ArrowLeft className="w-5 h-5 mr-2" />
-                            <span>Volver a categorías</span>
-                        </button>
+                    >
+                        <ArrowLeft className="w-5 h-5 mr-2" />
+                        <span>Volver a categorías</span>
+                    </button>
 
-                        {/* Título de categoría */}
+                    {/* Título de categoría */}
                         <div className="mb-4">
                             <h2 className="text-2xl font-bold text-gray-800 mb-1">
-                                {formatCategoryName(selectedCategory)}
-                            </h2>
+                            {formatCategoryName(selectedCategory)}
+                        </h2>
                             <p className="text-gray-500 text-sm">
-                                {pagination.total || 0} {pagination.total === 1 ? 'producto' : 'productos'}
-                            </p>
-                        </div>
+                            {pagination.total || 0} {pagination.total === 1 ? 'producto' : 'productos'}
+                        </p>
+                    </div>
 
                     {loading ? (
                         <div className="text-center py-12">
@@ -472,30 +650,30 @@ const InventoryPage = () => {
                         </div>
                     )}
 
-                        {/* Paginación */}
-                        {pagination.pages > 1 && (
-                            <div className="flex justify-between items-center mt-6">
-                                <button
-                                    onClick={() => setPage(p => Math.max(1, p - 1))}
-                                    disabled={page === 1}
-                                    className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    Anterior
-                                </button>
-                                <span className="text-sm text-gray-700">
-                                    Página {pagination.current} de {pagination.pages}
-                                </span>
-                                <button
-                                    onClick={() => setPage(p => Math.min(pagination.pages, p + 1))}
-                                    disabled={page === pagination.pages}
-                                    className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    Siguiente
-                                </button>
-                            </div>
-                        )}
-                    </>
-                )}
+                    {/* Paginación */}
+                    {pagination.pages > 1 && (
+                        <div className="flex justify-between items-center mt-6">
+                            <button
+                                onClick={() => setPage(p => Math.max(1, p - 1))}
+                                disabled={page === 1}
+                                className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Anterior
+                            </button>
+                            <span className="text-sm text-gray-700">
+                                Página {pagination.current} de {pagination.pages}
+                            </span>
+                            <button
+                                onClick={() => setPage(p => Math.min(pagination.pages, p + 1))}
+                                disabled={page === pagination.pages}
+                                className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Siguiente
+                            </button>
+                        </div>
+                    )}
+                </>
+            )}
             </div>
 
             {/* Barcode Scanner Modal */}

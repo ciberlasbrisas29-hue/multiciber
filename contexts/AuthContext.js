@@ -79,6 +79,23 @@ export const AuthProvider = ({ children }) => {
   const initPromiseRef = useRef(null);
 
   useEffect(() => {
+    // Verificar si estamos en una ruta pública antes de hacer la verificación
+    if (typeof window !== 'undefined') {
+      const currentPath = window.location.pathname;
+      const publicRoutes = ['/login', '/register'];
+      const isPublicRoute = publicRoutes.includes(currentPath);
+      
+      // Si estamos en una ruta pública, no hacer la verificación de autenticación
+      // Esto evita el error 401 en la consola
+      if (isPublicRoute) {
+        if (!hasInitializedRef.current) {
+          hasInitializedRef.current = true;
+          dispatch({ type: AUTH_ACTIONS.INITIALIZE, payload: { user: null, token: null } });
+        }
+        return;
+      }
+    }
+    
     // Si ya se inicializó globalmente, no hacer nada
     if (globalAuthInitialized) {
       if (!hasInitializedRef.current) {
