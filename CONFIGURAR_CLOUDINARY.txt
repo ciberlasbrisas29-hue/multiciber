@@ -1,0 +1,39 @@
+═══════════════════════════════════════════════════════════════
+  CONFIGURACIÓN DE CLOUDINARY - CREDENCIALES LISTAS
+═══════════════════════════════════════════════════════════════
+
+✅ CREDENCIALES OBTENIDAS DE CLOUDINARY:
+────────────────────────────────────────────
+Cloud Name: djeyyfkj2
+API Key: 812419197118111
+API Secret: sJJJK9PVOXIhpEtGx2GU4bEj7Qo
+
+📝 PASOS PARA CONFIGURAR:
+────────────────────────────────────────────
+
+1. Abre o crea el archivo .env.local en la raíz del proyecto
+
+2. Agrega estas líneas al archivo:
+
+   CLOUDINARY_CLOUD_NAME=djeyyfkj2
+   CLOUDINARY_API_KEY=812419197118111
+   CLOUDINARY_API_SECRET=sJJJK9PVOXIhpEtGx2GU4bEj7Qo
+
+3. Si ya tienes otras variables (MONGODB_URI, JWT_SECRET, etc.), 
+   simplemente agrega las 3 líneas de Cloudinary al final.
+
+4. Guarda el archivo y reinicia el servidor de desarrollo:
+   npm run dev
+
+⚠️ IMPORTANTE:
+- El archivo .env.local está en .gitignore (no se subirá a Git)
+- Nunca compartas estas credenciales públicamente
+- Para producción (Vercel), agrega estas variables en:
+  Settings → Environment Variables
+
+✅ LISTO! 
+Las imágenes ahora se subirán automáticamente a Cloudinary cuando 
+crees o actualices productos.
+
+═══════════════════════════════════════════════════════════════
+

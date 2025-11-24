@@ -14,6 +14,11 @@ MONGODB_URI=mongodb://localhost:27017/multiciber
 JWT_SECRET=tu-secret-key-super-segura-de-al-menos-32-caracteres-aqui
 JWT_EXPIRE=7d
 
+# Cloudinary (Gestión de imágenes)
+CLOUDINARY_CLOUD_NAME=tu_cloud_name_aqui
+CLOUDINARY_API_KEY=tu_api_key_aqui
+CLOUDINARY_API_SECRET=tu_api_secret_aqui
+
 # Environment
 NODE_ENV=development
 ```
@@ -45,6 +50,23 @@ NODE_ENV=development
 - **Requerido**: No
 - **Descripción**: URL base de la API (solo necesario si la API está en otro servidor)
 - **Por defecto**: `/api`
+
+### CLOUDINARY_CLOUD_NAME
+- **Requerido**: Sí (para subir imágenes)
+- **Descripción**: Nombre de tu cuenta en Cloudinary
+- **Cómo obtenerlo**: Regístrate en [Cloudinary](https://cloudinary.com) y lo verás en el Dashboard
+- **Ejemplo**: `dxyz123abc`
+
+### CLOUDINARY_API_KEY
+- **Requerido**: Sí (para subir imágenes)
+- **Descripción**: Clave API de Cloudinary
+- **Cómo obtenerlo**: Dashboard de Cloudinary → Account Details
+
+### CLOUDINARY_API_SECRET
+- **Requerido**: Sí (para subir imágenes)
+- **Descripción**: Secreto API de Cloudinary (manténlo privado)
+- **Cómo obtenerlo**: Dashboard de Cloudinary → Account Details
+- **⚠️ Importante**: Nunca compartas este secreto públicamente
 
 ## Seguridad
 

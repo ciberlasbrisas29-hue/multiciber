@@ -9,6 +9,7 @@ import jwt from 'jsonwebtoken';
 import logger from '@/lib/logger';
 import { handleError } from '@/lib/errors';
 import { verifyAuth } from '@/lib/auth';
+import { uploadImageFile } from '@/lib/cloudinary';
 
 // Helper function to get user from token
 async function getUserFromToken(req) {
@@ -49,8 +50,14 @@ export async function GET(req) {
 
     const filters = { createdBy: user._id };
     
+    // Por defecto, solo mostrar productos activos (a menos que se especifique lo contrario)
+    if (isActive !== null) {
+      filters.isActive = isActive === 'true';
+    } else {
+      filters.isActive = true;  // Por defecto solo productos activos
+    }
+    
     if (category) filters.category = category;
-    if (isActive !== null) filters.isActive = isActive === 'true';
     if (search) {
       filters.$or = [
         { name: { $regex: search, $options: 'i' } },
@@ -150,90 +157,118 @@ export async function POST(req) {
       } = formData);
     }
 
+    // Parse numeric values
+    const priceNum = parseFloat(price);
+    const costNum = parseFloat(cost);
+    const stockNum = parseInt(stock || '0');
+    const minStockNum = parseInt(minStock || '0');
+
     // Validation
     if (!name || !price || !cost || !category || !unit) {
+      logger.error('Validation failed: Missing required fields', { name, price, cost, category, unit });
       return NextResponse.json(
         { success: false, message: 'Faltan campos requeridos: name, price, cost, category, unit' }, 
         { status: 400 }
       );
     }
 
-    if (price <= 0 || cost <= 0) {
+    if (isNaN(priceNum) || isNaN(costNum) || priceNum <= 0 || costNum <= 0) {
+      logger.error('Validation failed: Invalid price or cost', { priceNum, costNum });
       return NextResponse.json(
         { success: false, message: 'El precio y costo deben ser mayor a 0' }, 
         { status: 400 }
       );
     }
 
-    if (stock < 0 || minStock < 0) {
+    if (isNaN(stockNum) || isNaN(minStockNum) || stockNum < 0 || minStockNum < 0) {
+      logger.error('Validation failed: Invalid stock values', { stockNum, minStockNum });
       return NextResponse.json(
         { success: false, message: 'El stock y stock mínimo no pueden ser negativos' }, 
         { status: 400 }
       );
     }
 
-    // Check if barcode is unique (if provided)
+    // Check if barcode is unique (if provided) - solo productos activos
     if (barcode) {
       const existingProduct = await Product.findOne({ 
         barcode, 
-        createdBy: user._id 
+        createdBy: user._id,
+        isActive: true  // Solo considerar productos activos
       });
       
       if (existingProduct) {
         return NextResponse.json(
-          { success: false, message: 'El código de barras ya está en uso' }, 
+          { success: false, message: 'El código de barras ya está en uso por un producto activo' }, 
           { status: 400 }
         );
       }
     }
 
-    // Check if name is unique for this user
+    // Check if name is unique for this user (solo productos activos)
     const existingName = await Product.findOne({ 
       name: { $regex: new RegExp(`^${name}$`, 'i') }, 
-      createdBy: user._id 
+      createdBy: user._id,
+      isActive: true  // Solo considerar productos activos
     });
     
     if (existingName) {
       return NextResponse.json(
-        { success: false, message: 'Ya existe un producto con ese nombre' }, 
+        { success: false, message: 'Ya existe un producto activo con ese nombre' }, 
         { status: 400 }
       );
     }
 
-    // Handle image upload if present
-    // In serverless environments (Vercel), we can't write to filesystem
-    // Solution: Convert image to base64 and store in MongoDB or use cloud storage
+    // Handle image upload to Cloudinary
     let imagePath = '/assets/images/products/default-product.svg';
     
+    // Verificar que Cloudinary esté configurado
+    const cloudinaryConfigured = process.env.CLOUDINARY_CLOUD_NAME && 
+                                  process.env.CLOUDINARY_API_KEY && 
+                                  process.env.CLOUDINARY_API_SECRET;
+    
     if (imageFile && imageFile instanceof File) {
-      try {
-        // Convert file to base64 for storage in MongoDB
-        const bytes = await imageFile.arrayBuffer();
-        const buffer = Buffer.from(bytes);
-        const base64Image = buffer.toString('base64');
-        const mimeType = imageFile.type || 'image/jpeg';
-        
-        // Store as data URL (can be stored in MongoDB or used directly in img src)
-        // Format: data:image/jpeg;base64,/9j/4AAQSkZJRg...
-        imagePath = `data:${mimeType};base64,${base64Image}`;
-        
-        console.log('Image converted to base64 successfully');
-      } catch (uploadError) {
-        console.error('Error processing image:', uploadError);
-        // Continue with default image if processing fails
-        imagePath = '/assets/images/products/default-product.svg';
+      if (!cloudinaryConfigured) {
+        logger.warn('Cloudinary not configured, skipping image upload', {
+          hasCloudName: !!process.env.CLOUDINARY_CLOUD_NAME,
+          hasApiKey: !!process.env.CLOUDINARY_API_KEY,
+          hasApiSecret: !!process.env.CLOUDINARY_API_SECRET
+        });
+        // Continue without uploading to Cloudinary
+      } else {
+        try {
+          logger.info('Uploading product image to Cloudinary', { 
+            fileName: imageFile.name, 
+            size: imageFile.size 
+          });
+
+          // Upload to Cloudinary in the 'products' folder
+          const uploadResult = await uploadImageFile(imageFile, 'products');
+          imagePath = uploadResult.secure_url;
+          
+          logger.info('Product image uploaded successfully', { 
+            url: uploadResult.secure_url,
+            publicId: uploadResult.public_id 
+          });
+        } catch (uploadError) {
+          logger.error('Error uploading image to Cloudinary:', {
+            error: uploadError.message,
+            stack: uploadError.stack
+          });
+          // Continue with default image if upload fails
+          imagePath = '/assets/images/products/default-product.svg';
+        }
       }
     }
 
     const product = new Product({
       name: name.trim(),
       description: description.trim(),
-      price: parseFloat(price),
-      cost: parseFloat(cost),
+      price: priceNum,
+      cost: costNum,
       category: category.trim(),
       unit: unit.trim(),
-      stock: parseInt(stock),
-      minStock: parseInt(minStock),
+      stock: stockNum,
+      minStock: minStockNum,
       barcode: barcode ? barcode.trim() : undefined,
       image: imagePath,
       tags: Array.isArray(tags) ? tags : [],

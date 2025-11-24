@@ -3,6 +3,8 @@ import dbConnect from '@/lib/db';
 import Product from '@/lib/models/Product';
 import { verifyAuth } from '@/lib/auth';
 import mongoose from 'mongoose';
+import { uploadImageFile, deleteImageFromCloudinary } from '@/lib/cloudinary';
+import logger from '@/lib/logger';
 
 // @desc    Obtener un producto por ID
 export async function GET(req, { params }) {
@@ -126,39 +128,66 @@ export async function PUT(req, { params }) {
       return NextResponse.json({ success: false, message: 'Producto no encontrado' }, { status: 404 });
     }
 
-    // Validación de barcode si se está cambiando
+    // Validación de barcode si se está cambiando (solo productos activos)
     if (barcode && barcode !== product.barcode) {
       const existingProduct = await Product.findOne({ 
         barcode: barcode,
         _id: { $ne: new mongoose.Types.ObjectId(id) },
-        createdBy: userId
+        createdBy: userId,
+        isActive: true  // Solo considerar productos activos
       });
       if (existingProduct) {
-        return NextResponse.json({ success: false, message: 'El código de barras ya está en uso' }, { status: 400 });
+        return NextResponse.json({ success: false, message: 'El código de barras ya está en uso por un producto activo' }, { status: 400 });
       }
     }
 
-    // Handle image upload if present
-    // In serverless environments (Vercel), we can't write to filesystem
-    // Solution: Convert image to base64 and store in MongoDB
+    // Handle image upload to Cloudinary
     let imagePath = product.image; // Mantener la imagen actual por defecto
+    let oldPublicId = null;
+    
+    // Detectar si la imagen actual es de Cloudinary (contiene cloudinary.com)
+    const currentImageIsCloudinary = product.image && 
+      product.image.includes('cloudinary.com') &&
+      product.image.includes('/products/');
+    
+    // Extraer public_id de la imagen actual si es de Cloudinary
+    if (currentImageIsCloudinary && imageFile) {
+      try {
+        // Extraer public_id de la URL de Cloudinary
+        // Formato: https://res.cloudinary.com/cloud_name/image/upload/v1234567890/products/public_id.jpg
+        const urlParts = product.image.split('/products/');
+        if (urlParts.length > 1) {
+          const publicIdWithExt = urlParts[1].split('.')[0]; // Remover extensión y parámetros
+          oldPublicId = `products/${publicIdWithExt}`;
+        }
+      } catch (e) {
+        logger.debug('Could not extract public_id from current image', { error: e });
+      }
+    }
     
     if (imageFile && imageFile instanceof File) {
       try {
-        // Convert file to base64 for storage in MongoDB
-        const bytes = await imageFile.arrayBuffer();
-        const buffer = Buffer.from(bytes);
-        const base64Image = buffer.toString('base64');
-        const mimeType = imageFile.type || 'image/jpeg';
+        logger.info('Uploading updated product image to Cloudinary', { 
+          fileName: imageFile.name, 
+          size: imageFile.size,
+          oldPublicId 
+        });
+
+        // Si hay una imagen anterior de Cloudinary, usar el mismo public_id para sobrescribirla
+        // Esto ayuda a mantener el mismo URL y limpiar imágenes antiguas
+        const publicId = oldPublicId ? oldPublicId.split('/')[1] : null; // Solo el ID sin carpeta
         
-        // Store as data URL (can be stored in MongoDB or used directly in img src)
-        // Format: data:image/jpeg;base64,/9j/4AAQSkZJRg...
-        imagePath = `data:${mimeType};base64,${base64Image}`;
+        // Upload to Cloudinary (si hay publicId, se sobrescribirá automáticamente)
+        const uploadResult = await uploadImageFile(imageFile, 'products', publicId);
+        imagePath = uploadResult.secure_url;
         
-        console.log('Image converted to base64 successfully');
+        logger.info('Product image updated successfully', { 
+          url: uploadResult.secure_url,
+          publicId: uploadResult.public_id 
+        });
       } catch (uploadError) {
-        console.error('Error processing image:', uploadError);
-        // Continue with current image if processing fails
+        logger.error('Error uploading image to Cloudinary:', uploadError);
+        // Continue with current image if upload fails
       }
     }
 

@@ -151,8 +151,15 @@ const CreateProductPage = () => {
 
       const result = await response.json();
 
-      if (!result.success) {
-        throw new Error(result.message || 'Error al crear el producto');
+      if (!response.ok || !result.success) {
+        // Mostrar el mensaje de error del servidor o un mensaje genérico
+        const errorMessage = result.message || `Error ${response.status}: ${response.statusText}`;
+        console.error('Error creating product:', {
+          status: response.status,
+          statusText: response.statusText,
+          result
+        });
+        throw new Error(errorMessage);
       }
 
       // Producto creado exitosamente
