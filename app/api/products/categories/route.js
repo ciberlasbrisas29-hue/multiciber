@@ -56,15 +56,8 @@ export async function GET(req) {
       })
     );
 
-    // Ordenar: primero las que tienen productos (por cantidad descendente), luego las vacías
-    categoriesWithData.sort((a, b) => {
-      if (a.count > 0 && b.count > 0) {
-        return b.count - a.count; // Orden descendente por cantidad
-      }
-      if (a.count > 0) return -1; // Las con productos primero
-      if (b.count > 0) return 1;
-      return a.displayName.localeCompare(b.displayName); // Las vacías ordenadas alfabéticamente
-    });
+    // Mantener el orden guardado (ya viene ordenado por order desde la BD)
+    // No reordenar aquí para respetar el orden personalizado del usuario
 
     return NextResponse.json({
       success: true,

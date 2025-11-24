@@ -290,6 +290,8 @@ const CategoryManagementPage = () => {
           isVisible: true
         });
       } else {
+        // Recargar desde el servidor para confirmar que se guardó correctamente
+        await fetchCategories();
         setToast({
           message: 'Orden de categorías actualizado',
           type: 'success',
