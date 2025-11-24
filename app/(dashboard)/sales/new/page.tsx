@@ -17,6 +17,8 @@ import {
   Check,
   ArrowUp,
   ArrowDown,
+  Search,
+  Package
 } from 'lucide-react';
 
 const NewSalePage = () => {
@@ -27,6 +29,7 @@ const NewSalePage = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchResults, setSearchResults] = useState<{ [category: string]: any[] }>({});
   const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
   const [sortBy, setSortBy] = useState<{ field: string; direction: 'asc' | 'desc' } | null>(null);
   const sortButtonRef = useRef<HTMLButtonElement>(null);
@@ -76,9 +79,67 @@ const NewSalePage = () => {
     fetchCategories();
   }, []);
 
+  // Búsqueda dinámica con debounce
   useEffect(() => {
-    fetchProducts();
-  }, [selectedCategory, searchTerm]);
+    const searchProducts = async (term: string) => {
+      if (!term.trim()) {
+        setSearchResults({});
+        if (selectedCategory !== 'all') {
+          fetchProducts();
+        }
+        return;
+      }
+      
+      try {
+        setLoading(true);
+        const response = await productsService.getProducts({
+          page: 1,
+          limit: 1000,
+          search: term,
+          isActive: true
+        });
+        
+        if (response.success && response.data) {
+          // Filtrar solo productos con stock y agrupar por categoría
+          const grouped: { [category: string]: any[] } = {};
+          response.data
+            .filter((p: any) => p.stock > 0)
+            .forEach((product: any) => {
+              const category = product.category || 'otros';
+              if (!grouped[category]) {
+                grouped[category] = [];
+              }
+              grouped[category].push(product);
+            });
+          setSearchResults(grouped);
+        } else {
+          setSearchResults({});
+        }
+      } catch (error) {
+        console.error('Error searching products:', error);
+        setSearchResults({});
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const debounceTimer = setTimeout(() => {
+      if (searchTerm.trim()) {
+        searchProducts(searchTerm);
+      } else {
+        setSearchResults({});
+        fetchProducts(); // Cargar productos cuando se limpia la búsqueda
+      }
+    }, 300);
+
+    return () => clearTimeout(debounceTimer);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      fetchProducts();
+    }
+  }, [selectedCategory]);
 
   // Aplicar ordenamiento cuando cambie sortBy
   useEffect(() => {
@@ -92,13 +153,18 @@ const NewSalePage = () => {
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      const params: any = { isActive: true };
+      const params: any = { 
+        isActive: true,
+        page: 1,
+        limit: 1000 // Obtener muchos productos para "Todas las categorías"
+      };
+      
+      // Solo filtrar por categoría si no es "all"
       if (selectedCategory !== 'all') {
         params.category = selectedCategory;
       }
-      if (searchTerm) {
-        params.search = searchTerm;
-      }
+      
+      // No incluir searchTerm aquí porque se maneja en el buscador
       
       const response = await productsService.getProducts(params);
       if (response.success) {
@@ -374,16 +440,35 @@ const NewSalePage = () => {
         </div>
       </div>
 
-      {/* Botón Nuevo Producto */}
-      <button
-        onClick={() => router.push('/inventory/create')}
-        className="w-full bg-white border border-purple-100 rounded-2xl p-4 mb-4 flex items-center space-x-3 shadow-md hover:shadow-lg transition-all duration-200 active:scale-[0.98]"
-      >
-        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-sm">
-          <Plus className="w-5 h-5 text-white" />
+      {/* Buscador Dinámico */}
+      <div className="mb-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              if (e.target.value.trim()) {
+                setSelectedCategory('all'); // Limpiar categoría cuando se busca
+              }
+            }}
+            placeholder="Buscar por nombre, categoría o código de barras..."
+            className="w-full pl-10 pr-4 py-3 bg-white rounded-2xl border border-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+          />
+          {searchTerm && (
+            <button
+              onClick={() => {
+                setSearchTerm('');
+                setSearchResults({});
+              }}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
         </div>
-        <span className="text-gray-900 font-semibold">Nuevo producto</span>
-      </button>
+      </div>
 
       {/* Selector de Categorías */}
       <div className="flex items-center space-x-2 mb-4 overflow-x-auto pb-2 relative">
@@ -556,6 +641,119 @@ const NewSalePage = () => {
         {loading ? (
           <div className="flex justify-center items-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+          </div>
+        ) : searchTerm.trim() && Object.keys(searchResults).length > 0 ? (
+          // Mostrar resultados de búsqueda agrupados por categoría
+          <div className="space-y-6">
+            {Object.entries(searchResults).map(([categoryName, categoryProducts]) => {
+              const category = categories.find(c => c.value === categoryName);
+              const categoryLabel = category?.label || categoryName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+              
+              return (
+                <div key={categoryName} className="space-y-3">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <div 
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: category?.color || '#6b7280' }}
+                    />
+                    <h3 className="font-semibold text-gray-700 text-lg">{categoryLabel}</h3>
+                    <span className="text-sm text-gray-500">({categoryProducts.length})</span>
+                  </div>
+                  {categoryProducts.map((product: any) => {
+                    const selectedItem = selectedProducts.find((p: any) => p.id === product._id);
+                    const quantity = selectedItem?.quantity || 0;
+                    const isStockLow = product.minStock !== undefined && product.stock <= product.minStock;
+                    const hasStock = product.stock > 0;
+
+                    return (
+                      <div
+                        key={product._id}
+                        className="bg-white rounded-2xl p-4 shadow-md border border-purple-100 hover:shadow-lg transition-shadow"
+                      >
+                        <div className="flex items-center space-x-4">
+                          {/* Imagen del producto */}
+                          <div className="w-20 h-20 rounded-2xl bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0 border border-purple-100 shadow-sm">
+                            {product.image && product.image !== '/assets/images/products/default-product.jpg' ? (
+                              <img
+                                src={product.image}
+                                alt={product.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
+                                <span className="text-2xl font-bold text-white">
+                                  {product.name.charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Información del producto */}
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-gray-900 mb-1 truncate">
+                              {product.name}
+                            </h3>
+                            <div className="flex items-center space-x-2 mb-1">
+                              <span className={`px-2.5 py-1 rounded-full text-xs font-semibold flex items-center border ${
+                                isStockLow
+                                  ? 'bg-red-50 text-red-700 border-red-200'
+                                  : hasStock
+                                  ? 'bg-green-50 text-green-700 border-green-200'
+                                  : 'bg-gray-50 text-gray-700 border-gray-200'
+                              }`}>
+                                <Clock className="w-3 h-3 mr-1" />
+                                {product.stock} disponibles
+                              </span>
+                            </div>
+                            <p className="text-lg font-bold text-purple-600">
+                              ${product.price.toFixed(2)}
+                            </p>
+                          </div>
+
+                          {/* Controles de cantidad */}
+                          <div className="flex items-center space-x-2 flex-shrink-0">
+                            <button
+                              onClick={() => updateProductQuantity(product._id, -1)}
+                              disabled={quantity === 0}
+                              className="w-8 h-8 rounded-lg bg-gray-100 text-gray-600 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 transition-colors"
+                            >
+                              <Minus className="w-4 h-4" />
+                            </button>
+                            <span className="w-8 text-center font-semibold text-gray-900">
+                              {quantity}
+                            </span>
+                            <button
+                              onClick={() => updateProductQuantity(product._id, 1)}
+                              disabled={quantity >= product.stock}
+                              className="w-8 h-8 rounded-lg bg-purple-600 text-white flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-purple-700 transition-colors"
+                            >
+                              <Plus className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
+        ) : searchTerm.trim() && Object.keys(searchResults).length === 0 ? (
+          <div className="text-center bg-white p-12 rounded-2xl shadow-md">
+            <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-700 mb-2">No se encontraron productos</h3>
+            <p className="text-gray-500 mb-4">
+              No hay productos que coincidan con "{searchTerm}"
+            </p>
+            <button
+              onClick={() => {
+                setSearchTerm('');
+                setSearchResults({});
+              }}
+              className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors"
+            >
+              Limpiar búsqueda
+            </button>
           </div>
         ) : products.length === 0 ? (
           <div className="text-center py-12 text-gray-500">
