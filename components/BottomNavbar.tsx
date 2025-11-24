@@ -73,12 +73,12 @@ const BottomNavbar = () => {
                 </div>
               ) : (
                 <div className="relative">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                    isActive 
-                      ? 'bg-gradient-to-br from-purple-500 to-indigo-600' 
-                      : 'bg-gray-100'
-                  }`}>
-                    <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-gray-600'}`} />
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                  isActive 
+                    ? 'bg-gradient-to-br from-purple-500 to-indigo-600' 
+                    : 'bg-gray-100'
+                }`}>
+                  <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-gray-600'}`} />
                   </div>
                   {/* Badge de stock bajo en el botón de Inventario */}
                   {item.label === 'Inventario' && lowStockData && lowStockData.count > 0 && (

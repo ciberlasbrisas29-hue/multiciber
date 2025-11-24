@@ -139,33 +139,26 @@ export async function PUT(req, { params }) {
     }
 
     // Handle image upload if present
+    // In serverless environments (Vercel), we can't write to filesystem
+    // Solution: Convert image to base64 and store in MongoDB
     let imagePath = product.image; // Mantener la imagen actual por defecto
     
     if (imageFile && imageFile instanceof File) {
       try {
-        const { mkdir, writeFile } = await import('fs/promises');
-        const { join } = await import('path');
-        
-        // Create uploads directory if it doesn't exist
-        const uploadsDir = join(process.cwd(), 'public', 'assets', 'images', 'products', 'uploads');
-        await mkdir(uploadsDir, { recursive: true });
-
-        // Generate unique filename
-        const timestamp = Date.now();
-        const originalName = imageFile.name.replace(/[^a-zA-Z0-9.-]/g, '');
-        const fileName = `${timestamp}-${originalName}`;
-        const filePath = join(uploadsDir, fileName);
-
-        // Convert file to buffer and save
+        // Convert file to base64 for storage in MongoDB
         const bytes = await imageFile.arrayBuffer();
         const buffer = Buffer.from(bytes);
-        await writeFile(filePath, buffer);
-
-        imagePath = `/assets/images/products/uploads/${fileName}`;
-        console.log('Image uploaded successfully:', imagePath);
+        const base64Image = buffer.toString('base64');
+        const mimeType = imageFile.type || 'image/jpeg';
+        
+        // Store as data URL (can be stored in MongoDB or used directly in img src)
+        // Format: data:image/jpeg;base64,/9j/4AAQSkZJRg...
+        imagePath = `data:${mimeType};base64,${base64Image}`;
+        
+        console.log('Image converted to base64 successfully');
       } catch (uploadError) {
-        console.error('Error uploading image:', uploadError);
-        // Continue with current image if upload fails
+        console.error('Error processing image:', uploadError);
+        // Continue with current image if processing fails
       }
     }
 

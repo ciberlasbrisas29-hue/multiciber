@@ -121,7 +121,7 @@ const NewExpensePage = () => {
   return (
     <>
       {/* Header con gradiente morado/índigo */}
-      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-4 flex items-center space-x-3 rounded-b-2xl mb-6 -mx-6">
+      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-4 flex items-center space-x-3 rounded-b-2xl mb-6 -mx-6 md:mx-0 md:rounded-2xl">
         <button
           onClick={() => router.back()}
           className="p-2 hover:bg-white/20 rounded-full transition-colors"

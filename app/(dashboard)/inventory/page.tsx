@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { productsService } from '@/services/api';
 import DefaultProductImage from '@/components/DefaultProductImage';
 import BarcodeScanner from '@/components/BarcodeScanner';
-import { Search, Scan, ArrowLeft, Package, AlertTriangle, TrendingUp, Share2 } from 'lucide-react';
+import { Search, Scan, ArrowLeft, Package, AlertTriangle, TrendingUp, Share2, Pencil } from 'lucide-react';
 import ProductQuickEditModal from '@/components/ProductQuickEditModal';
 import ShareCatalogModal from '@/components/ShareCatalogModal';
 import Toast from '@/components/Toast';
@@ -261,12 +261,66 @@ const InventoryPage = () => {
         }
     };
 
+    // Obtener nombre para mostrar personalizado
+    const getCategoryDisplayName = (categoryName: string) => {
+        if (typeof window === 'undefined') {
+            return categoryName?.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Sin categoría';
+        }
+        const savedNames = localStorage.getItem('categoryDisplayNames');
+        const customNames = savedNames ? JSON.parse(savedNames) : {};
+        if (customNames[categoryName]) {
+            return customNames[categoryName];
+        }
+        return categoryName?.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Sin categoría';
+    };
+
     const formatCategoryName = (name: string) => {
-        return name?.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Sin categoría';
+        return getCategoryDisplayName(name);
+    };
+
+    // Obtener color personalizado
+    const getCategoryColor = (categoryName: string) => {
+        if (typeof window === 'undefined') return null;
+        const savedColors = localStorage.getItem('categoryColors');
+        const customColors = savedColors ? JSON.parse(savedColors) : {};
+        return customColors[categoryName] || null;
+    };
+
+    // Colores por defecto
+    const defaultColors: { [key: string]: string } = {
+        'accesorios-gaming': '#a855f7',
+        'almacenamiento': '#3b82f6',
+        'conectividad': '#6366f1',
+        'accesorios-trabajo': '#10b981',
+        'dispositivos-captura': '#ec4899',
+        'mantenimiento': '#eab308',
+        'otros': '#6b7280',
     };
 
     const getCategoryIcon = (categoryName: string) => {
-        // Mapeo de categorías a iconos/colores
+        const savedColor = getCategoryColor(categoryName);
+        const color = savedColor || defaultColors[categoryName] || '#6b7280';
+        
+        // Convertir hex a rgba para el fondo con opacidad
+        const hexToRgba = (hex: string, alpha: number) => {
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        };
+
+        // Si hay color personalizado, retornar objeto con estilo
+        if (savedColor) {
+            return {
+                className: '',
+                style: {
+                    backgroundColor: hexToRgba(color, 0.1),
+                    color: color
+                }
+            };
+        }
+
+        // Colores por defecto
         const categoryColors: { [key: string]: string } = {
             'accesorios-gaming': 'bg-purple-100 text-purple-600',
             'almacenamiento': 'bg-blue-100 text-blue-600',
@@ -276,7 +330,11 @@ const InventoryPage = () => {
             'mantenimiento': 'bg-yellow-100 text-yellow-600',
             'otros': 'bg-gray-100 text-gray-600',
         };
-        return categoryColors[categoryName] || 'bg-gray-100 text-gray-600';
+        
+        return {
+            className: categoryColors[categoryName] || 'bg-gray-100 text-gray-600',
+            style: {}
+        };
     };
 
     const isStockCritical = (product: any) => {
@@ -303,12 +361,23 @@ const InventoryPage = () => {
     return (
         <div className="space-y-6 pb-24">
             {/* Header */}
-            <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-4 flex items-center space-x-3 rounded-b-2xl mb-6 -mx-6">
-                <Package className="w-6 h-6" />
-                <h1 className="text-2xl font-bold">Inventario</h1>
+            <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-4 flex items-center justify-between rounded-b-2xl mb-6 -mx-6 md:mx-0 md:rounded-2xl">
+                <div className="flex items-center space-x-3">
+                    <Package className="w-6 h-6" />
+                    <h1 className="text-2xl font-bold">Inventario</h1>
+                </div>
+                {!selectedCategory && (
+                    <button
+                        onClick={() => router.push('/inventory/categories')}
+                        className="w-9 h-9 rounded-lg bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+                        title="Gestionar categorías"
+                    >
+                        <Pencil className="w-4 h-4" />
+                    </button>
+                )}
             </div>
 
-            <div className="px-6 space-y-4">
+            <div className="px-6 md:px-0 space-y-4">
                 {/* Search and Action Buttons */}
                 <div className="flex gap-3">
                 <div className="flex-1 relative">
@@ -489,19 +558,22 @@ const InventoryPage = () => {
                             <h3 className="text-xl font-semibold text-gray-700 mb-2">No hay categorías</h3>
                             <p className="text-gray-500">Crea productos para ver las categorías aquí.</p>
                         </div>
-                    ) : (
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        ) : (
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
                             {categories.map((category) => (
                                 <button
                                     key={category.name}
                                     onClick={() => handleCategoryClick(category.name)}
                                     className="bg-white rounded-2xl p-6 shadow-md hover:shadow-lg transition-all duration-200 active:scale-95 border border-gray-100 flex flex-col items-center text-center"
                                 >
-                                    <div className={`w-16 h-16 rounded-xl ${getCategoryIcon(category.name)} flex items-center justify-center mb-4`}>
+                                    <div 
+                                        className={`w-16 h-16 rounded-xl flex items-center justify-center mb-4 ${getCategoryIcon(category.name).className}`}
+                                        style={getCategoryIcon(category.name).style}
+                                    >
                                         <Package className="w-8 h-8" />
                                     </div>
                                     <h3 className="font-bold text-gray-900 mb-2 text-lg">
-                                        {category.displayName}
+                                        {getCategoryDisplayName(category.name)}
                                     </h3>
                                     <p className="text-sm text-gray-500">
                                         {category.count} {category.count === 1 ? 'producto' : 'productos'}

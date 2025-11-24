@@ -331,7 +331,7 @@ const ReportsPage = () => {
   if (loading) {
     return (
       <>
-        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-4 mb-6 -mx-6 rounded-b-2xl">
+        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-4 mb-6 -mx-6 rounded-b-2xl md:mx-0 md:rounded-2xl">
           <div className="flex items-center justify-between">
             <button
               onClick={() => router.back()}
@@ -353,7 +353,7 @@ const ReportsPage = () => {
   if (!reportData) {
     return (
       <>
-        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-4 mb-6 -mx-6 rounded-b-2xl">
+        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-4 mb-6 -mx-6 rounded-b-2xl md:mx-0 md:rounded-2xl">
           <div className="flex items-center justify-between">
             <button
               onClick={() => router.back()}

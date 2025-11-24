@@ -4,8 +4,7 @@ import dbConnect from '@/lib/db';
 import Product from '@/lib/models/Product';
 import User from '@/lib/models/User';
 import jwt from 'jsonwebtoken';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
+// Removed fs/promises imports - not available in serverless environments
 
 import logger from '@/lib/logger';
 import { handleError } from '@/lib/errors';
@@ -202,30 +201,27 @@ export async function POST(req) {
     }
 
     // Handle image upload if present
+    // In serverless environments (Vercel), we can't write to filesystem
+    // Solution: Convert image to base64 and store in MongoDB or use cloud storage
     let imagePath = '/assets/images/products/default-product.svg';
     
     if (imageFile && imageFile instanceof File) {
       try {
-        // Create uploads directory if it doesn't exist
-        const uploadsDir = join(process.cwd(), 'public', 'assets', 'images', 'products', 'uploads');
-        await mkdir(uploadsDir, { recursive: true });
-
-        // Generate unique filename
-        const timestamp = Date.now();
-        const originalName = imageFile.name.replace(/[^a-zA-Z0-9.-]/g, '');
-        const fileName = `${timestamp}-${originalName}`;
-        const filePath = join(uploadsDir, fileName);
-
-        // Convert file to buffer and save
+        // Convert file to base64 for storage in MongoDB
         const bytes = await imageFile.arrayBuffer();
         const buffer = Buffer.from(bytes);
-        await writeFile(filePath, buffer);
-
-        imagePath = `/assets/images/products/uploads/${fileName}`;
-        console.log('Image uploaded successfully:', imagePath);
+        const base64Image = buffer.toString('base64');
+        const mimeType = imageFile.type || 'image/jpeg';
+        
+        // Store as data URL (can be stored in MongoDB or used directly in img src)
+        // Format: data:image/jpeg;base64,/9j/4AAQSkZJRg...
+        imagePath = `data:${mimeType};base64,${base64Image}`;
+        
+        console.log('Image converted to base64 successfully');
       } catch (uploadError) {
-        console.error('Error uploading image:', uploadError);
-        // Continue with default image if upload fails
+        console.error('Error processing image:', uploadError);
+        // Continue with default image if processing fails
+        imagePath = '/assets/images/products/default-product.svg';
       }
     }
 

@@ -323,13 +323,13 @@ const BalancePage = () => {
   const { label } = getDateRange();
 
   return (
-    <DashboardLayout>
-      <div className="min-h-screen pb-24 -mt-20 md:-mt-16">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-4 flex items-center space-x-3 rounded-b-2xl mb-6 -mx-6">
-          <Wallet className="w-6 h-6" />
-          <h1 className="text-2xl font-bold">Balance</h1>
-        </div>
+          <DashboardLayout>
+            <div className="min-h-screen pb-24 -mt-20 md:-mt-0 md:pb-0">
+              {/* Header */}
+              <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-4 flex items-center space-x-3 rounded-b-2xl mb-6 -mx-6 md:mx-0 md:rounded-2xl">
+                <Wallet className="w-6 h-6" />
+                <h1 className="text-2xl font-bold">Balance</h1>
+              </div>
 
         {/* Pestañas Principales */}
         <div className="bg-white rounded-2xl shadow-md p-1 mb-4 mx-4 mt-4 border border-purple-100">

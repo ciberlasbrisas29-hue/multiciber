@@ -38,8 +38,8 @@ const Header = () => {
   const userName = user?.username || 'Usuario';
 
   return (
-    <header className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 pt-12 pb-8 rounded-b-3xl shadow-lg">
-      <div className="flex items-center justify-between mb-6">
+    <header className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 pt-12 pb-8 rounded-b-3xl shadow-lg md:rounded-none md:pt-6 md:pb-4">
+      <div className="flex items-center justify-between mb-6 md:max-w-7xl md:mx-auto md:px-8 lg:px-12 xl:px-16 md:mb-4">
         <div className="flex items-center space-x-4">
           <div className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border-2 border-white/30 overflow-hidden">
             <Logo width={56} height={56} alt="Logo Multiciber" className="rounded-full" />
