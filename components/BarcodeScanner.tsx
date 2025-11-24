@@ -19,7 +19,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScan, onClose, isOpen
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
   const [stream, setStream] = useState<MediaStream | null>(null);
 
-  // Función para reproducir un beep corto
+  // Función para reproducir un beep corto y agudo (como escáner de supermercado)
   const playBeep = () => {
     try {
       // Crear un contexto de audio
@@ -29,20 +29,20 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScan, onClose, isOpen
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
       
-      // Configurar el oscilador (frecuencia de 800Hz para un beep agradable)
+      // Configurar el oscilador (frecuencia más alta para sonido agudo como cajero)
       oscillator.connect(gainNode);
       gainNode.connect(audioContext.destination);
       
-      oscillator.frequency.value = 800; // Frecuencia del beep (Hz)
+      oscillator.frequency.value = 2800; // Frecuencia más aguda (2800Hz - típico de escáneres de supermercado)
       oscillator.type = 'sine'; // Tipo de onda (sine = suave)
       
-      // Configurar el volumen (gain) para un beep corto
-      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime); // Volumen inicial
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1); // Fade out rápido
+      // Configurar el volumen (gain) para un beep corto y claro
+      gainNode.gain.setValueAtTime(0.4, audioContext.currentTime); // Volumen inicial un poco más alto
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.08); // Fade out rápido
       
-      // Reproducir el beep por 100ms
+      // Reproducir el beep por 80ms (más corto y agudo)
       oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.1);
+      oscillator.stop(audioContext.currentTime + 0.08);
       
       // Limpiar el contexto después de que termine
       oscillator.onended = () => {
@@ -229,11 +229,14 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScan, onClose, isOpen
               const scannedText = result.getText();
               console.log('Barcode scanned:', scannedText);
               
+              // Detener el escáner INMEDIATAMENTE para que la cámara se apague
+              stopScanner();
+              
               // Reproducir beep cuando se detecta un código
               playBeep();
               
+              // Llamar al callback después de detener el escáner
               onScan(scannedText);
-              stopScanner();
             }
             
             if (err && !(err instanceof NotFoundException)) {
@@ -265,16 +268,39 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScan, onClose, isOpen
   };
 
   const stopScanner = () => {
+    // Detener el decodificador primero
     if (codeReader.current) {
-      codeReader.current.reset();
+      try {
+        codeReader.current.reset();
+      } catch (e) {
+        console.warn('Error al resetear codeReader:', e);
+      }
     }
     
+    // Detener todos los tracks del stream activo
     if (stream) {
-      stream.getTracks().forEach(track => track.stop());
+      stream.getTracks().forEach(track => {
+        track.stop();
+        track.enabled = false;
+      });
       setStream(null);
     }
     
+    // También detener cualquier stream que pueda estar en el video element
+    if (videoRef.current && videoRef.current.srcObject) {
+      const currentStream = videoRef.current.srcObject as MediaStream;
+      if (currentStream) {
+        currentStream.getTracks().forEach(track => {
+          track.stop();
+          track.enabled = false;
+        });
+      }
+      videoRef.current.srcObject = null;
+    }
+    
+    // Pausar el video element
     if (videoRef.current) {
+      videoRef.current.pause();
       videoRef.current.srcObject = null;
     }
     
