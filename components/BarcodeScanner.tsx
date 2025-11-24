@@ -35,7 +35,8 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   const [stream, setStream] = useState<MediaStream | null>(null);
   const lastScannedCodeRef = useRef<string>(''); // Último código escaneado
   const lastScanTimeRef = useRef<number>(0); // Tiempo del último escaneo
-  const SCAN_COOLDOWN = 2000; // 2 segundos de cooldown entre escaneos del mismo código
+  const scannedCodesSetRef = useRef<Set<string>>(new Set()); // Set de códigos ya escaneados en esta sesión
+  const SCAN_COOLDOWN = 5000; // 5 segundos de cooldown entre escaneos del mismo código
 
   // Sincronizar el estado del escáner con el contexto
   useEffect(() => {
@@ -95,12 +96,16 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
     } else {
       // Asegurar que la cámara se detenga cuando se cierra el modal
       stopScanner();
+      // Limpiar el Set de códigos escaneados cuando se cierra el escáner
+      scannedCodesSetRef.current.clear();
     }
 
     return () => {
       // Cleanup: siempre detener la cámara al desmontar o cambiar isOpen
       stopScanner();
       setIsScannerOpen(false);
+      // Limpiar el Set de códigos escaneados cuando se cierra el escáner
+      scannedCodesSetRef.current.clear();
     };
   }, [isOpen, setIsScannerOpen]);
 
@@ -266,10 +271,18 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           (result, err) => {
             if (result) {
               const scannedText = result.getText();
+              const normalizedBarcode = scannedText.toLowerCase().trim();
               const currentTime = Date.now();
               
+              // Verificar si este código ya fue escaneado en esta sesión (permanente)
+              if (scannedCodesSetRef.current.has(normalizedBarcode)) {
+                // Ignorar escaneo de código ya procesado
+                console.log('Código de barras ya escaneado en esta sesión, ignorado');
+                return;
+              }
+              
               // Verificar si es el mismo código escaneado recientemente (dentro del cooldown)
-              const isSameCode = lastScannedCodeRef.current === scannedText;
+              const isSameCode = lastScannedCodeRef.current === normalizedBarcode;
               const timeSinceLastScan = currentTime - lastScanTimeRef.current;
               
               if (isSameCode && timeSinceLastScan < SCAN_COOLDOWN) {
@@ -278,8 +291,11 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
                 return;
               }
               
+              // Marcar este código como escaneado
+              scannedCodesSetRef.current.add(normalizedBarcode);
+              
               // Actualizar referencias del último escaneo
-              lastScannedCodeRef.current = scannedText;
+              lastScannedCodeRef.current = normalizedBarcode;
               lastScanTimeRef.current = currentTime;
               
               console.log('Barcode scanned:', scannedText);

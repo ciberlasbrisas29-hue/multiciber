@@ -29,6 +29,7 @@ const NewSalePage = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [scannedProducts, setScannedProducts] = useState<Array<{ id: string; name: string; quantity: number; price: number; image?: string; stock: number }>>([]);
+  const scannedBarcodesRef = useRef<Set<string>>(new Set()); // Set para rastrear códigos de barras ya escaneados
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<{ [category: string]: any[] }>({});
   const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
@@ -262,6 +263,15 @@ const NewSalePage = () => {
   const handleBarcodeScan = async (barcode: string) => {
     // NO cerrar el scanner - modo continuo
     try {
+      // Normalizar el código de barras para comparación
+      const normalizedBarcode = barcode.toLowerCase().trim();
+      
+      // Verificar PRIMERO si este código de barras ya fue escaneado
+      if (scannedBarcodesRef.current.has(normalizedBarcode)) {
+        console.log(`El código de barras "${barcode}" ya fue escaneado. Usa los botones +/- para modificar la cantidad.`);
+        return; // Salir inmediatamente sin procesar
+      }
+      
       // Buscar producto por código de barras
       const response = await productsService.getProducts({ 
         isActive: true 
@@ -270,38 +280,42 @@ const NewSalePage = () => {
       if (response.success && response.data.length > 0) {
         // Buscar producto que coincida exactamente con el barcode
         const product = response.data.find((p: any) => 
-          p.barcode && p.barcode.toString().toLowerCase() === barcode.toLowerCase()
+          p.barcode && p.barcode.toString().toLowerCase().trim() === normalizedBarcode
         );
         
         if (product) {
-          // Verificar si el producto ya está en la lista de escaneados
-          const existingScanned = scannedProducts.find((p: any) => p.id === product._id);
-          
-          if (existingScanned) {
-            // Si ya está en la lista, NO hacer nada
-            // La cantidad solo se puede modificar con los botones +/- 
-            console.log(`El producto "${product.name}" ya está en la lista. Usa los botones +/- para modificar la cantidad.`);
-            return;
-          }
-          
-          // Si no está en la lista, validar stock antes de agregarlo
-          if (product.stock <= 0) {
-            alert('El producto no tiene stock disponible');
-            return;
-          }
-          
-          // Agregarlo con cantidad 1 (solo la primera vez)
-          setScannedProducts(prev => [
-            {
-              id: product._id,
-              name: product.name,
-              quantity: 1,
-              price: product.price,
-              image: product.image,
-              stock: product.stock
-            },
-            ...prev
-          ]);
+          // Verificar si el producto ya está en la lista de escaneados (doble verificación)
+          setScannedProducts(prev => {
+            const existingScanned = prev.find((p: any) => p.id === product._id);
+            
+            if (existingScanned) {
+              // Si ya está en la lista, NO hacer nada
+              console.log(`El producto "${product.name}" ya está en la lista. Usa los botones +/- para modificar la cantidad.`);
+              return prev; // Retornar el estado sin cambios
+            }
+            
+            // Si no está en la lista, validar stock antes de agregarlo
+            if (product.stock <= 0) {
+              alert('El producto no tiene stock disponible');
+              return prev; // Retornar el estado sin cambios
+            }
+            
+            // Agregar el código de barras al Set de escaneados
+            scannedBarcodesRef.current.add(normalizedBarcode);
+            
+            // Agregarlo con cantidad 1 (solo la primera vez)
+            return [
+              {
+                id: product._id,
+                name: product.name,
+                quantity: 1,
+                price: product.price,
+                image: product.image,
+                stock: product.stock
+              },
+              ...prev
+            ];
+          });
         } else {
           alert('Producto no encontrado con ese código de barras');
         }
@@ -315,13 +329,23 @@ const NewSalePage = () => {
   };
 
   const handleUpdateScannedQuantity = (productId: string, change: number) => {
-    setScannedProducts(prev =>
-      prev.map(product => {
+    setScannedProducts(prev => {
+      const updated = prev.map(product => {
         if (product.id === productId) {
           const newQuantity = product.quantity + change;
           // Validar que no sea menor a 1 ni mayor al stock
           if (newQuantity < 1) {
             // Si la cantidad sería 0, eliminar el producto de la lista
+            // También eliminar el código de barras del Set
+            // Buscar el producto completo para obtener su barcode
+            productsService.getProducts({ isActive: true }).then(response => {
+              if (response.success && response.data.length > 0) {
+                const fullProduct = response.data.find((p: any) => p._id === productId);
+                if (fullProduct && fullProduct.barcode) {
+                  scannedBarcodesRef.current.delete(fullProduct.barcode.toString().toLowerCase().trim());
+                }
+              }
+            }).catch(err => console.error('Error al buscar producto para limpiar barcode:', err));
             return null;
           }
           if (newQuantity > product.stock) {
@@ -331,11 +355,16 @@ const NewSalePage = () => {
           return { ...product, quantity: newQuantity };
         }
         return product;
-      }).filter((p): p is typeof p & {} => p !== null) // Filtrar nulls
-    );
+      }).filter((p): p is typeof p & {} => p !== null); // Filtrar nulls
+      
+      return updated;
+    });
   };
 
   const handleFinishScanning = () => {
+    // Limpiar el Set de códigos de barras escaneados cuando se finaliza
+    scannedBarcodesRef.current.clear();
+    
     // Agregar todos los productos escaneados a la lista principal
     scannedProducts.forEach(scannedProduct => {
       // Verificar si el producto está en la lista actual
