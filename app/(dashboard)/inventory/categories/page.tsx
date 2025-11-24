@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Package, Plus, GripVertical } from 'lucide-react';
 import Toast from '@/components/Toast';
@@ -27,6 +27,8 @@ const CategoryManagementPage = () => {
   const [toast, setToast] = useState({ message: '', type: 'success' as 'success' | 'error' | 'warning', isVisible: false });
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const categoriesContainerRef = useRef<HTMLDivElement>(null);
+  const scrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Cargar categorías
   useEffect(() => {
@@ -142,6 +144,73 @@ const CategoryManagementPage = () => {
     return hexToRgba(color, 0.1);
   };
 
+  // Auto-scroll durante el drag
+  useEffect(() => {
+    if (draggedIndex === null) {
+      if (scrollIntervalRef.current) {
+        clearInterval(scrollIntervalRef.current);
+        scrollIntervalRef.current = null;
+      }
+      return;
+    }
+
+    const handleDragMove = (e: MouseEvent) => {
+      if (!categoriesContainerRef.current) return;
+
+      const container = categoriesContainerRef.current;
+      const containerRect = container.getBoundingClientRect();
+      const mouseY = e.clientY;
+      
+      // Zona de auto-scroll (50px desde los bordes)
+      const scrollZone = 50;
+      const scrollSpeed = 10;
+
+      // Verificar si el mouse está cerca del borde superior
+      if (mouseY < containerRect.top + scrollZone) {
+        if (!scrollIntervalRef.current) {
+          scrollIntervalRef.current = setInterval(() => {
+            if (categoriesContainerRef.current) {
+              categoriesContainerRef.current.scrollBy({
+                top: -scrollSpeed,
+                behavior: 'auto'
+              });
+            }
+          }, 16); // ~60fps
+        }
+      }
+      // Verificar si el mouse está cerca del borde inferior
+      else if (mouseY > containerRect.bottom - scrollZone) {
+        if (!scrollIntervalRef.current) {
+          scrollIntervalRef.current = setInterval(() => {
+            if (categoriesContainerRef.current) {
+              categoriesContainerRef.current.scrollBy({
+                top: scrollSpeed,
+                behavior: 'auto'
+              });
+            }
+          }, 16); // ~60fps
+        }
+      }
+      // Si no está en ninguna zona de scroll, detener
+      else {
+        if (scrollIntervalRef.current) {
+          clearInterval(scrollIntervalRef.current);
+          scrollIntervalRef.current = null;
+        }
+      }
+    };
+
+    document.addEventListener('dragover', handleDragMove);
+
+    return () => {
+      document.removeEventListener('dragover', handleDragMove);
+      if (scrollIntervalRef.current) {
+        clearInterval(scrollIntervalRef.current);
+        scrollIntervalRef.current = null;
+      }
+    };
+  }, [draggedIndex]);
+
   // Funciones para drag and drop
   const handleDragStart = (e: React.DragEvent, index: number) => {
     setDraggedIndex(index);
@@ -159,6 +228,11 @@ const CategoryManagementPage = () => {
     }
     setDraggedIndex(null);
     setDragOverIndex(null);
+    // Detener auto-scroll
+    if (scrollIntervalRef.current) {
+      clearInterval(scrollIntervalRef.current);
+      scrollIntervalRef.current = null;
+    }
   };
 
   const handleDragOver = (e: React.DragEvent, index: number) => {
@@ -272,7 +346,14 @@ const CategoryManagementPage = () => {
             <p className="text-gray-500">Crea productos para ver las categorías aquí.</p>
           </div>
         ) : (
-                 <div className="space-y-4">
+                 <div 
+                   ref={categoriesContainerRef}
+                   className="space-y-4 overflow-y-auto"
+                   style={{ 
+                     maxHeight: 'calc(100vh - 280px)',
+                     scrollBehavior: 'auto'
+                   }}
+                 >
                    {categories.map((category, index) => {
                      const displayColor = getDisplayColor(category);
                      const backgroundColor = getBackgroundColor(category);
