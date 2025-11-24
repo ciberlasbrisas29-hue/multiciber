@@ -461,7 +461,10 @@ const NewSalePage = () => {
 
       // Validar stock disponible
       if (newQty > product.stock) {
-        alert(`No hay suficiente stock. Disponible: ${product.stock}`);
+        // Usar setTimeout para no bloquear el hilo principal
+        setTimeout(() => {
+          alert(`No hay suficiente stock. Disponible: ${product.stock}`);
+        }, 0);
         return prev;
       }
 
@@ -560,7 +563,11 @@ const NewSalePage = () => {
           <h1 className="text-xl font-bold text-white">Seleccionar productos</h1>
           <div className="flex items-center space-x-3">
             <button
-              onClick={() => setIsScannerOpen(true)}
+              onClick={() => {
+                // Limpiar el Set de códigos de barras al abrir el escáner (por si acaso)
+                scannedBarcodesRef.current.clear();
+                setIsScannerOpen(true);
+              }}
               className="w-10 h-10 flex items-center justify-center bg-white/20 backdrop-blur-sm rounded-xl active:opacity-80 hover:bg-white/30 transition-colors border border-white/30"
             >
               <Scan className="w-5 h-5 text-white" />
@@ -1008,6 +1015,8 @@ const NewSalePage = () => {
           onClose={() => {
             setIsScannerOpen(false);
             setScannedProducts([]);
+            // Limpiar el Set de códigos de barras escaneados cuando se cierra el escáner
+            scannedBarcodesRef.current.clear();
           }}
           continuousMode={true}
           scannedProducts={scannedProducts}
