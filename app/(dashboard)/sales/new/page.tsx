@@ -274,48 +274,34 @@ const NewSalePage = () => {
         );
         
         if (product) {
-          if (product.stock > 0) {
-            // Verificar si el producto ya está en la lista de escaneados
-            const existingScanned = scannedProducts.find((p: any) => p.id === product._id);
-            
-            if (existingScanned) {
-              // Si ya está escaneado, aumentar cantidad (validar stock)
-              setScannedProducts(prev =>
-                prev.map(p => {
-                  if (p.id === product._id) {
-                    const newQuantity = p.quantity + 1;
-                    if (newQuantity > product.stock) {
-                      // No mostrar alerta repetida, solo ignorar el escaneo
-                      console.log(`Stock máximo alcanzado para ${product.name}. Disponible: ${product.stock}`);
-                      return p;
-                    }
-                    return { ...p, quantity: newQuantity };
-                  }
-                  return p;
-                })
-              );
-            } else {
-              // Si no está escaneado, validar que tenga stock antes de agregarlo
-              if (product.stock <= 0) {
-                alert('El producto no tiene stock disponible');
-                return;
-              }
-              // Agregarlo con cantidad 1
-              setScannedProducts(prev => [
-                {
-                  id: product._id,
-                  name: product.name,
-                  quantity: 1,
-                  price: product.price,
-                  image: product.image,
-                  stock: product.stock
-                },
-                ...prev
-              ]);
-            }
-          } else {
-            alert('El producto no tiene stock disponible');
+          // Verificar si el producto ya está en la lista de escaneados
+          const existingScanned = scannedProducts.find((p: any) => p.id === product._id);
+          
+          if (existingScanned) {
+            // Si ya está en la lista, NO hacer nada
+            // La cantidad solo se puede modificar con los botones +/- 
+            console.log(`El producto "${product.name}" ya está en la lista. Usa los botones +/- para modificar la cantidad.`);
+            return;
           }
+          
+          // Si no está en la lista, validar stock antes de agregarlo
+          if (product.stock <= 0) {
+            alert('El producto no tiene stock disponible');
+            return;
+          }
+          
+          // Agregarlo con cantidad 1 (solo la primera vez)
+          setScannedProducts(prev => [
+            {
+              id: product._id,
+              name: product.name,
+              quantity: 1,
+              price: product.price,
+              image: product.image,
+              stock: product.stock
+            },
+            ...prev
+          ]);
         } else {
           alert('Producto no encontrado con ese código de barras');
         }
