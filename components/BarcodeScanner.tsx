@@ -13,6 +13,7 @@ interface BarcodeScannerProps {
 const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScan, onClose, isOpen }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const codeReader = useRef<BrowserMultiFormatReader | null>(null);
+  const streamRef = useRef<MediaStream | null>(null); // Usar ref para acceso directo al stream
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState<string>('');
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
@@ -33,7 +34,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScan, onClose, isOpen
       oscillator.connect(gainNode);
       gainNode.connect(audioContext.destination);
       
-      oscillator.frequency.value = 2800; // Frecuencia más aguda (2800Hz - típico de escáneres de supermercado)
+      oscillator.frequency.value = 4200; // Frecuencia muy aguda (4200Hz - como escáner de supermercado)
       oscillator.type = 'sine'; // Tipo de onda (sine = suave)
       
       // Configurar el volumen (gain) para un beep corto y claro
@@ -58,10 +59,12 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScan, onClose, isOpen
     if (isOpen) {
       initializeScanner();
     } else {
+      // Asegurar que la cámara se detenga cuando se cierra el modal
       stopScanner();
     }
 
     return () => {
+      // Cleanup: siempre detener la cámara al desmontar o cambiar isOpen
       stopScanner();
     };
   }, [isOpen]);
@@ -214,6 +217,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScan, onClose, isOpen
 
       // Solicitar permisos de cámara (esto mostrará el diálogo nativo)
       const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+      streamRef.current = mediaStream; // Guardar en ref para acceso directo
       setStream(mediaStream);
       videoRef.current.srcObject = mediaStream;
 
@@ -229,14 +233,18 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScan, onClose, isOpen
               const scannedText = result.getText();
               console.log('Barcode scanned:', scannedText);
               
-              // Detener el escáner INMEDIATAMENTE para que la cámara se apague
+              // Detener el escáner INMEDIATAMENTE y de forma síncrona
+              // Esto es crítico para iOS/iPhone
               stopScanner();
               
-              // Reproducir beep cuando se detecta un código
-              playBeep();
-              
-              // Llamar al callback después de detener el escáner
-              onScan(scannedText);
+              // Pequeño delay para asegurar que la cámara se detuvo antes de continuar
+              setTimeout(() => {
+                // Reproducir beep cuando se detecta un código
+                playBeep();
+                
+                // Llamar al callback después de detener el escáner
+                onScan(scannedText);
+              }, 50); // 50ms de delay para asegurar que la cámara se detuvo
             }
             
             if (err && !(err instanceof NotFoundException)) {
@@ -272,36 +280,49 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScan, onClose, isOpen
     if (codeReader.current) {
       try {
         codeReader.current.reset();
+        codeReader.current = null; // Limpiar la referencia
       } catch (e) {
         console.warn('Error al resetear codeReader:', e);
       }
     }
     
-    // Detener todos los tracks del stream activo
-    if (stream) {
-      stream.getTracks().forEach(track => {
-        track.stop();
-        track.enabled = false;
-      });
+    // Detener todos los tracks del stream usando la ref (más confiable que el estado)
+    const currentStream = streamRef.current || stream;
+    if (currentStream) {
+      try {
+        currentStream.getTracks().forEach(track => {
+          // Detener el track de forma agresiva
+          track.stop();
+          track.enabled = false;
+          // Remover el track del stream
+          currentStream.removeTrack(track);
+        });
+      } catch (e) {
+        console.warn('Error al detener tracks del stream:', e);
+      }
+      streamRef.current = null;
       setStream(null);
     }
     
     // También detener cualquier stream que pueda estar en el video element
-    if (videoRef.current && videoRef.current.srcObject) {
-      const currentStream = videoRef.current.srcObject as MediaStream;
-      if (currentStream) {
-        currentStream.getTracks().forEach(track => {
-          track.stop();
-          track.enabled = false;
-        });
-      }
-      videoRef.current.srcObject = null;
-    }
-    
-    // Pausar el video element
     if (videoRef.current) {
-      videoRef.current.pause();
-      videoRef.current.srcObject = null;
+      try {
+        if (videoRef.current.srcObject) {
+          const videoStream = videoRef.current.srcObject as MediaStream;
+          if (videoStream) {
+            videoStream.getTracks().forEach(track => {
+              track.stop();
+              track.enabled = false;
+            });
+          }
+        }
+        // Limpiar el srcObject y pausar
+        videoRef.current.srcObject = null;
+        videoRef.current.pause();
+        videoRef.current.load(); // Forzar recarga del elemento video
+      } catch (e) {
+        console.warn('Error al limpiar video element:', e);
+      }
     }
     
     setIsScanning(false);
