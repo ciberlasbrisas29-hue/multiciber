@@ -17,7 +17,6 @@ import {
   Check,
   ArrowUp,
   ArrowDown,
-  Pencil
 } from 'lucide-react';
 
 const NewSalePage = () => {
@@ -28,11 +27,8 @@ const NewSalePage = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isCreateCategoryOpen, setIsCreateCategoryOpen] = useState(false);
   const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
   const [sortBy, setSortBy] = useState<{ field: string; direction: 'asc' | 'desc' } | null>(null);
-  const [newCategoryName, setNewCategoryName] = useState('');
-  const [newCategoryColor, setNewCategoryColor] = useState('#6366f1');
   const sortButtonRef = useRef<HTMLButtonElement>(null);
   const [sortMenuPosition, setSortMenuPosition] = useState({ top: 0, left: 0 });
 
@@ -42,36 +38,43 @@ const NewSalePage = () => {
     color?: string;
   }
 
-  // Categorías base del sistema
-  const baseCategories: Category[] = [
-    { value: 'all', label: 'Todas las categorías' },
-    { value: 'accesorios-gaming', label: 'Accesorios Gaming' },
-    { value: 'almacenamiento', label: 'Almacenamiento' },
-    { value: 'conectividad', label: 'Conectividad' },
-    { value: 'accesorios-trabajo', label: 'Accesorios Trabajo' },
-    { value: 'dispositivos-captura', label: 'Dispositivos Captura' },
-    { value: 'mantenimiento', label: 'Mantenimiento' },
-    { value: 'otros', label: 'Otros' },
-  ];
+  const [categories, setCategories] = useState<Category[]>([
+    { value: 'all', label: 'Todas las categorías' }
+  ]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
 
-  // Categorías personalizadas desde localStorage
-  const [customCategories, setCustomCategories] = useState<Category[]>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('customCategories');
-      return saved ? JSON.parse(saved) : [];
-    }
-    return [];
-  });
+  // Cargar categorías desde la BD (mismo endpoint que /inventory/categories)
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        setCategoriesLoading(true);
+        const response = await fetch('/api/products/categories');
+        const data = await response.json();
+        
+        if (data.success && data.data) {
+          // Convertir las categorías de la BD al formato esperado
+          // Mantener el mismo orden que viene del endpoint
+          const dbCategories: Category[] = data.data.map((cat: any) => ({
+            value: cat.name,
+            label: cat.displayName,
+            color: cat.color
+          }));
+          
+          // Agregar "Todas las categorías" al inicio
+          setCategories([
+            { value: 'all', label: 'Todas las categorías' },
+            ...dbCategories
+          ]);
+        }
+      } catch (error) {
+        console.error('Error al cargar categorías:', error);
+      } finally {
+        setCategoriesLoading(false);
+      }
+    };
 
-  // Combinar categorías base y personalizadas
-  const categories: Category[] = [
-    ...baseCategories,
-    ...customCategories.map((cat: Category) => ({
-      value: cat.value,
-      label: cat.label,
-      color: cat.color
-    }))
-  ];
+    fetchCategories();
+  }, []);
 
   useEffect(() => {
     fetchProducts();
@@ -188,39 +191,6 @@ const NewSalePage = () => {
     });
   };
 
-  const handleCreateCategory = () => {
-    if (!newCategoryName.trim()) {
-      alert('El nombre de la categoría es requerido');
-      return;
-    }
-
-    // Generar un valor único para la categoría
-    const categoryValue = newCategoryName.toLowerCase().replace(/\s+/g, '-');
-    
-    // Verificar que no exista
-    if (categories.find(cat => cat.value === categoryValue)) {
-      alert('Esta categoría ya existe');
-      return;
-    }
-
-    const newCategory = {
-      value: categoryValue,
-      label: newCategoryName.trim(),
-      color: newCategoryColor
-    };
-
-    const updatedCategories = [...customCategories, newCategory];
-    setCustomCategories(updatedCategories);
-    localStorage.setItem('customCategories', JSON.stringify(updatedCategories));
-    
-    // Limpiar formulario
-    setNewCategoryName('');
-    setNewCategoryColor('#6366f1');
-    setIsCreateCategoryOpen(false);
-    
-    // Seleccionar la nueva categoría
-    setSelectedCategory(categoryValue);
-  };
 
   const handleBarcodeScan = async (barcode: string) => {
     setIsScannerOpen(false);
@@ -436,13 +406,6 @@ const NewSalePage = () => {
             <ArrowUpDown className="w-5 h-5 text-white" />
           </button>
         </div>
-        
-        <button 
-          onClick={() => setIsCreateCategoryOpen(true)}
-          className="w-10 h-10 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center flex-shrink-0 transition-colors border border-gray-200 active:scale-95"
-        >
-          <Pencil className="w-5 h-5 text-purple-600" />
-        </button>
         
         {categories.map((category) => (
           <button
@@ -719,84 +682,6 @@ const NewSalePage = () => {
         />
       )}
 
-      {/* Modal para Crear Nueva Categoría */}
-      {isCreateCategoryOpen && (
-        <>
-          <div 
-            className="fixed inset-0 bg-black/50 z-50" 
-            onClick={() => setIsCreateCategoryOpen(false)}
-          ></div>
-          <div className="fixed inset-0 flex items-center justify-center z-50 px-4">
-            <div 
-              className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-gray-900">Nueva Categoría</h2>
-                <button
-                  onClick={() => setIsCreateCategoryOpen(false)}
-                  className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"
-                >
-                  <X className="w-5 h-5 text-gray-600" />
-                </button>
-              </div>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nombre de la categoría
-                  </label>
-                  <input
-                    type="text"
-                    value={newCategoryName}
-                    onChange={(e) => setNewCategoryName(e.target.value)}
-                    placeholder="Ej: Electrónica"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    autoFocus
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Color (opcional)
-                  </label>
-                  <div className="flex items-center space-x-3">
-                    <input
-                      type="color"
-                      value={newCategoryColor}
-                      onChange={(e) => setNewCategoryColor(e.target.value)}
-                      className="w-16 h-16 rounded-xl border-2 border-gray-200 cursor-pointer"
-                    />
-                    <input
-                      type="text"
-                      value={newCategoryColor}
-                      onChange={(e) => setNewCategoryColor(e.target.value)}
-                      placeholder="#6366f1"
-                      className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    />
-                  </div>
-                </div>
-                
-                <div className="flex space-x-3 pt-4">
-                  <button
-                    onClick={() => setIsCreateCategoryOpen(false)}
-                    className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={handleCreateCategory}
-                    className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-medium hover:opacity-90 transition-opacity flex items-center justify-center"
-                  >
-                    <Check className="w-5 h-5 mr-2" />
-                    Guardar
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
     </>
   );
 };

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import dbConnect from '@/lib/db';
 import Product from '@/lib/models/Product';
+import Category from '@/lib/models/Category';
 import User from '@/lib/models/User';
 import jwt from 'jsonwebtoken';
 // Removed fs/promises imports - not available in serverless environments
@@ -168,6 +169,22 @@ export async function POST(req) {
       logger.error('Validation failed: Missing required fields', { name, price, cost, category, unit });
       return NextResponse.json(
         { success: false, message: 'Faltan campos requeridos: name, price, cost, category, unit' }, 
+        { status: 400 }
+      );
+    }
+
+    // Validar que la categoría exista y esté activa
+    const normalizedCategory = category.trim().toLowerCase();
+    const categoryExists = await Category.findOne({
+      name: normalizedCategory,
+      createdBy: user._id,
+      isActive: true
+    });
+
+    if (!categoryExists) {
+      logger.error('Validation failed: Category does not exist', { category: normalizedCategory, userId: user._id });
+      return NextResponse.json(
+        { success: false, message: 'La categoría especificada no existe o no está activa' }, 
         { status: 400 }
       );
     }

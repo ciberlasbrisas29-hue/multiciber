@@ -4,10 +4,13 @@ import React, { useState, useEffect } from 'react';
 import { X, Save, Package, Trash2 } from 'lucide-react';
 
 interface Category {
+  _id?: string;
   name: string;
   displayName: string;
   count: number;
   image: string | null;
+  color?: string;
+  icon?: string;
 }
 
 interface CategoryEditModalProps {
@@ -86,16 +89,24 @@ const CategoryEditModal: React.FC<CategoryEditModalProps> = ({
   // Inicializar valores cuando se abre el modal
   useEffect(() => {
     if (isOpen && category) {
-      const displayName = getCategoryDisplayName(category.name, category.displayName);
-      setEditedName(displayName);
-      const savedColor = getCategoryColor(category.name);
-      setEditedColor(savedColor || defaultColors[category.name] || '#6b7280');
+      // Usar valores de la BD directamente (ya no localStorage)
+      setEditedName(category.displayName);
+      setEditedColor(category.color || '#6b7280');
       setError('');
     }
   }, [isOpen, category]);
 
   const handleSave = async () => {
-    if (!category) return;
+    if (!category) {
+      setError('No hay categoría seleccionada');
+      return;
+    }
+
+    if (!category._id) {
+      setError('La categoría no tiene un ID válido');
+      console.error('Category missing _id:', category);
+      return;
+    }
 
     if (!editedName.trim()) {
       setError('El nombre de la categoría es requerido');
@@ -106,22 +117,37 @@ const CategoryEditModal: React.FC<CategoryEditModalProps> = ({
       setLoading(true);
       setError('');
 
-      // Guardar nombre para mostrar personalizado
-      const savedNames = typeof window !== 'undefined' ? localStorage.getItem('categoryDisplayNames') : null;
-      const customNames = savedNames ? JSON.parse(savedNames) : {};
-      customNames[category.name] = editedName.trim();
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('categoryDisplayNames', JSON.stringify(customNames));
-      }
+      console.log('Actualizando categoría:', {
+        categoryId: category._id,
+        displayName: editedName.trim(),
+        color: editedColor
+      });
 
-      // Guardar color personalizado
-      if (editedColor) {
-        saveCategoryColor(category.name, editedColor);
+      // Actualizar en la base de datos usando la nueva API
+      const response = await fetch('/api/products/categories/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          categoryId: category._id,
+          displayName: editedName.trim(),
+          color: editedColor
+        })
+      });
+
+      const data = await response.json();
+
+      console.log('Respuesta del servidor:', data);
+
+      if (!data.success) {
+        throw new Error(data.message || 'Error al actualizar la categoría');
       }
 
       onUpdate();
       onClose();
     } catch (err: any) {
+      console.error('Error al guardar categoría:', err);
       setError(err.message || 'Error al actualizar la categoría');
     } finally {
       setLoading(false);
@@ -135,8 +161,18 @@ const CategoryEditModal: React.FC<CategoryEditModalProps> = ({
 
   if (!isOpen || !category) return null;
 
-  const displayColor = getDisplayColor(category.name);
-  const backgroundColor = getBackgroundColor(category.name);
+  // Usar color de la BD directamente
+  const displayColor = category.color || getDisplayColor(category.name);
+  const backgroundColor = (() => {
+    const color = displayColor;
+    const hexToRgba = (hex: string, alpha: number) => {
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    };
+    return hexToRgba(color, 0.1);
+  })();
 
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) {
@@ -183,7 +219,7 @@ const CategoryEditModal: React.FC<CategoryEditModalProps> = ({
                     {/* Información */}
                     <div className="flex-1 min-w-0">
                       <h3 className="text-xl font-bold text-gray-900 mb-1 truncate">
-                        {getCategoryDisplayName(category.name, category.displayName)}
+                        {category.displayName}
                       </h3>
                       <p className="text-sm text-gray-500 mb-2">
                         {category.count} {category.count === 1 ? 'producto' : 'productos'}

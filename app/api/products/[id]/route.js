@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Product from '@/lib/models/Product';
+import Category from '@/lib/models/Category';
 import { verifyAuth } from '@/lib/auth';
 import mongoose from 'mongoose';
 import { uploadImageFile, deleteImageFromCloudinary } from '@/lib/cloudinary';
@@ -126,6 +127,23 @@ export async function PUT(req, { params }) {
     if (!product) {
       console.log('Producto no encontrado para actualizar:', { id, userId });
       return NextResponse.json({ success: false, message: 'Producto no encontrado' }, { status: 404 });
+    }
+
+    // Validación de categoría si se está cambiando
+    if (category && category !== product.category) {
+      const normalizedCategory = category.trim().toLowerCase();
+      const categoryExists = await Category.findOne({
+        name: normalizedCategory,
+        createdBy: userId,
+        isActive: true
+      });
+
+      if (!categoryExists) {
+        return NextResponse.json(
+          { success: false, message: 'La categoría especificada no existe o no está activa' },
+          { status: 400 }
+        );
+      }
     }
 
     // Validación de barcode si se está cambiando (solo productos activos)

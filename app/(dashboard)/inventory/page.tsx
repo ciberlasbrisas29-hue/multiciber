@@ -31,6 +31,8 @@ const InventoryPage = () => {
     
     const [view, setView] = useState<'categories' | 'products'>('categories');
     const [categories, setCategories] = useState<Category[]>([]);
+    const [categoryColorsMap, setCategoryColorsMap] = useState<{ [key: string]: string }>({});
+    const [categoryNamesMap, setCategoryNamesMap] = useState<{ [key: string]: string }>({});
     const [products, setProducts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -144,6 +146,16 @@ const InventoryPage = () => {
                     // Filtrar solo categorías que tienen productos (count > 0)
                     const categoriesWithProducts = data.data.filter((cat: Category) => cat.count > 0);
                     setCategories(categoriesWithProducts);
+                    
+                    // Crear mapas de colores y nombres para acceso rápido
+                    const colorsMap: { [key: string]: string } = {};
+                    const namesMap: { [key: string]: string } = {};
+                    categoriesWithProducts.forEach((cat: Category) => {
+                        if (cat.color) colorsMap[cat.name] = cat.color;
+                        if (cat.displayName) namesMap[cat.name] = cat.displayName;
+                    });
+                    setCategoryColorsMap(colorsMap);
+                    setCategoryNamesMap(namesMap);
                 }
             } catch (error) {
                 console.error("Error fetching categories:", error);
@@ -263,32 +275,16 @@ const InventoryPage = () => {
         }
     };
 
-    // Obtener nombre para mostrar personalizado
+    // Obtener nombre para mostrar desde la BD
     const getCategoryDisplayName = (categoryName: string) => {
-        if (typeof window === 'undefined') {
-            return categoryName?.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Sin categoría';
-        }
-        const savedNames = localStorage.getItem('categoryDisplayNames');
-        const customNames = savedNames ? JSON.parse(savedNames) : {};
-        if (customNames[categoryName]) {
-            return customNames[categoryName];
-        }
-        return categoryName?.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Sin categoría';
+        return categoryNamesMap[categoryName] || categoryName?.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Sin categoría';
     };
 
     const formatCategoryName = (name: string) => {
         return getCategoryDisplayName(name);
     };
 
-    // Obtener color personalizado
-    const getCategoryColor = (categoryName: string) => {
-        if (typeof window === 'undefined') return null;
-        const savedColors = localStorage.getItem('categoryColors');
-        const customColors = savedColors ? JSON.parse(savedColors) : {};
-        return customColors[categoryName] || null;
-    };
-
-    // Colores por defecto
+    // Colores por defecto (fallback)
     const defaultColors: { [key: string]: string } = {
         'accesorios-gaming': '#a855f7',
         'almacenamiento': '#3b82f6',
@@ -300,8 +296,8 @@ const InventoryPage = () => {
     };
 
     const getCategoryIcon = (categoryName: string) => {
-        const savedColor = getCategoryColor(categoryName);
-        const color = savedColor || defaultColors[categoryName] || '#6b7280';
+        // Usar color de la BD si está disponible
+        const color = categoryColorsMap[categoryName] || defaultColors[categoryName] || '#6b7280';
         
         // Convertir hex a rgba para el fondo con opacidad
         const hexToRgba = (hex: string, alpha: number) => {
@@ -311,31 +307,13 @@ const InventoryPage = () => {
             return `rgba(${r}, ${g}, ${b}, ${alpha})`;
         };
 
-        // Si hay color personalizado, retornar objeto con estilo
-        if (savedColor) {
-            return {
-                className: '',
-                style: {
-                    backgroundColor: hexToRgba(color, 0.1),
-                    color: color
-                }
-            };
-        }
-
-        // Colores por defecto
-        const categoryColors: { [key: string]: string } = {
-            'accesorios-gaming': 'bg-purple-100 text-purple-600',
-            'almacenamiento': 'bg-blue-100 text-blue-600',
-            'conectividad': 'bg-indigo-100 text-indigo-600',
-            'accesorios-trabajo': 'bg-green-100 text-green-600',
-            'dispositivos-captura': 'bg-pink-100 text-pink-600',
-            'mantenimiento': 'bg-yellow-100 text-yellow-600',
-            'otros': 'bg-gray-100 text-gray-600',
-        };
-        
+        // Siempre usar estilo personalizado con el color de la BD
         return {
-            className: categoryColors[categoryName] || 'bg-gray-100 text-gray-600',
-            style: {}
+            className: '',
+            style: {
+                backgroundColor: hexToRgba(color, 0.1),
+                color: color
+            }
         };
     };
 

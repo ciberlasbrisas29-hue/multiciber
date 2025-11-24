@@ -2,8 +2,10 @@ export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
+import Category from '@/lib/models/Category';
 import Product from '@/lib/models/Product';
 import { verifyAuth } from '@/lib/auth';
+import logger from '@/lib/logger';
 
 export async function GET(req) {
   await dbConnect();
@@ -18,74 +20,59 @@ export async function GET(req) {
       );
     }
 
-    // Definir todas las categorías posibles (del enum del modelo)
-    const allCategories = [
-      'accesorios-gaming',
-      'almacenamiento',
-      'conectividad',
-      'accesorios-trabajo',
-      'dispositivos-captura',
-      'mantenimiento',
-      'otros'
-    ];
+    // Obtener todas las categorías activas del usuario desde la BD
+    // Ordenar primero por order (ascendente), luego por displayName
+    const categories = await Category.find({
+      createdBy: userId,
+      isActive: true
+    }).sort({ order: 1, displayName: 1 });
 
-    // Obtener categorías con conteo de productos
-    const categoriesWithProducts = await Product.aggregate([
-      {
-        $match: {
+    // Obtener conteo de productos y imagen de ejemplo para cada categoría
+    const categoriesWithData = await Promise.all(
+      categories.map(async (category) => {
+        const count = await Product.countDocuments({
           createdBy: userId,
+          category: category.name,
           isActive: true
-        }
-      },
-      {
-        $group: {
-          _id: '$category',
-          count: { $sum: 1 },
-          // Obtener una imagen de ejemplo de la categoría
-          sampleImage: { $first: '$image' }
-        }
-      }
-    ]);
+        });
 
-    // Crear un mapa de categorías con productos para acceso rápido
-    const categoryMap = new Map();
-    categoriesWithProducts.forEach(cat => {
-      categoryMap.set(cat._id, {
-        count: cat.count,
-        image: cat.sampleImage || null
-      });
-    });
+        // Obtener una imagen de ejemplo
+        const sampleProduct = await Product.findOne({
+          createdBy: userId,
+          category: category.name,
+          isActive: true
+        }).select('image').limit(1);
 
-    // Combinar todas las categorías con sus datos (o valores por defecto si no tienen productos)
-    const formattedCategories = allCategories.map(categoryName => {
-      const categoryData = categoryMap.get(categoryName) || { count: 0, image: null };
-      const defaultDisplayName = categoryName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-      
-      return {
-        name: categoryName,
-        displayName: defaultDisplayName, // El nombre personalizado se maneja en el frontend
-        count: categoryData.count,
-        image: categoryData.image
-      };
-    });
+        return {
+          _id: category._id.toString(),
+          name: category.name,
+          displayName: category.displayName,
+          count: count,
+          image: sampleProduct?.image || null,
+          color: category.color,
+          icon: category.icon,
+          order: category.order || 0
+        };
+      })
+    );
 
     // Ordenar: primero las que tienen productos (por cantidad descendente), luego las vacías
-    formattedCategories.sort((a, b) => {
+    categoriesWithData.sort((a, b) => {
       if (a.count > 0 && b.count > 0) {
         return b.count - a.count; // Orden descendente por cantidad
       }
       if (a.count > 0) return -1; // Las con productos primero
       if (b.count > 0) return 1;
-      return a.name.localeCompare(b.name); // Las vacías ordenadas alfabéticamente
+      return a.displayName.localeCompare(b.displayName); // Las vacías ordenadas alfabéticamente
     });
 
     return NextResponse.json({
       success: true,
-      data: formattedCategories
+      data: categoriesWithData
     });
 
   } catch (error) {
-    console.error('Error obteniendo categorías:', error);
+    logger.error('Error obteniendo categorías:', error);
     return NextResponse.json(
       { success: false, message: 'Error interno del servidor' },
       { status: 500 }
