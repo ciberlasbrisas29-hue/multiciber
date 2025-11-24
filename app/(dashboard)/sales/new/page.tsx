@@ -285,7 +285,8 @@ const NewSalePage = () => {
                   if (p.id === product._id) {
                     const newQuantity = p.quantity + 1;
                     if (newQuantity > product.stock) {
-                      alert(`No hay suficiente stock. Disponible: ${product.stock}`);
+                      // No mostrar alerta repetida, solo ignorar el escaneo
+                      console.log(`Stock máximo alcanzado para ${product.name}. Disponible: ${product.stock}`);
                       return p;
                     }
                     return { ...p, quantity: newQuantity };
@@ -294,7 +295,12 @@ const NewSalePage = () => {
                 })
               );
             } else {
-              // Si no está escaneado, agregarlo con cantidad 1
+              // Si no está escaneado, validar que tenga stock antes de agregarlo
+              if (product.stock <= 0) {
+                alert('El producto no tiene stock disponible');
+                return;
+              }
+              // Agregarlo con cantidad 1
               setScannedProducts(prev => [
                 {
                   id: product._id,

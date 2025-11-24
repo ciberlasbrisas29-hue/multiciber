@@ -33,6 +33,9 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const lastScannedCodeRef = useRef<string>(''); // Último código escaneado
+  const lastScanTimeRef = useRef<number>(0); // Tiempo del último escaneo
+  const SCAN_COOLDOWN = 2000; // 2 segundos de cooldown entre escaneos del mismo código
 
   // Sincronizar el estado del escáner con el contexto
   useEffect(() => {
@@ -263,6 +266,22 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           (result, err) => {
             if (result) {
               const scannedText = result.getText();
+              const currentTime = Date.now();
+              
+              // Verificar si es el mismo código escaneado recientemente (dentro del cooldown)
+              const isSameCode = lastScannedCodeRef.current === scannedText;
+              const timeSinceLastScan = currentTime - lastScanTimeRef.current;
+              
+              if (isSameCode && timeSinceLastScan < SCAN_COOLDOWN) {
+                // Ignorar escaneo repetido del mismo código
+                console.log('Escaneo repetido ignorado (cooldown activo)');
+                return;
+              }
+              
+              // Actualizar referencias del último escaneo
+              lastScannedCodeRef.current = scannedText;
+              lastScanTimeRef.current = currentTime;
+              
               console.log('Barcode scanned:', scannedText);
               
               // Reproducir beep cuando se detecta un código
