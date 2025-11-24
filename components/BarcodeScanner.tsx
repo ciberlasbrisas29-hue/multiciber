@@ -2,8 +2,9 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
-import { X, Camera, Scan, Plus, Minus, Check, Clock, ChevronRight } from 'lucide-react';
+import { X, Camera, Scan, Plus, Minus, Check, Clock, ChevronRight, Trash2 } from 'lucide-react';
 import { useScanner } from '@/contexts/ScannerContext';
+import SwipeableProductCard from './SwipeableProductCard';
 
 interface BarcodeScannerProps {
   onScan: (result: string) => void;
@@ -12,6 +13,7 @@ interface BarcodeScannerProps {
   continuousMode?: boolean; // Modo continuo: no se cierra después de escanear
   scannedProducts?: Array<{ id: string; name: string; quantity: number; price: number; image?: string; stock: number }>; // Productos escaneados
   onUpdateQuantity?: (productId: string, change: number) => void; // Callback para actualizar cantidad
+  onRemoveProduct?: (productId: string) => void; // Callback para eliminar producto
   onFinish?: () => void; // Callback para finalizar escaneo
 }
 
@@ -22,6 +24,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   continuousMode = false,
   scannedProducts = [],
   onUpdateQuantity,
+  onRemoveProduct,
   onFinish
 }) => {
   const { setIsScannerOpen } = useScanner();
@@ -38,6 +41,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   const scannedCodesSetRef = useRef<Set<string>>(new Set()); // Set de códigos ya escaneados en esta sesión
   const processingCodesRef = useRef<Set<string>>(new Set()); // Set de códigos que están siendo procesados
   const SCAN_COOLDOWN = 5000; // 5 segundos de cooldown entre escaneos del mismo código
+  const productsListRef = useRef<HTMLDivElement>(null); // Ref para el contenedor de productos (auto-scroll)
 
   // Sincronizar el estado del escáner con el contexto
   useEffect(() => {
@@ -433,6 +437,21 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
     return scannedProducts.reduce((sum, product) => sum + (product.price * product.quantity), 0);
   };
 
+  // Auto-scroll cuando se agrega un producto
+  useEffect(() => {
+    if (continuousMode && scannedProducts.length > 0 && productsListRef.current) {
+      // Scroll suave hacia abajo cuando se agrega un producto
+      setTimeout(() => {
+        if (productsListRef.current) {
+          productsListRef.current.scrollTo({
+            top: productsListRef.current.scrollHeight,
+            behavior: 'smooth'
+          });
+        }
+      }, 100);
+    }
+  }, [scannedProducts.length, continuousMode]);
+
   return (
     <div className="fixed inset-0 bg-black flex flex-col z-[9999]">
       {/* Header */}
@@ -497,74 +516,15 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
       {/* Lista de Productos Escaneados (solo en modo continuo) - Scrollable */}
       {continuousMode && scannedProducts.length > 0 && (
         <div className="bg-white border-t border-gray-200 flex-shrink-0">
-          <div className="max-h-[40vh] overflow-y-auto">
+          <div ref={productsListRef} className="max-h-[40vh] overflow-y-auto">
             <div className="p-4 space-y-3">
               {scannedProducts.map((product) => (
-                <div
+                <SwipeableProductCard
                   key={product.id}
-                  className="bg-white rounded-2xl p-4 shadow-md border border-purple-100"
-                >
-                  <div className="flex items-center space-x-4">
-                    {/* Imagen del producto */}
-                    <div className="w-20 h-20 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0 border border-purple-100">
-                      {product.image && product.image !== '/assets/images/products/default-product.jpg' ? (
-                        <img
-                          src={product.image}
-                          alt={product.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
-                          <span className="text-2xl font-bold text-white">
-                            {product.name.charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Información del producto */}
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-900 mb-1.5 truncate">
-                        {product.name}
-                      </h3>
-                      <div className="flex items-center space-x-2 mb-1.5">
-                        <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-green-50 text-green-700 border border-green-200 flex items-center whitespace-nowrap">
-                          <Clock className="w-3 h-3 mr-1 flex-shrink-0" />
-                          {product.stock} disponibles
-                        </span>
-                      </div>
-                      <p className="text-lg font-bold text-purple-600">
-                        ${product.price.toFixed(2)}
-                      </p>
-                    </div>
-
-                    {/* Controles de cantidad */}
-                    {onUpdateQuantity && (
-                      <div className="flex items-center space-x-2 flex-shrink-0">
-                        <button
-                          onClick={() => onUpdateQuantity(product.id, -1)}
-                          disabled={product.quantity <= 1}
-                          className={`w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-95 ${
-                            product.quantity <= 1
-                              ? 'bg-gray-100 text-gray-400'
-                              : 'bg-gradient-to-br from-purple-500 to-indigo-600 text-white shadow-md'
-                          }`}
-                        >
-                          <Minus className="w-4 h-4" />
-                        </button>
-                        <span className="w-10 text-center font-bold text-gray-900 text-lg">
-                          {product.quantity}
-                        </span>
-                        <button
-                          onClick={() => onUpdateQuantity(product.id, 1)}
-                          className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 text-white flex items-center justify-center shadow-md hover:shadow-lg transition-all active:scale-95"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                  product={product}
+                  onUpdateQuantity={onUpdateQuantity}
+                  onRemove={onRemoveProduct}
+                />
               ))}
             </div>
           </div>

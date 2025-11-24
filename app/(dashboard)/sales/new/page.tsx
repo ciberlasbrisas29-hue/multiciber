@@ -1012,6 +1012,19 @@ const NewSalePage = () => {
           continuousMode={true}
           scannedProducts={scannedProducts}
           onUpdateQuantity={handleUpdateScannedQuantity}
+          onRemoveProduct={(productId) => {
+            // Eliminar producto de la lista
+            setScannedProducts(prev => prev.filter(p => p.id !== productId));
+            // Eliminar el código de barras del Set para permitir escanearlo de nuevo
+            productsService.getProducts({ isActive: true }).then(response => {
+              if (response.success && response.data.length > 0) {
+                const fullProduct = response.data.find((p: any) => p._id === productId);
+                if (fullProduct && fullProduct.barcode) {
+                  scannedBarcodesRef.current.delete(fullProduct.barcode.toString().toLowerCase().trim());
+                }
+              }
+            }).catch(err => console.error('Error al buscar producto para limpiar barcode:', err));
+          }}
           onFinish={handleFinishScanning}
         />
       )}
