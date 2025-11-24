@@ -133,7 +133,7 @@ const InventoryPage = () => {
         fetchUserId();
     }, []);
 
-    // Cargar categorías
+    // Cargar categorías (solo las que tienen productos en la vista de inventario)
     useEffect(() => {
         const fetchCategories = async () => {
             try {
@@ -141,7 +141,9 @@ const InventoryPage = () => {
                 const response = await fetch('/api/products/categories');
                 const data = await response.json();
                 if (data.success) {
-                    setCategories(data.data);
+                    // Filtrar solo categorías que tienen productos (count > 0)
+                    const categoriesWithProducts = data.data.filter((cat: Category) => cat.count > 0);
+                    setCategories(categoriesWithProducts);
                 }
             } catch (error) {
                 console.error("Error fetching categories:", error);
