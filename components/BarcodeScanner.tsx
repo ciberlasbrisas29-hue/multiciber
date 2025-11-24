@@ -2,15 +2,29 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
-import { X, Camera, Scan } from 'lucide-react';
+import { X, Camera, Scan, Plus, Minus, Check, Clock, ChevronRight } from 'lucide-react';
+import { useScanner } from '@/contexts/ScannerContext';
 
 interface BarcodeScannerProps {
   onScan: (result: string) => void;
   onClose: () => void;
   isOpen: boolean;
+  continuousMode?: boolean; // Modo continuo: no se cierra después de escanear
+  scannedProducts?: Array<{ id: string; name: string; quantity: number; price: number; image?: string }>; // Productos escaneados
+  onUpdateQuantity?: (productId: string, change: number) => void; // Callback para actualizar cantidad
+  onFinish?: () => void; // Callback para finalizar escaneo
 }
 
-const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScan, onClose, isOpen }) => {
+const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ 
+  onScan, 
+  onClose, 
+  isOpen, 
+  continuousMode = false,
+  scannedProducts = [],
+  onUpdateQuantity,
+  onFinish
+}) => {
+  const { setIsScannerOpen } = useScanner();
   const videoRef = useRef<HTMLVideoElement>(null);
   const codeReader = useRef<BrowserMultiFormatReader | null>(null);
   const streamRef = useRef<MediaStream | null>(null); // Usar ref para acceso directo al stream
@@ -19,6 +33,23 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScan, onClose, isOpen
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
   const [stream, setStream] = useState<MediaStream | null>(null);
+
+  // Sincronizar el estado del escáner con el contexto
+  useEffect(() => {
+    setIsScannerOpen(isOpen);
+    
+    // Prevenir scroll del body cuando el escáner está abierto
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+
+    return () => {
+      document.body.style.overflow = '';
+      setIsScannerOpen(false);
+    };
+  }, [isOpen, setIsScannerOpen]);
 
   // Función para reproducir un beep corto y agudo (como escáner de supermercado)
   const playBeep = () => {
@@ -66,8 +97,9 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScan, onClose, isOpen
     return () => {
       // Cleanup: siempre detener la cámara al desmontar o cambiar isOpen
       stopScanner();
+      setIsScannerOpen(false);
     };
-  }, [isOpen]);
+  }, [isOpen, setIsScannerOpen]);
 
   const initializeScanner = async () => {
     try {
@@ -233,18 +265,20 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScan, onClose, isOpen
               const scannedText = result.getText();
               console.log('Barcode scanned:', scannedText);
               
-              // Detener el escáner INMEDIATAMENTE y de forma síncrona
-              // Esto es crítico para iOS/iPhone
-              stopScanner();
+              // Reproducir beep cuando se detecta un código
+              playBeep();
               
-              // Pequeño delay para asegurar que la cámara se detuvo antes de continuar
-              setTimeout(() => {
-                // Reproducir beep cuando se detecta un código
-                playBeep();
-                
-                // Llamar al callback después de detener el escáner
-                onScan(scannedText);
-              }, 50); // 50ms de delay para asegurar que la cámara se detuvo
+              // Llamar al callback inmediatamente
+              onScan(scannedText);
+              
+              // Si NO es modo continuo, detener el escáner después de escanear
+              if (!continuousMode) {
+                // Pequeño delay para asegurar que la cámara se detuvo antes de continuar
+                setTimeout(() => {
+                  stopScanner();
+                }, 100);
+              }
+              // Si es modo continuo, el escáner sigue activo para escanear más productos
             }
             
             if (err && !(err instanceof NotFoundException)) {
@@ -345,86 +379,196 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScan, onClose, isOpen
     return null;
   }
 
+  const getTotal = () => {
+    return scannedProducts.reduce((sum, product) => sum + (product.price * product.quantity), 0);
+  };
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">Escanear Código de Barras</h3>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 p-1"
-            type="button"
-          >
-            <X className="w-5 h-5" />
-          </button>
+    <div className="fixed inset-0 bg-black flex flex-col z-[9999]">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-4 flex items-center justify-between">
+        <button
+          onClick={() => {
+            setIsScannerOpen(false);
+            onClose();
+          }}
+          className="w-10 h-10 flex items-center justify-center active:opacity-70 rounded-full hover:bg-white/20 transition-colors"
+        >
+          <X className="w-6 h-6 text-white" />
+        </button>
+        <h3 className="text-xl font-bold text-white">SCANEER</h3>
+        <div className="w-10"></div> {/* Spacer para centrar */}
+      </div>
+
+      {/* Vista de cámara - Ocupa más espacio */}
+      <div className="flex-1 relative bg-black">
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          className="w-full h-full object-cover"
+        />
+        
+        {/* Scanning Overlay */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="border-2 border-green-500 bg-transparent rounded-lg p-8">
+            <div className="w-64 h-40 border-2 border-dashed border-green-400 rounded flex items-center justify-center">
+              <Scan className="w-10 h-10 text-green-500 animate-pulse" />
+            </div>
+          </div>
         </div>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
-            <p className="text-red-700 text-sm">{error}</p>
+        {/* Scanning Status */}
+        {isScanning && (
+          <div className="absolute top-4 left-4 bg-green-500 text-white px-3 py-1.5 rounded-lg text-sm font-medium">
+            Escaneando...
           </div>
         )}
 
-        <div className="space-y-4">
-          {/* Video Preview */}
-          <div className="relative">
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              className="w-full rounded-lg bg-black"
-              style={{ maxHeight: '300px', objectFit: 'cover' }}
-            />
-            
-            {/* Scanning Overlay */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="border-2 border-green-500 bg-transparent rounded-lg p-8">
-                <div className="w-48 h-32 border-2 border-dashed border-green-400 rounded flex items-center justify-center">
-                  <Scan className="w-8 h-8 text-green-500 animate-pulse" />
-                </div>
-              </div>
-            </div>
+        {/* Error Message */}
+        {error && (
+          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-red-100 border-2 border-red-300 rounded-lg p-4 max-w-md mx-4">
+            <p className="text-red-700 text-sm text-center">{error}</p>
+          </div>
+        )}
 
-            {/* Scanning Status */}
-            {isScanning && (
-              <div className="absolute top-2 left-2 bg-green-500 text-white px-2 py-1 rounded text-xs font-medium">
-                Escaneando...
-              </div>
+        {/* Instructions */}
+        <div className="absolute bottom-4 left-0 right-0 px-4">
+          <div className="bg-white/90 backdrop-blur-sm rounded-xl p-4 text-center">
+            <p className="text-sm font-medium text-gray-800 mb-1">Coloca un código de barras para escanear</p>
+            {continuousMode && (
+              <p className="text-xs text-gray-600">Puedes escanear múltiples productos seguidos</p>
             )}
           </div>
-
-          {/* Instructions */}
-          <div className="text-center text-sm text-gray-600">
-            <p className="mb-2">Apunta la cámara hacia el código de barras</p>
-            <p className="mb-2">El escaneo será automático cuando se detecte el código</p>
-            {error && (
-              <div className="text-xs text-orange-600 mt-2">
-                <p>💡 Tip: Si no funciona, intenta abrir en Chrome o usar HTTPS</p>
-              </div>
-            )}
-          </div>
-
-          {/* Controls */}
-          <div className="flex justify-center space-x-3">
-            {/* Removido el botón de cambiar cámara - solo se permite cámara trasera */}
-            <button
-              onClick={onClose}
-              className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-              type="button"
-            >
-              Cancelar
-            </button>
-          </div>
-
-          {/* Device Info */}
-          {devices.length > 0 && (
-            <div className="text-xs text-gray-500 text-center">
-              Cámara: {devices.find(d => d.deviceId === selectedDeviceId)?.label || 'Desconocida'}
-            </div>
-          )}
         </div>
       </div>
+
+      {/* Lista de Productos Escaneados (solo en modo continuo) - Scrollable */}
+      {continuousMode && scannedProducts.length > 0 && (
+        <div className="bg-white max-h-[35vh] overflow-y-auto border-t border-gray-200">
+          <div className="p-4 space-y-3">
+            {scannedProducts.map((product) => (
+              <div
+                key={product.id}
+                className="bg-white rounded-2xl p-4 shadow-md border border-purple-100"
+              >
+                <div className="flex items-center space-x-4">
+                  {/* Imagen del producto */}
+                  <div className="w-20 h-20 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0 border border-purple-100">
+                    {product.image && product.image !== '/assets/images/products/default-product.jpg' ? (
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
+                        <span className="text-2xl font-bold text-white">
+                          {product.name.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Información del producto */}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-gray-900 mb-1 truncate">
+                      {product.name}
+                    </h3>
+                    <div className="flex items-center space-x-2 mb-1">
+                      <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-green-50 text-green-700 border border-green-200 flex items-center">
+                        <Clock className="w-3 h-3 mr-1" />
+                        {product.stock} disponibles
+                      </span>
+                    </div>
+                    <p className="text-lg font-bold text-purple-600">
+                      ${product.price.toFixed(2)}
+                    </p>
+                  </div>
+
+                  {/* Controles de cantidad */}
+                  {onUpdateQuantity && (
+                    <div className="flex items-center space-x-2 flex-shrink-0">
+                      <button
+                        onClick={() => onUpdateQuantity(product.id, -1)}
+                        disabled={product.quantity <= 1}
+                        className={`w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-95 ${
+                          product.quantity <= 1
+                            ? 'bg-gray-100 text-gray-400'
+                            : 'bg-gradient-to-br from-purple-500 to-indigo-600 text-white shadow-md'
+                        }`}
+                      >
+                        <Minus className="w-4 h-4" />
+                      </button>
+                      <span className="w-10 text-center font-bold text-gray-900 text-lg">
+                        {product.quantity}
+                      </span>
+                      <button
+                        onClick={() => onUpdateQuantity(product.id, 1)}
+                        className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 text-white flex items-center justify-center shadow-md hover:shadow-lg transition-all active:scale-95"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Footer con resumen y botón Finalizar */}
+      {continuousMode && (
+        <div className="bg-white border-t border-gray-200">
+          {/* Resumen */}
+          <div className="px-6 py-3 flex items-center justify-between border-b border-gray-100">
+            <span className="text-sm text-gray-600 font-medium">Añadir productos</span>
+            <div className="flex items-center space-x-2">
+              <span className="text-xl font-bold text-purple-600">
+                ${getTotal().toFixed(2)}
+              </span>
+              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 flex items-center justify-center shadow-md">
+                <ChevronRight className="w-5 h-5 text-white" />
+              </div>
+            </div>
+          </div>
+          
+          {/* Botón Finalizar */}
+          <div className="px-4 py-4">
+            <button
+              onClick={() => {
+                setIsScannerOpen(false);
+                if (onFinish) {
+                  onFinish();
+                } else {
+                  onClose();
+                }
+              }}
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-xl transition-colors shadow-lg text-sm uppercase"
+            >
+              FINALIZAR {scannedProducts.length} PRODUCTO{scannedProducts.length !== 1 ? 'S' : ''} ESCANEADO{scannedProducts.length !== 1 ? 'S' : ''}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Botón Cancelar (si no es modo continuo) */}
+      {!continuousMode && (
+        <div className="bg-white border-t border-gray-200 p-4">
+          <button
+            onClick={() => {
+              setIsScannerOpen(false);
+              onClose();
+            }}
+            className="w-full px-4 py-3 text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors font-medium"
+            type="button"
+          >
+            Cancelar
+          </button>
+        </div>
+      )}
     </div>
   );
 };

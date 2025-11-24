@@ -28,6 +28,7 @@ const NewSalePage = () => {
   const [loading, setLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [scannedProducts, setScannedProducts] = useState<Array<{ id: string; name: string; quantity: number; price: number; image?: string; stock: number }>>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<{ [category: string]: any[] }>({});
   const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
@@ -259,8 +260,7 @@ const NewSalePage = () => {
 
 
   const handleBarcodeScan = async (barcode: string) => {
-    setIsScannerOpen(false);
-    
+    // NO cerrar el scanner - modo continuo
     try {
       // Buscar producto por código de barras
       const response = await productsService.getProducts({ 
@@ -275,38 +275,37 @@ const NewSalePage = () => {
         
         if (product) {
           if (product.stock > 0) {
-            // Verificar si el producto está en la lista actual
-            const productInList = products.find((p: any) => p._id === product._id);
+            // Verificar si el producto ya está en la lista de escaneados
+            const existingScanned = scannedProducts.find((p: any) => p.id === product._id);
             
-            if (productInList) {
-              // Si está en la lista, moverlo al principio y aumentar cantidad
-              setProducts(prev => {
-                // Filtrar el producto de su posición actual
-                const filtered = prev.filter((p: any) => p._id !== product._id);
-                // Agregarlo al principio
-                return [product, ...filtered];
-              });
-              
-              // Aumentar cantidad después de moverlo
-              setTimeout(() => {
-                updateProductQuantity(product._id, 1);
-                console.log('Producto encontrado, movido arriba y agregado:', product.name);
-              }, 100);
+            if (existingScanned) {
+              // Si ya está escaneado, aumentar cantidad (validar stock)
+              setScannedProducts(prev =>
+                prev.map(p => {
+                  if (p.id === product._id) {
+                    const newQuantity = p.quantity + 1;
+                    if (newQuantity > product.stock) {
+                      alert(`No hay suficiente stock. Disponible: ${product.stock}`);
+                      return p;
+                    }
+                    return { ...p, quantity: newQuantity };
+                  }
+                  return p;
+                })
+              );
             } else {
-              // Si no está en la lista, agregarlo al principio y luego aumentar cantidad
-              setProducts(prev => {
-                if (!prev.find((p: any) => p._id === product._id)) {
-                  // Agregar al principio de la lista
-                  return [product, ...prev];
-                }
-                return prev;
-              });
-              
-              // Esperar un momento para que se actualice el estado
-              setTimeout(() => {
-                updateProductQuantity(product._id, 1);
-                console.log('Producto encontrado y agregado arriba:', product.name);
-              }, 100);
+              // Si no está escaneado, agregarlo con cantidad 1
+              setScannedProducts(prev => [
+                {
+                  id: product._id,
+                  name: product.name,
+                  quantity: 1,
+                  price: product.price,
+                  image: product.image,
+                  stock: product.stock
+                },
+                ...prev
+              ]);
             }
           } else {
             alert('El producto no tiene stock disponible');
@@ -321,6 +320,81 @@ const NewSalePage = () => {
       console.error('Error al buscar producto por código de barras:', error);
       alert('Error al buscar el producto');
     }
+  };
+
+  const handleUpdateScannedQuantity = (productId: string, change: number) => {
+    setScannedProducts(prev =>
+      prev.map(product => {
+        if (product.id === productId) {
+          const newQuantity = product.quantity + change;
+          // Validar que no sea menor a 1 ni mayor al stock
+          if (newQuantity < 1) {
+            // Si la cantidad sería 0, eliminar el producto de la lista
+            return null;
+          }
+          if (newQuantity > product.stock) {
+            alert(`No hay suficiente stock. Disponible: ${product.stock}`);
+            return product;
+          }
+          return { ...product, quantity: newQuantity };
+        }
+        return product;
+      }).filter((p): p is typeof p & {} => p !== null) // Filtrar nulls
+    );
+  };
+
+  const handleFinishScanning = () => {
+    // Agregar todos los productos escaneados a la lista principal
+    scannedProducts.forEach(scannedProduct => {
+      // Verificar si el producto está en la lista actual
+      const productInList = products.find((p: any) => p._id === scannedProduct.id);
+      
+      if (!productInList) {
+        // Si no está, agregarlo
+        const fullProduct = {
+          _id: scannedProduct.id,
+          name: scannedProduct.name,
+          price: scannedProduct.price,
+          stock: scannedProduct.stock,
+          image: scannedProduct.image,
+          category: 'otros' // Puedes ajustar esto según necesites
+        };
+        
+        setProducts(prev => {
+          if (!prev.find((p: any) => p._id === scannedProduct.id)) {
+            return [fullProduct, ...prev];
+          }
+          return prev;
+        });
+      }
+      
+      // Agregar o actualizar la cantidad en selectedProducts
+      setTimeout(() => {
+        setSelectedProducts(prev => {
+          const existing = prev.find((p: any) => p.id === scannedProduct.id);
+          if (existing) {
+            return prev.map(p =>
+              p.id === scannedProduct.id
+                ? { ...p, quantity: p.quantity + scannedProduct.quantity }
+                : p
+            );
+          } else {
+            return [...prev, {
+              id: scannedProduct.id,
+              name: scannedProduct.name,
+              price: scannedProduct.price,
+              quantity: scannedProduct.quantity,
+              stock: scannedProduct.stock,
+              _id: scannedProduct.id
+            }];
+          }
+        });
+      }, 50);
+    });
+    
+    // Cerrar el scanner y limpiar productos escaneados
+    setIsScannerOpen(false);
+    setScannedProducts([]);
   };
 
   const updateProductQuantity = (productId: string, change: number) => {
@@ -887,7 +961,14 @@ const NewSalePage = () => {
         <BarcodeScanner
           isOpen={isScannerOpen}
           onScan={handleBarcodeScan}
-          onClose={() => setIsScannerOpen(false)}
+          onClose={() => {
+            setIsScannerOpen(false);
+            setScannedProducts([]);
+          }}
+          continuousMode={true}
+          scannedProducts={scannedProducts}
+          onUpdateQuantity={handleUpdateScannedQuantity}
+          onFinish={handleFinishScanning}
         />
       )}
 

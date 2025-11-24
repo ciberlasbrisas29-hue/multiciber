@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { usePathname } from 'next/navigation';
+import { useScanner } from '@/contexts/ScannerContext';
 import Header from './Header';
 import BottomNavbar from './BottomNavbar';
 
@@ -11,6 +12,7 @@ interface MobileLayoutProps {
 
 const MobileLayout: React.FC<MobileLayoutProps> = ({ children }) => {
   const pathname = usePathname();
+  const { isScannerOpen } = useScanner();
   
   // Rutas públicas que no deben mostrar el layout móvil
   const publicRoutes = ['/login', '/register'];
@@ -22,9 +24,10 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({ children }) => {
   }
 
   // Para rutas autenticadas, mostrar el layout móvil completo
+  // Ocultar Header y BottomNavbar cuando el escáner está abierto
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-pink-50 pb-20 md:pb-0">
-      <Header />
+      {!isScannerOpen && <Header />}
       {/* Contenedor principal: móvil sin límite, desktop centrado con max-width */}
       <div className="px-6 -mt-4 md:px-0 md:-mt-0">
         {/* En desktop: contenedor centrado con max-width y padding adecuado */}
@@ -32,7 +35,7 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({ children }) => {
           {children}
         </div>
       </div>
-      <BottomNavbar />
+      {!isScannerOpen && <BottomNavbar />}
     </div>
   );
 };
