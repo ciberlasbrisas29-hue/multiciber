@@ -19,6 +19,41 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScan, onClose, isOpen
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
   const [stream, setStream] = useState<MediaStream | null>(null);
 
+  // Función para reproducir un beep corto
+  const playBeep = () => {
+    try {
+      // Crear un contexto de audio
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      
+      // Crear un oscilador para generar el tono
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      // Configurar el oscilador (frecuencia de 800Hz para un beep agradable)
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.value = 800; // Frecuencia del beep (Hz)
+      oscillator.type = 'sine'; // Tipo de onda (sine = suave)
+      
+      // Configurar el volumen (gain) para un beep corto
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime); // Volumen inicial
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1); // Fade out rápido
+      
+      // Reproducir el beep por 100ms
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.1);
+      
+      // Limpiar el contexto después de que termine
+      oscillator.onended = () => {
+        audioContext.close();
+      };
+    } catch (error) {
+      // Si falla la reproducción del beep, no interrumpir el flujo
+      console.warn('No se pudo reproducir el beep:', error);
+    }
+  };
+
   useEffect(() => {
     if (isOpen) {
       initializeScanner();
@@ -193,6 +228,10 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScan, onClose, isOpen
             if (result) {
               const scannedText = result.getText();
               console.log('Barcode scanned:', scannedText);
+              
+              // Reproducir beep cuando se detecta un código
+              playBeep();
+              
               onScan(scannedText);
               stopScanner();
             }
