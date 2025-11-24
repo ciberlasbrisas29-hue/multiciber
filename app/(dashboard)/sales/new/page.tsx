@@ -266,13 +266,14 @@ const NewSalePage = () => {
       // Normalizar el código de barras para comparación
       const normalizedBarcode = barcode.toLowerCase().trim();
       
-      // Verificar PRIMERO si este código de barras ya fue escaneado
+      // Verificar PRIMERO si este código de barras ya fue escaneado (verificación inmediata y síncrona)
       if (scannedBarcodesRef.current.has(normalizedBarcode)) {
-        console.log(`El código de barras "${barcode}" ya fue escaneado. Usa los botones +/- para modificar la cantidad.`);
+        alert('Este código de barras ya fue escaneado. Por favor, escanea otro código de barras diferente.');
         return; // Salir inmediatamente sin procesar
       }
       
-      // Buscar producto por código de barras
+      // Verificar también en el estado actual de scannedProducts (verificación síncrona)
+      // Necesitamos obtener el producto primero para comparar IDs
       const response = await productsService.getProducts({ 
         isActive: true 
       });
@@ -284,38 +285,38 @@ const NewSalePage = () => {
         );
         
         if (product) {
-          // Verificar si el producto ya está en la lista de escaneados (doble verificación)
-          setScannedProducts(prev => {
-            const existingScanned = prev.find((p: any) => p.id === product._id);
-            
-            if (existingScanned) {
-              // Si ya está en la lista, NO hacer nada
-              console.log(`El producto "${product.name}" ya está en la lista. Usa los botones +/- para modificar la cantidad.`);
-              return prev; // Retornar el estado sin cambios
-            }
-            
-            // Si no está en la lista, validar stock antes de agregarlo
-            if (product.stock <= 0) {
-              alert('El producto no tiene stock disponible');
-              return prev; // Retornar el estado sin cambios
-            }
-            
-            // Agregar el código de barras al Set de escaneados
-            scannedBarcodesRef.current.add(normalizedBarcode);
-            
-            // Agregarlo con cantidad 1 (solo la primera vez)
-            return [
-              {
-                id: product._id,
-                name: product.name,
-                quantity: 1,
-                price: product.price,
-                image: product.image,
-                stock: product.stock
-              },
-              ...prev
-            ];
-          });
+          // Verificar si el producto ya está en la lista de escaneados (verificación síncrona del estado actual)
+          const currentScannedProducts = scannedProducts; // Obtener el estado actual
+          const existingScanned = currentScannedProducts.find((p: any) => p.id === product._id);
+          
+          if (existingScanned) {
+            // Si ya está en la lista, mostrar mensaje y salir
+            alert(`El producto "${product.name}" ya está en la lista. Por favor, escanea otro código de barras diferente o usa los botones +/- para modificar la cantidad.`);
+            return; // Salir sin procesar
+          }
+          
+          // Si no está en la lista, validar stock antes de agregarlo
+          if (product.stock <= 0) {
+            alert('El producto no tiene stock disponible');
+            return;
+          }
+          
+          // IMPORTANTE: Agregar el código de barras al Set INMEDIATAMENTE (antes de actualizar el estado)
+          // Esto previene que múltiples llamadas simultáneas pasen la validación
+          scannedBarcodesRef.current.add(normalizedBarcode);
+          
+          // Agregarlo con cantidad 1 (solo la primera vez)
+          setScannedProducts(prev => [
+            {
+              id: product._id,
+              name: product.name,
+              quantity: 1,
+              price: product.price,
+              image: product.image,
+              stock: product.stock
+            },
+            ...prev
+          ]);
         } else {
           alert('Producto no encontrado con ese código de barras');
         }

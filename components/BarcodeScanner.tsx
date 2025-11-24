@@ -276,9 +276,9 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
               
               // Verificar si este código ya fue escaneado en esta sesión (permanente)
               if (scannedCodesSetRef.current.has(normalizedBarcode)) {
-                // Ignorar escaneo de código ya procesado
+                // Ignorar escaneo de código ya procesado - NO llamar al callback
                 console.log('Código de barras ya escaneado en esta sesión, ignorado');
-                return;
+                return; // Salir sin procesar
               }
               
               // Verificar si es el mismo código escaneado recientemente (dentro del cooldown)
@@ -286,12 +286,13 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
               const timeSinceLastScan = currentTime - lastScanTimeRef.current;
               
               if (isSameCode && timeSinceLastScan < SCAN_COOLDOWN) {
-                // Ignorar escaneo repetido del mismo código
+                // Ignorar escaneo repetido del mismo código - NO llamar al callback
                 console.log('Escaneo repetido ignorado (cooldown activo)');
-                return;
+                return; // Salir sin procesar
               }
               
-              // Marcar este código como escaneado
+              // IMPORTANTE: Marcar este código como escaneado INMEDIATAMENTE (antes de llamar al callback)
+              // Esto previene que múltiples detecciones simultáneas pasen la validación
               scannedCodesSetRef.current.add(normalizedBarcode);
               
               // Actualizar referencias del último escaneo
