@@ -429,17 +429,14 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
     startScanning(nextDeviceId);
   };
 
-  if (!isOpen) {
-    return null;
-  }
-
   const getTotal = () => {
     return scannedProducts.reduce((sum, product) => sum + (product.price * product.quantity), 0);
   };
 
   // Auto-scroll cuando se agrega un producto
+  // IMPORTANTE: Este hook debe estar antes del return condicional para cumplir con las reglas de Hooks
   useEffect(() => {
-    if (continuousMode && scannedProducts.length > 0 && productsListRef.current) {
+    if (continuousMode && scannedProducts.length > 0 && productsListRef.current && isOpen) {
       // Scroll suave hacia abajo cuando se agrega un producto
       setTimeout(() => {
         if (productsListRef.current) {
@@ -450,7 +447,11 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
         }
       }, 100);
     }
-  }, [scannedProducts.length, continuousMode]);
+  }, [scannedProducts.length, continuousMode, isOpen]);
+
+  if (!isOpen) {
+    return null;
+  }
 
   return (
     <div className="fixed inset-0 bg-black flex flex-col z-[9999]">
