@@ -737,6 +737,7 @@ const InventoryPage = () => {
                 isOpen={showBarcodeScanner}
                 onScan={handleBarcodeScanned}
                 onClose={() => setShowBarcodeScanner(false)}
+                continuousMode={false}
             />
 
             {/* Product Quick Edit Modal */}
