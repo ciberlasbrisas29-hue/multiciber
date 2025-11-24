@@ -279,14 +279,25 @@ const NewSalePage = () => {
             const productInList = products.find((p: any) => p._id === product._id);
             
             if (productInList) {
-              // Si está en la lista, aumentar cantidad
-              updateProductQuantity(product._id, 1);
-              console.log('Producto encontrado y agregado:', product.name);
+              // Si está en la lista, moverlo al principio y aumentar cantidad
+              setProducts(prev => {
+                // Filtrar el producto de su posición actual
+                const filtered = prev.filter((p: any) => p._id !== product._id);
+                // Agregarlo al principio
+                return [product, ...filtered];
+              });
+              
+              // Aumentar cantidad después de moverlo
+              setTimeout(() => {
+                updateProductQuantity(product._id, 1);
+                console.log('Producto encontrado, movido arriba y agregado:', product.name);
+              }, 100);
             } else {
-              // Si no está en la lista, agregarlo primero y luego aumentar cantidad
+              // Si no está en la lista, agregarlo al principio y luego aumentar cantidad
               setProducts(prev => {
                 if (!prev.find((p: any) => p._id === product._id)) {
-                  return [...prev, product];
+                  // Agregar al principio de la lista
+                  return [product, ...prev];
                 }
                 return prev;
               });
@@ -294,7 +305,7 @@ const NewSalePage = () => {
               // Esperar un momento para que se actualice el estado
               setTimeout(() => {
                 updateProductQuantity(product._id, 1);
-                console.log('Producto encontrado y agregado:', product.name);
+                console.log('Producto encontrado y agregado arriba:', product.name);
               }, 100);
             }
           } else {
