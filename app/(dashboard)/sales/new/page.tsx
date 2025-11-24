@@ -369,7 +369,10 @@ const NewSalePage = () => {
             return null;
           }
           if (newQuantity > product.stock) {
-            alert(`No hay suficiente stock. Disponible: ${product.stock}`);
+            // Usar setTimeout para no bloquear el hilo principal
+            setTimeout(() => {
+              alert(`No hay suficiente stock. Disponible: ${product.stock}`);
+            }, 0);
             return product;
           }
           return { ...product, quantity: newQuantity };
