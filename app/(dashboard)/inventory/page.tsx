@@ -11,10 +11,14 @@ import ShareCatalogModal from '@/components/ShareCatalogModal';
 import Toast from '@/components/Toast';
 
 interface Category {
+    _id?: string;
     name: string;
     displayName: string;
     count: number;
     image: string | null;
+    color?: string;
+    icon?: string;
+    order?: number;
 }
 
 interface Pagination {
