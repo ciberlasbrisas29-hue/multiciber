@@ -57,9 +57,13 @@ const BottomNavbar = () => {
           return (
             <button
               key={index}
+              onTouchStart={async () => {
+                // Vibración háptica en touch (mejor para iOS)
+                await triggerHaptic('light');
+              }}
               onClick={async () => {
-                // Vibración háptica leve
-                triggerHaptic('light');
+                // Vibración háptica leve (fallback para otros dispositivos)
+                await triggerHaptic('light');
                 
                 if (isSpecial) {
                   // Abrir modal de selección de tipo de venta
