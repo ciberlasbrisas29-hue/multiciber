@@ -405,16 +405,11 @@ const NewSalePage = () => {
           scannedProductsList.push(productInList);
         } else {
           // Si no está, crear el producto completo y agregarlo
+          // Usar el spread primero y luego sobrescribir propiedades específicas
           const fullProduct = {
+            ...scannedProduct,
             _id: scannedProduct.id,
-            name: scannedProduct.name,
-            price: scannedProduct.price,
-            stock: scannedProduct.stock,
-            image: scannedProduct.image,
-            category: scannedProduct.category || 'otros',
-            barcode: scannedProduct.barcode,
-            createdAt: scannedProduct.createdAt,
-            ...scannedProduct
+            category: scannedProduct.category || 'otros'
           };
           scannedProductsList.push(fullProduct);
         }
