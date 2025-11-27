@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { Home, Package, Plus, DollarSign, Settings } from 'lucide-react';
 import SaleTypeModal from './SaleTypeModal';
 import { useLowStock } from '@/hooks/useLowStock';
+import { triggerHaptic } from '@/utils/haptic';
 
 const BottomNavbar = () => {
   const router = useRouter();
@@ -56,7 +57,10 @@ const BottomNavbar = () => {
           return (
             <button
               key={index}
-              onClick={() => {
+              onClick={async () => {
+                // Vibración háptica leve
+                triggerHaptic('light');
+                
                 if (isSpecial) {
                   // Abrir modal de selección de tipo de venta
                   setIsSaleModalOpen(true);

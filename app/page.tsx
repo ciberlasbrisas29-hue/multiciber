@@ -307,7 +307,10 @@ const HomePage = () => {
         {/* Fila de Botones de Acción */}
         <div className="grid grid-cols-5 gap-2 mb-6">
           <button 
-            onClick={() => router.push('/balance')}
+            onClick={async () => {
+              await import('@/utils/haptic').then(m => m.triggerHaptic('light'));
+              router.push('/balance');
+            }}
             className="flex flex-col items-center justify-center bg-white rounded-2xl p-4 shadow-md hover:shadow-lg transition-all duration-200 active:scale-95 border border-purple-100"
           >
             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center mb-2">
@@ -317,7 +320,10 @@ const HomePage = () => {
           </button>
 
           <button 
-            onClick={() => router.push('/inventory')}
+            onClick={async () => {
+              await import('@/utils/haptic').then(m => m.triggerHaptic('light'));
+              router.push('/inventory');
+            }}
             className="flex flex-col items-center justify-center bg-white rounded-2xl p-4 shadow-md hover:shadow-lg transition-all duration-200 active:scale-95 border border-purple-100"
           >
             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-500 to-pink-600 flex items-center justify-center mb-2">
@@ -327,7 +333,10 @@ const HomePage = () => {
           </button>
 
           <button 
-            onClick={() => router.push('/balance?tab=debts')}
+            onClick={async () => {
+              await import('@/utils/haptic').then(m => m.triggerHaptic('light'));
+              router.push('/balance?tab=debts');
+            }}
             className="flex flex-col items-center justify-center bg-white rounded-2xl p-4 shadow-md hover:shadow-lg transition-all duration-200 active:scale-95 border border-purple-100"
           >
             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center mb-2">
@@ -337,7 +346,10 @@ const HomePage = () => {
           </button>
 
           <button 
-            onClick={() => router.push('/clients')}
+            onClick={async () => {
+              await import('@/utils/haptic').then(m => m.triggerHaptic('light'));
+              router.push('/clients');
+            }}
             className="flex flex-col items-center justify-center bg-white rounded-2xl p-4 shadow-md hover:shadow-lg transition-all duration-200 active:scale-95 border border-purple-100"
           >
             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center mb-2">
@@ -347,7 +359,10 @@ const HomePage = () => {
           </button>
 
           <button 
-            onClick={() => router.push('/suppliers')}
+            onClick={async () => {
+              await import('@/utils/haptic').then(m => m.triggerHaptic('light'));
+              router.push('/suppliers');
+            }}
             className="flex flex-col items-center justify-center bg-white rounded-2xl p-4 shadow-md hover:shadow-lg transition-all duration-200 active:scale-95 border border-purple-100"
           >
             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center mb-2">
