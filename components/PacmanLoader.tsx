@@ -56,14 +56,14 @@ const PacmanLoader = () => {
       border-radius: 0 0 60px 60px;
     }
     .pacman-loader .pacman .top {
-      animation: pacTop 0.1s infinite steps(1);
+      animation: pacTop 0.25s infinite steps(1);
     }
     @keyframes pacTop {
       0%, 100% { transform: rotate(0deg); }
       50%      { transform: rotate(-35deg); }
     }
     .pacman-loader .pacman .bottom {
-      animation: pacBottom 0.1s infinite steps(1);
+      animation: pacBottom 0.25s infinite steps(1);
     }
     @keyframes pacBottom {
       0%, 100% { transform: rotate(0deg); }

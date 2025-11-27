@@ -14,13 +14,21 @@ const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
   const router = useRouter();
   const pathname = usePathname();
   const [authorized, setAuthorized] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const hasRedirected = useRef(false);
   const lastPathname = useRef(pathname);
+  const wasAuthenticated = useRef(isAuthenticated);
 
   // Define public routes that don't require authentication
   const publicRoutes = ['/login', '/register'];
   
   useEffect(() => {
+    // Detectar si se está cerrando sesión (cambió de autenticado a no autenticado)
+    if (wasAuthenticated.current && !isAuthenticated && !isLoading) {
+      setIsLoggingOut(true);
+    }
+    wasAuthenticated.current = isAuthenticated;
+
     // Solo procesar si el pathname cambió o si es la primera carga
     if (lastPathname.current !== pathname) {
       hasRedirected.current = false;
@@ -62,6 +70,17 @@ const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
     setAuthorized(true);
   }, [isAuthenticated, isLoading, pathname, router]);
 
+  // Show simple message when logging out
+  if (isLoggingOut) {
+    return (
+      <div className="flex items-center justify-center min-h-screen" style={{ backgroundColor: '#7130f8' }}>
+        <div className="flex flex-col items-center space-y-4">
+          <p className="text-white text-xl font-semibold">Cerrando sesión...</p>
+        </div>
+      </div>
+    );
+  }
+
   // Show Pacman loader while checking authentication
   if (isLoading) {
     return (
@@ -74,13 +93,12 @@ const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
     );
   }
 
-  // Show Pacman loader while redirecting
+  // Show simple message while redirecting (no Pacman)
   if (!authorized) {
     return (
       <div className="flex items-center justify-center min-h-screen" style={{ backgroundColor: '#7130f8' }}>
         <div className="flex flex-col items-center space-y-4">
-          <PacmanLoader />
-          <p className="text-white">Redirigiendo...</p>
+          <p className="text-white text-xl font-semibold">Redirigiendo...</p>
         </div>
       </div>
     );
