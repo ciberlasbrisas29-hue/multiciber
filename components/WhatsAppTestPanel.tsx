@@ -61,7 +61,8 @@ const WhatsAppTestPanel: React.FC<WhatsAppTestPanelProps> = ({ className = '' })
   };
 
   const handleSendNotification = async () => {
-    if (!phoneNumber.trim()) {
+    // Validar phoneNumber solo si no es tipo 'debt' (que envía a todos los clientes)
+    if (notificationType !== 'debt' && !phoneNumber.trim()) {
       showToast('Por favor ingresa un número de teléfono', 'error');
       return;
     }
@@ -76,9 +77,13 @@ const WhatsAppTestPanel: React.FC<WhatsAppTestPanelProps> = ({ className = '' })
     try {
       let requestBody: any = {
         type: notificationType,
-        phoneNumber: phoneNumber.trim(),
         data: {}
       };
+
+      // Solo incluir phoneNumber si está presente (no requerido para 'debt')
+      if (phoneNumber.trim()) {
+        requestBody.phoneNumber = phoneNumber.trim();
+      }
 
       // Preparar datos según el tipo de notificación
       switch (notificationType) {
@@ -134,13 +139,20 @@ const WhatsAppTestPanel: React.FC<WhatsAppTestPanelProps> = ({ className = '' })
           break;
         
         case 'debt':
-          requestBody.data.debt = {
-            saleNumber: 'V-000002',
-            total: 200.00,
-            paidAmount: 50.00,
-            debtAmount: 150.00,
-            createdAt: new Date().toISOString()
-          };
+          // Si hay phoneNumber, enviar a un cliente específico (para pruebas)
+          // Si no hay phoneNumber, se enviará a todos los clientes con deudas
+          if (phoneNumber.trim()) {
+            requestBody.data.debt = {
+              saleNumber: 'V-000002',
+              concept: 'Teclado gaming',
+              total: 200.00,
+              paidAmount: 50.00,
+              debtAmount: 150.00,
+              clientName: 'Cliente de Prueba',
+              createdAt: new Date().toISOString()
+            };
+          }
+          // Si no hay phoneNumber, no se incluye data.debt y se enviará a todos
           break;
         
         case 'daily_report':
@@ -160,7 +172,12 @@ const WhatsAppTestPanel: React.FC<WhatsAppTestPanelProps> = ({ className = '' })
       const result = await response.json();
 
       if (result.success) {
-        showToast('¡Notificación enviada exitosamente!', 'success');
+        // Mensaje especial para 'debt' cuando se envía a todos los clientes
+        if (notificationType === 'debt' && !phoneNumber.trim() && result.sent !== undefined) {
+          showToast(`¡Se enviaron ${result.sent} recordatorios exitosamente!${result.failed > 0 ? ` ${result.failed} fallaron.` : ''}`, 'success');
+        } else {
+          showToast('¡Notificación enviada exitosamente!', 'success');
+        }
         setCustomMessage('');
         
         // Mostrar información adicional en consola para debugging
@@ -319,25 +336,58 @@ const WhatsAppTestPanel: React.FC<WhatsAppTestPanelProps> = ({ className = '' })
             </div>
           </div>
 
-          {/* Número de teléfono */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Número de Teléfono <span className="text-red-500">*</span>
-            </label>
-            <div className="relative">
-              <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="tel"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                placeholder="+50371234567 o 71234567"
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              />
+          {/* Número de teléfono (no requerido para 'debt') */}
+          {notificationType !== 'debt' && (
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Número de Teléfono <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="tel"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  placeholder="+50371234567 o 71234567"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Formato: +50371234567 o 71234567 (se formatea automáticamente)
+              </p>
             </div>
-            <p className="text-xs text-gray-500 mt-1">
-              Formato: +50371234567 o 71234567 (se formatea automáticamente)
-            </p>
-          </div>
+          )}
+
+          {/* Mensaje especial para 'debt' */}
+          {notificationType === 'debt' && (
+            <div className="mb-4 p-4 bg-yellow-50 rounded-xl border border-yellow-200">
+              <p className="text-sm text-yellow-800 font-medium mb-2">
+                📋 Recordatorio de Deuda
+              </p>
+              <p className="text-xs text-yellow-700">
+                Se enviarán recordatorios a <strong>todos los clientes</strong> que tengan deudas pendientes.
+                Cada cliente recibirá un mensaje con el detalle de sus deudas (concepto, total, pagado, restante).
+              </p>
+              <div className="mt-3">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Número de Teléfono (Opcional - para pruebas a un cliente específico)
+                </label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="tel"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    placeholder="Dejar vacío para enviar a todos los clientes"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Si dejas este campo vacío, se enviará a todos los clientes con deudas. Si ingresas un número, se enviará solo a ese cliente (para pruebas).
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Mensaje personalizado (solo para tipo custom) */}
           {notificationType === 'custom' && (
@@ -362,7 +412,7 @@ const WhatsAppTestPanel: React.FC<WhatsAppTestPanelProps> = ({ className = '' })
               <p className="text-sm text-gray-700">
                 {notificationType === 'low_stock' && 'Se enviará una notificación con productos de stock bajo (ejemplo).'}
                 {notificationType === 'sale' && 'Se enviará una notificación de venta completada (ejemplo).'}
-                {notificationType === 'debt' && 'Se enviará un recordatorio de deuda pendiente (ejemplo).'}
+                {notificationType === 'debt' && 'Se enviarán recordatorios a todos los clientes con deudas pendientes, incluyendo concepto, total, monto pagado y deuda restante.'}
                 {notificationType === 'daily_report' && 'Se enviará el reporte avanzado del día con resumen financiero, métodos de pago, productos destacados y tendencias.'}
               </p>
             </div>
@@ -371,7 +421,7 @@ const WhatsAppTestPanel: React.FC<WhatsAppTestPanelProps> = ({ className = '' })
           {/* Botón de envío */}
           <button
             onClick={handleSendNotification}
-            disabled={loading || !phoneNumber.trim() || (notificationType === 'custom' && !customMessage.trim())}
+            disabled={loading || (notificationType !== 'debt' && !phoneNumber.trim()) || (notificationType === 'custom' && !customMessage.trim())}
             className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-3 rounded-xl font-semibold flex items-center justify-center space-x-2 hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (

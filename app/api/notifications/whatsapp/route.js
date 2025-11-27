@@ -30,9 +30,17 @@ export async function POST(req) {
     const { type, phoneNumber, data } = body;
 
     // Validar campos requeridos
-    if (!type || !phoneNumber) {
+    // phoneNumber no es requerido para 'debt' cuando se envía a todos los clientes
+    if (!type) {
       return NextResponse.json(
-        { success: false, message: 'Tipo de notificación y número de teléfono son requeridos' },
+        { success: false, message: 'Tipo de notificación es requerido' },
+        { status: 400 }
+      );
+    }
+
+    if (!phoneNumber && type !== 'debt') {
+      return NextResponse.json(
+        { success: false, message: 'Número de teléfono es requerido' },
         { status: 400 }
       );
     }
@@ -68,13 +76,24 @@ export async function POST(req) {
 
       case 'debt':
         // Recordatorio de deuda
-        if (!data || !data.debt) {
-          return NextResponse.json(
-            { success: false, message: 'Datos de deuda requeridos' },
-            { status: 400 }
-          );
+        // Si no se proporciona phoneNumber, enviar a todos los clientes con deudas
+        if (!phoneNumber) {
+          const { sendDebtRemindersToAllClients } = await import('@/lib/twilio');
+          result = await sendDebtRemindersToAllClients(userId);
+        } else {
+          // Enviar a un cliente específico
+          if (!data || !data.debt) {
+            return NextResponse.json(
+              { success: false, message: 'Datos de deuda requeridos' },
+              { status: 400 }
+            );
+          }
+          // Asegurar que el debt tenga el nombre del cliente
+          if (!data.debt.clientName && data.debt.client?.name) {
+            data.debt.clientName = data.debt.client.name;
+          }
+          result = await sendDebtReminder(phoneNumber, data.debt);
         }
-        result = await sendDebtReminder(phoneNumber, data.debt);
         break;
 
       case 'custom':
