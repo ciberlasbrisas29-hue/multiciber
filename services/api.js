@@ -102,8 +102,21 @@ api.interceptors.response.use(
 // Servicios de autenticación
 export const authService = {
   login: async (username, password) => {
-    const response = await api.post('/auth/login', { username, password });
-    return response.data;
+    try {
+      const response = await api.post('/auth/login', { username, password });
+      return response.data;
+    } catch (error) {
+      // Si es un error 401 (credenciales inválidas), devolver el mensaje de error
+      if (error.response?.status === 401) {
+        return {
+          success: false,
+          message: error.response?.data?.message || 'Credenciales inválidas',
+          data: null
+        };
+      }
+      // Para otros errores, lanzar normalmente
+      throw error;
+    }
   },
 
   register: async (userData) => {

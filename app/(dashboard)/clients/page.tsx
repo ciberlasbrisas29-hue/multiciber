@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { User, Plus, Search, Phone, Mail, MapPin, Edit2, Trash2, DollarSign, Users, Sparkles, AlertCircle } from 'lucide-react';
+import ConfirmDialog from '@/components/ConfirmDialog';
+import { useToast } from '@/contexts/ToastContext';
 
 // Estilos para animaciones
 const clientsStyles = `
@@ -44,6 +46,7 @@ interface Client {
 
 const ClientsPage = () => {
   const router = useRouter();
+  const { showToast } = useToast();
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -117,13 +120,22 @@ const ClientsPage = () => {
     }).format(amount);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('¿Estás seguro de que quieres eliminar este cliente?')) {
-      return;
-    }
+  const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; id: string | null }>({
+    isOpen: false,
+    id: null
+  });
+  const [isDeleting, setIsDeleting] = useState(false);
 
+  const handleDelete = async (id: string) => {
+    setDeleteConfirm({ isOpen: true, id });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirm.id) return;
+
+    setIsDeleting(true);
     try {
-      const response = await fetch(`/api/clients/${id}`, {
+      const response = await fetch(`/api/clients/${deleteConfirm.id}`, {
         method: 'DELETE',
       });
 
@@ -132,9 +144,13 @@ const ClientsPage = () => {
       }
 
       fetchClients();
+      showToast('Cliente eliminado exitosamente', 'success');
     } catch (error) {
       console.error('Error deleting client:', error);
-      alert('Error al eliminar cliente');
+      showToast('Error al eliminar cliente', 'error');
+    } finally {
+      setIsDeleting(false);
+      setDeleteConfirm({ isOpen: false, id: null });
     }
   };
 
@@ -294,6 +310,19 @@ const ClientsPage = () => {
           </div>
         )}
       </div>
+
+      {/* Confirmación de eliminación */}
+      <ConfirmDialog
+        isOpen={deleteConfirm.isOpen}
+        title="Eliminar Cliente"
+        message={`¿Estás seguro de que deseas eliminar este cliente? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        type="danger"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteConfirm({ isOpen: false, id: null })}
+        isLoading={isDeleting}
+      />
     </div>
     </>
   );

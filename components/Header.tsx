@@ -27,11 +27,12 @@ const Header = () => {
     setIsLoggingOut(true);
     try {
       await logout();
-      router.push('/login');
+      // Usar window.location para evitar problemas con RSC durante logout
+      window.location.href = '/login';
     } catch (error) {
       console.error('Error al cerrar sesión:', error);
-    } finally {
-      setIsLoggingOut(false);
+      // Si falla, intentar redirigir de todas formas
+      window.location.href = '/login';
     }
   };
 

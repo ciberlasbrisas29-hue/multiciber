@@ -154,6 +154,18 @@ export const AuthProvider = ({ children }) => {
     try {
       const responseData = await authService.login(username, password);
       
+      // Verificar si el login fue exitoso
+      if (!responseData.success) {
+        const errorMessage = responseData.message || 'Credenciales inválidas';
+        dispatch({ type: AUTH_ACTIONS.LOGIN_FAILURE, payload: errorMessage });
+        return { success: false, error: errorMessage };
+      }
+
+      // Verificar que responseData.data existe antes de destructurar
+      if (!responseData.data) {
+        throw new Error('Respuesta inesperada del servidor');
+      }
+
       const { user, token } = responseData.data; 
 
       if (user) {
@@ -172,7 +184,7 @@ export const AuthProvider = ({ children }) => {
         throw new Error(responseData.message || 'Error de login: credenciales inválidas o respuesta inesperada del servidor.');
       }
     } catch (error) {
-      const errorMessage = error.response?.data?.message || error.message;
+      const errorMessage = error.response?.data?.message || error.message || 'Error al iniciar sesión';
       dispatch({ type: AUTH_ACTIONS.LOGIN_FAILURE, payload: errorMessage });
       return { success: false, error: errorMessage };
     }
