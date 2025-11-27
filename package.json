@@ -16,7 +16,6 @@
   },
   "dependencies": {
     "@capacitor/android": "^7.4.4",
-    "@capacitor/haptics": "^7.0.2",
     "@zxing/library": "^0.21.3",
     "axios": "^1.13.2",
     "bcryptjs": "^3.0.3",
