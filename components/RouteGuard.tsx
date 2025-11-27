@@ -34,9 +34,8 @@ const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
     };
 
     if (isPWAiOS() && pwaInitialLoad) {
-      // Esperar a que la animación del Pacman se complete (2.5s) + tiempo de autenticación
-      // La animación completa un ciclo en 2.5s, esperamos al menos 3s para que se vea completo
-      const minLoadTime = 3000; // Mínimo 3 segundos para la animación
+      // Esperar a que la animación del Pacman se complete
+      const minLoadTime = 1800; // 1.8 segundos para la animación
       const startTime = Date.now();
 
       const checkReady = () => {
