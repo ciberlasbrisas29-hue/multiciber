@@ -29,17 +29,22 @@ export async function GET(req, { params }) {
     }
 
     // Obtener userId: primero intentar autenticación, luego query param
+    // Para Twilio, permitir acceso con userId en query params sin autenticación
     let userId = null;
     
+    // Intentar autenticación primero (para acceso desde la app)
     try {
       userId = await verifyAuth();
     } catch (authError) {
-      // Si la autenticación falla, intentar usar userId del query param
+      // Si la autenticación falla, usar userId del query param (para Twilio)
+      // Esto permite que Twilio acceda al PDF sin autenticación
       if (userIdFromQuery) {
         userId = userIdFromQuery;
+        console.log('Usando userId de query params (acceso desde Twilio)', { userId });
       } else {
+        console.error('No se pudo obtener userId ni de autenticación ni de query params');
         return NextResponse.json(
-          { success: false, message: 'No autorizado' },
+          { success: false, message: 'No autorizado. Se requiere userId en query params.' },
           { status: 401 }
         );
       }
@@ -51,12 +56,47 @@ export async function GET(req, { params }) {
         { status: 401 }
       );
     }
+    
+    // Validar que userId sea un ObjectId válido de MongoDB
+    const mongoose = await import('mongoose');
+    if (!mongoose.default.Types.ObjectId.isValid(userId)) {
+      return NextResponse.json(
+        { success: false, message: 'ID de usuario inválido' },
+        { status: 400 }
+      );
+    }
 
     // Obtener datos del reporte
-    const reportData = await getAdvancedReportData(userId, period);
+    let reportData;
+    try {
+      reportData = await getAdvancedReportData(userId, period);
+    } catch (reportError) {
+      console.error('Error obteniendo datos del reporte:', reportError);
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: 'Error al obtener datos del reporte',
+          error: process.env.NODE_ENV === 'development' ? reportError.message : undefined
+        },
+        { status: 500 }
+      );
+    }
 
     // Generar PDF
-    const pdfBuffer = await generateReportPDF(reportData, period);
+    let pdfBuffer;
+    try {
+      pdfBuffer = await generateReportPDF(reportData, period);
+    } catch (pdfError) {
+      console.error('Error generando PDF:', pdfError);
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: 'Error al generar PDF',
+          error: process.env.NODE_ENV === 'development' ? pdfError.message : undefined
+        },
+        { status: 500 }
+      );
+    }
 
     // Validar que el PDF se generó correctamente
     if (!pdfBuffer || pdfBuffer.length === 0) {
@@ -85,6 +125,13 @@ export async function GET(req, { params }) {
   } catch (error) {
     console.error('Error generando PDF del reporte:', error);
     console.error('Stack trace:', error.stack);
+    console.error('Error details:', {
+      message: error.message,
+      name: error.name,
+      userId: userIdFromQuery,
+      id: id,
+      period: period
+    });
     return NextResponse.json(
       { 
         success: false, 
