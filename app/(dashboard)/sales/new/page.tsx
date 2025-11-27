@@ -318,6 +318,7 @@ const NewSalePage = () => {
           scannedBarcodesRef.current.add(normalizedBarcode);
           
           // Agregarlo con cantidad 1 (solo la primera vez)
+          // Incluir toda la información del producto para poder reordenar correctamente
           setScannedProducts(prev => [
             {
               id: product._id,
@@ -325,7 +326,11 @@ const NewSalePage = () => {
               quantity: 1,
               price: product.price,
               image: product.image,
-              stock: product.stock
+              stock: product.stock,
+              category: product.category,
+              barcode: product.barcode,
+              createdAt: product.createdAt,
+              ...product // Incluir todos los campos del producto
             },
             ...prev
           ]);
@@ -382,31 +387,58 @@ const NewSalePage = () => {
     // Limpiar el Set de códigos de barras escaneados cuando se finaliza
     scannedBarcodesRef.current.clear();
     
-    // Agregar todos los productos escaneados a la lista principal
-    scannedProducts.forEach(scannedProduct => {
-      // Verificar si el producto está en la lista actual
-      const productInList = products.find((p: any) => p._id === scannedProduct.id);
+    // Obtener IDs de productos escaneados (mantener el orden: el más reciente está al final del array)
+    const scannedProductIds = scannedProducts.map(p => p.id);
+    
+    // Reordenar la lista de productos: primero los escaneados (más reciente primero), luego los demás
+    setProducts(prev => {
+      const scannedProductsList: any[] = [];
+      const otherProductsList: any[] = [];
       
-      if (!productInList) {
-        // Si no está, agregarlo
-        const fullProduct = {
-          _id: scannedProduct.id,
-          name: scannedProduct.name,
-          price: scannedProduct.price,
-          stock: scannedProduct.stock,
-          image: scannedProduct.image,
-          category: 'otros' // Puedes ajustar esto según necesites
-        };
+      // Separar productos escaneados y no escaneados
+      // IMPORTANTE: Recorrer en orden inverso para mantener el orden del apilado (más reciente primero)
+      [...scannedProducts].reverse().forEach(scannedProduct => {
+        const productInList = prev.find((p: any) => p._id === scannedProduct.id);
         
-        setProducts(prev => {
-          if (!prev.find((p: any) => p._id === scannedProduct.id)) {
-            return [fullProduct, ...prev];
-          }
-          return prev;
-        });
+        if (productInList) {
+          // Si el producto ya está en la lista, agregarlo a la lista de escaneados
+          scannedProductsList.push(productInList);
+        } else {
+          // Si no está, crear el producto completo y agregarlo
+          const fullProduct = {
+            _id: scannedProduct.id,
+            name: scannedProduct.name,
+            price: scannedProduct.price,
+            stock: scannedProduct.stock,
+            image: scannedProduct.image,
+            category: scannedProduct.category || 'otros',
+            barcode: scannedProduct.barcode,
+            createdAt: scannedProduct.createdAt,
+            ...scannedProduct
+          };
+          scannedProductsList.push(fullProduct);
+        }
+      });
+      
+      // Agregar productos que no fueron escaneados
+      prev.forEach(product => {
+        if (!scannedProductIds.includes(product._id)) {
+          otherProductsList.push(product);
+        }
+      });
+      
+      // Retornar lista ordenada: primero los escaneados (más reciente primero, como en el apilado)
+      // Luego aplicar el ordenamiento si existe (solo a los productos no escaneados)
+      if (sortBy) {
+        const sortedOthers = applySortingToArray(otherProductsList);
+        return [...scannedProductsList, ...sortedOthers];
       }
       
-      // Agregar o actualizar la cantidad en selectedProducts
+      return [...scannedProductsList, ...otherProductsList];
+    });
+    
+    // Agregar o actualizar la cantidad en selectedProducts
+    scannedProducts.forEach(scannedProduct => {
       setTimeout(() => {
         setSelectedProducts(prev => {
           const existing = prev.find((p: any) => p.id === scannedProduct.id);
