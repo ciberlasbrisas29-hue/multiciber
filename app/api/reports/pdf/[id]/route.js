@@ -28,48 +28,52 @@ export async function GET(req, { params }) {
       );
     }
 
-    // Obtener userId: primero intentar autenticación, luego query param
+    // Obtener userId: priorizar query param (para Twilio), luego autenticación
     // Para Twilio, permitir acceso con userId en query params sin autenticación
     let userId = null;
     
-    // Intentar autenticación primero (para acceso desde la app)
-    try {
+    // PRIORIDAD 1: Si hay userId en query params, usarlo (para Twilio)
+    if (userIdFromQuery) {
+      userId = userIdFromQuery;
+      console.log('Usando userId de query params (acceso desde Twilio)', { userId });
+    } else {
+      // PRIORIDAD 2: Intentar autenticación (para acceso desde la app)
       userId = await verifyAuth();
-    } catch (authError) {
-      // Si la autenticación falla, usar userId del query param (para Twilio)
-      // Esto permite que Twilio acceda al PDF sin autenticación
-      if (userIdFromQuery) {
-        userId = userIdFromQuery;
-        console.log('Usando userId de query params (acceso desde Twilio)', { userId });
-      } else {
-        console.error('No se pudo obtener userId ni de autenticación ni de query params');
-        return NextResponse.json(
-          { success: false, message: 'No autorizado. Se requiere userId en query params.' },
-          { status: 401 }
-        );
+      if (userId) {
+        console.log('Usando userId de autenticación (acceso desde la app)', { userId });
       }
     }
 
+    // Si no hay userId de ninguna fuente, rechazar
     if (!userId) {
+      console.error('No se pudo obtener userId ni de query params ni de autenticación');
       return NextResponse.json(
-        { success: false, message: 'Usuario no identificado' },
+        { success: false, message: 'No autorizado. Se requiere userId en query params o autenticación.' },
         { status: 401 }
       );
     }
     
     // Validar que userId sea un ObjectId válido de MongoDB
     const mongoose = await import('mongoose');
-    if (!mongoose.default.Types.ObjectId.isValid(userId)) {
+    
+    // Convertir userId a string si es necesario
+    const userIdString = userId.toString ? userId.toString() : String(userId);
+    
+    if (!mongoose.default.Types.ObjectId.isValid(userIdString)) {
+      console.error('ID de usuario inválido', { userId, userIdString });
       return NextResponse.json(
         { success: false, message: 'ID de usuario inválido' },
         { status: 400 }
       );
     }
+    
+    // Convertir a ObjectId para usar en la consulta
+    const userIdObjectId = new mongoose.default.Types.ObjectId(userIdString);
 
     // Obtener datos del reporte
     let reportData;
     try {
-      reportData = await getAdvancedReportData(userId, period);
+      reportData = await getAdvancedReportData(userIdObjectId, period);
     } catch (reportError) {
       console.error('Error obteniendo datos del reporte:', reportError);
       return NextResponse.json(
