@@ -5,7 +5,6 @@ import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
 import { X, Camera, Scan, Plus, Minus, Check, Clock, ChevronRight, Trash2 } from 'lucide-react';
 import { useScanner } from '@/contexts/ScannerContext';
 import SwipeableProductCard from './SwipeableProductCard';
-import StackedProductCards from './StackedProductCards';
 
 interface BarcodeScannerProps {
   onScan: (result: string) => void;
@@ -456,8 +455,21 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black flex flex-col z-[9999]">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-4 flex items-center justify-between">
+      {/* Estilos para animación estilo iOS */}
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes slideInFromTop {
+          from {
+            transform: translateY(-20px) scale(0.95);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+          }
+        }
+      `}} />
+        {/* Header */}
+        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-4 flex items-center justify-between">
         <button
           onClick={() => {
             setIsScannerOpen(false);
@@ -515,15 +527,46 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
         </div>
       </div>
 
-      {/* Lista de Productos Escaneados (solo en modo continuo) - Apilados estilo iOS */}
+      {/* Lista de Productos Escaneados (solo en modo continuo) - Apilado estilo iOS */}
       {continuousMode && scannedProducts.length > 0 && (
-        <div className="bg-gradient-to-b from-gray-50 to-white border-t border-gray-200 flex-shrink-0">
-          <div ref={productsListRef} className="py-4">
-            <StackedProductCards
-              products={scannedProducts}
-              onUpdateQuantity={onUpdateQuantity}
-              onRemove={onRemoveProduct}
-            />
+        <div className="bg-white border-t border-gray-200 flex-shrink-0">
+          <div ref={productsListRef} className="max-h-[40vh] overflow-y-auto overflow-x-hidden">
+            <div className="p-4 relative">
+              {/* Contenedor con apilado estilo iOS */}
+              <div className="relative" style={{ minHeight: `${scannedProducts.length * 12 + 100}px` }}>
+                {scannedProducts.map((product, index) => {
+                  // Calcular el offset para el efecto de apilado
+                  // Los productos más recientes (al final del array) aparecen más arriba
+                  const reverseIndex = scannedProducts.length - 1 - index;
+                  const offset = reverseIndex * 12; // 12px de offset por cada elemento
+                  const zIndex = reverseIndex + 10; // z-index más alto para elementos más recientes
+                  const scale = Math.max(1 - (reverseIndex * 0.03), 0.85); // Escala menor para elementos más abajo (mínimo 0.85)
+                  const opacity = Math.max(1 - (reverseIndex * 0.08), 0.6); // Opacidad menor para elementos más abajo (mínimo 0.6)
+                  const isNewest = index === scannedProducts.length - 1;
+                  
+                  return (
+                    <div
+                      key={product.id}
+                      className="absolute left-4 right-4 transition-all duration-300 ease-out"
+                      style={{
+                        top: `${offset}px`,
+                        zIndex: zIndex,
+                        transform: `scale(${scale})`,
+                        opacity: opacity,
+                        animation: isNewest ? 'slideInFromTop 0.4s ease-out' : 'none',
+                        pointerEvents: reverseIndex > 2 ? 'none' : 'auto' // Solo los 3 más recientes son interactuables
+                      }}
+                    >
+                      <SwipeableProductCard
+                        product={product}
+                        onUpdateQuantity={onUpdateQuantity}
+                        onRemove={onRemoveProduct}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
       )}
