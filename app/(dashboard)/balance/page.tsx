@@ -2,13 +2,35 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import DashboardLayout from '@/components/DashboardLayout';
 import {
   Calendar, ArrowUp, ArrowDown, Clock,
   TrendingUp, TrendingDown, DollarSign, FileText,
   AlertCircle, CheckCircle, Minus, Plus, X, Wallet
 } from 'lucide-react';
 import { dashboardService, salesService, expensesService } from '@/services/api';
+
+// Estilos para animaciones
+const balanceStyles = `
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+`;
 
 interface Transaction {
   id: string;
@@ -323,89 +345,123 @@ const BalancePage = () => {
   const { label } = getDateRange();
 
   return (
-          <DashboardLayout>
-            <div className="min-h-screen pb-24 -mt-20 md:-mt-0 md:pb-0">
+    <>
+      <style dangerouslySetInnerHTML={{__html: balanceStyles}} />
+      <div className="min-h-screen pb-24">
               {/* Header */}
               <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-4 flex items-center space-x-3 rounded-b-2xl mb-6 -mx-6 md:mx-0 md:rounded-2xl">
                 <Wallet className="w-6 h-6" />
                 <h1 className="text-2xl font-bold">Balance</h1>
               </div>
 
-        {/* Pestañas Principales */}
-        <div className="bg-white rounded-2xl shadow-md p-1 mb-4 mx-4 mt-4 border border-purple-100">
-          <div className="flex">
+        {/* Pestañas Principales Mejoradas */}
+        <div className="bg-white rounded-3xl shadow-xl p-1.5 mb-6 mx-4 mt-4 border-2 border-purple-100">
+          <div className="flex gap-2">
                 <button
               onClick={() => setActiveTab('activity')}
-              className={`flex-1 py-3 text-center font-semibold rounded-xl transition-all ${
+              className={`flex-1 py-4 text-center font-bold rounded-2xl transition-all duration-200 active:scale-95 ${
                 activeTab === 'activity'
-                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md'
-                  : 'text-gray-500 hover:bg-gray-50'
+                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg'
+                  : 'text-gray-500 hover:bg-purple-50 hover:text-purple-600'
               }`}
             >
-              Actividad Diaria
+              📊 Actividad
                 </button>
             <button
               onClick={() => setActiveTab('debts')}
-              className={`flex-1 py-3 text-center font-semibold rounded-xl transition-all ${
+              className={`flex-1 py-4 text-center font-bold rounded-2xl transition-all duration-200 active:scale-95 ${
                 activeTab === 'debts'
-                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md'
-                  : 'text-gray-500 hover:bg-gray-50'
+                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg'
+                  : 'text-gray-500 hover:bg-purple-50 hover:text-purple-600'
               }`}
             >
-              Deudas Pendientes
+              💳 Deudas
             </button>
           </div>
         </div>
 
         {activeTab === 'activity' ? (
           <>
-            {/* Tarjeta de Resumen */}
-            <div className="bg-white rounded-3xl shadow-xl p-6 mb-6 mx-4 border border-purple-100">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <p className="text-sm text-gray-500 mb-1">Balance del {label}</p>
-                  <h2 className={`text-4xl font-bold ${
-                    summary.balance < 0 
-                      ? 'text-red-600' 
-                      : 'bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent'
-                  }`}>
-                    {formatCurrency(summary.balance)}
-                  </h2>
-                </div>
-                {summary.balance >= 0 && (
-                  <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold flex items-center">
-                    <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                    Positivo
-                  </span>
-                )}
+            {/* Tarjeta de Resumen Mejorada */}
+            <div className={`rounded-3xl shadow-2xl p-6 mb-6 mx-4 border-2 overflow-hidden relative ${
+              summary.balance < 0 
+                ? 'bg-gradient-to-br from-red-50 to-orange-50 border-red-200' 
+                : 'bg-gradient-to-br from-purple-50 via-indigo-50 to-pink-50 border-purple-200'
+            }`}>
+              {/* Decoración de fondo */}
+              <div className="absolute top-0 right-0 w-32 h-32 opacity-20">
+                <div className={`w-full h-full rounded-full ${
+                  summary.balance < 0 ? 'bg-red-200' : 'bg-purple-200'
+                }`}></div>
               </div>
-
-              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center">
-                    <TrendingUp className="w-5 h-5 text-green-600" />
+              
+              <div className="relative z-10">
+                <div className="flex items-start justify-between mb-6">
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-gray-600 mb-2 flex items-center">
+                      <Calendar className="w-4 h-4 mr-2" />
+                      Balance del {label}
+                    </p>
+                    <h2 className={`text-3xl font-extrabold mb-2 ${
+                      summary.balance < 0 
+                        ? 'text-red-600' 
+                        : 'bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-600 bg-clip-text text-transparent'
+                    }`}>
+                      {formatCurrency(summary.balance)}
+                    </h2>
                   </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Ingresos</p>
-                    <p className="text-lg font-bold text-green-600">{formatCurrency(summary.totalIncome)}</p>
-                  </div>
+                  {summary.balance >= 0 && (
+                    <div className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-2xl text-xs font-bold flex items-center shadow-lg">
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      Positivo
+                    </div>
+                  )}
+                  {summary.balance < 0 && (
+                    <div className="px-4 py-2 bg-gradient-to-r from-red-500 to-orange-600 text-white rounded-2xl text-xs font-bold flex items-center shadow-lg">
+                      <AlertCircle className="w-4 h-4 mr-2" />
+                      Negativo
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center">
-                    <TrendingDown className="w-5 h-5 text-red-600" />
+
+                <div className="grid grid-cols-2 gap-4 pt-4 border-t-2 border-white/50">
+                  <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-green-100">
+                    <div className="flex items-center space-x-3 mb-2">
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-md">
+                        <TrendingUp className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Ingresos</p>
+                        <p className="text-xl font-extrabold text-green-600 mt-1">
+                          {formatCurrency(summary.totalIncome)}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Egresos</p>
-                    <p className="text-lg font-bold text-red-600">{formatCurrency(summary.totalExpenses)}</p>
+                  <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-red-100">
+                    <div className="flex items-center space-x-3 mb-2">
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-pink-600 flex items-center justify-center shadow-md">
+                        <TrendingDown className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Egresos</p>
+                        <p className="text-xl font-extrabold text-red-600 mt-1">
+                          {formatCurrency(summary.totalExpenses)}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Selector de Período */}
-            <div className="bg-white rounded-2xl shadow-md p-4 mb-4 mx-4 border border-purple-100">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-gray-700">Período</h3>
+            {/* Selector de Período Mejorado */}
+            <div className="bg-white rounded-3xl shadow-xl p-5 mb-6 mx-4 border-2 border-purple-100">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-base font-bold text-gray-800 flex items-center">
+                  <Calendar className="w-5 h-5 mr-2 text-purple-600" />
+                  Período
+                </h3>
                 <button
                   onClick={() => {
                     const input = document.createElement('input');
@@ -417,50 +473,50 @@ const BalancePage = () => {
                     };
                     input.click();
                   }}
-                  className="p-2 rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-100 transition-colors"
+                  className="p-2.5 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 text-white hover:from-purple-600 hover:to-indigo-700 transition-all shadow-md active:scale-95"
                 >
                   <Calendar className="w-5 h-5" />
                 </button>
               </div>
-              <div className="flex gap-2 overflow-x-auto pb-2">
+              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
                 {(['today', 'yesterday', 'last7days'] as const).map((range) => (
                   <button
                     key={range}
                     onClick={() => setDateRange(range)}
-                    className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
+                    className={`px-5 py-3 rounded-2xl text-sm font-bold whitespace-nowrap transition-all duration-200 active:scale-95 shadow-md ${
                       dateRange === range
-                        ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-purple-200'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-lg'
                     }`}
                   >
-                    {range === 'today' ? 'Hoy' : range === 'yesterday' ? 'Ayer' : 'Últimos 7 días'}
+                    {range === 'today' ? '📅 Hoy' : range === 'yesterday' ? '📆 Ayer' : '📊 Últimos 7 días'}
                   </button>
             ))}
           </div>
             </div>
 
-            {/* Pestañas de Movimientos */}
-            <div className="bg-white rounded-3xl shadow-lg mb-6 mx-4 border border-purple-100 overflow-hidden">
-              <div className="flex border-b border-gray-100">
+            {/* Pestañas de Movimientos Mejoradas */}
+            <div className="bg-white rounded-3xl shadow-xl mb-6 mx-4 border-2 border-purple-100 overflow-hidden">
+              <div className="flex bg-gradient-to-r from-gray-50 to-purple-50 p-1">
                 <button
                   onClick={() => setActiveSubTab('income')}
-                  className={`flex-1 py-4 text-center font-semibold transition-colors ${
+                  className={`flex-1 py-4 text-center font-bold transition-all duration-200 rounded-2xl ${
                     activeSubTab === 'income'
-                      ? 'text-green-600 border-b-2 border-green-600'
-                      : 'text-gray-500'
+                      ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg'
+                      : 'text-gray-500 hover:text-green-600'
                   }`}
                 >
-                  Ingresos
+                  💰 Ingresos
                 </button>
             <button
                   onClick={() => setActiveSubTab('expenses')}
-                  className={`flex-1 py-4 text-center font-semibold transition-colors ${
+                  className={`flex-1 py-4 text-center font-bold transition-all duration-200 rounded-2xl ${
                     activeSubTab === 'expenses'
-                      ? 'text-red-600 border-b-2 border-red-600'
-                      : 'text-gray-500'
+                      ? 'bg-gradient-to-r from-red-500 to-pink-600 text-white shadow-lg'
+                      : 'text-gray-500 hover:text-red-600'
                   }`}
                 >
-                  Egresos
+                  💸 Egresos
             </button>
           </div>
 
@@ -484,44 +540,53 @@ const BalancePage = () => {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {filteredTransactions.map((transaction) => (
+                    {filteredTransactions.map((transaction, index) => (
                       <div
                         key={transaction.id}
-                        className="flex items-center p-3 rounded-2xl hover:bg-gray-50 transition-colors"
+                        className="flex items-center p-4 rounded-2xl hover:shadow-lg transition-all duration-200 border-2 border-transparent hover:border-purple-200 bg-gradient-to-r from-white to-gray-50/50 active:scale-[0.98]"
+                        style={{
+                          animation: `fadeInUp 0.4s ease-out ${index * 0.05}s both`
+                        }}
                       >
-                        {/* Icono */}
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center mr-4 flex-shrink-0 ${
-                          transaction.type === 'sale' ? 'bg-green-100' : 'bg-red-100'
+                        {/* Icono Mejorado */}
+                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mr-4 flex-shrink-0 shadow-md ${
+                          transaction.type === 'sale' 
+                            ? 'bg-gradient-to-br from-green-500 to-emerald-600' 
+                            : 'bg-gradient-to-br from-red-500 to-pink-600'
                         }`}>
                           {transaction.type === 'sale' ? (
-                            <ArrowUp className="w-6 h-6 text-green-600" />
+                            <ArrowUp className="w-7 h-7 text-white" />
                           ) : (
-                            <ArrowDown className="w-6 h-6 text-red-600" />
+                            <ArrowDown className="w-7 h-7 text-white" />
                           )}
                 </div>
 
-                        {/* Información */}
+                        {/* Información Mejorada */}
                         <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-gray-800 truncate">
+                          <p className="font-bold text-gray-900 text-lg truncate mb-1">
                             {transaction.concept}
                           </p>
-                          <div className="flex items-center space-x-2 mt-1 flex-wrap">
-                            <div className="flex items-center text-xs text-gray-500">
-                              <DollarSign className="w-3 h-3 mr-1" />
+                          {transaction.description && (
+                            <p className="text-xs text-gray-500 mb-2">{transaction.description}</p>
+                          )}
+                          <div className="flex items-center space-x-3 mt-2 flex-wrap">
+                            <div className="flex items-center text-xs font-semibold text-gray-600 bg-gray-100 px-2.5 py-1 rounded-full">
+                              <DollarSign className="w-3 h-3 mr-1.5" />
                               <span>{transaction.paymentMethod || 'Efectivo'}</span>
               </div>
-                            <span className="text-gray-400">•</span>
                             <div className="flex items-center text-xs text-gray-500">
-                              <Clock className="w-3 h-3 mr-1" />
+                              <Clock className="w-3 h-3 mr-1.5" />
                               {formatDateTime(transaction.date)}
                   </div>
                 </div>
               </div>
 
-                        {/* Monto */}
-                        <div className="ml-4 flex-shrink-0">
-                          <p className={`text-lg font-bold ${
-                            transaction.type === 'sale' ? 'text-green-600' : 'text-red-600'
+                        {/* Monto Mejorado */}
+                        <div className="ml-4 flex-shrink-0 text-right">
+                          <p className={`text-2xl font-extrabold ${
+                            transaction.type === 'sale' 
+                              ? 'text-green-600' 
+                              : 'text-red-600'
                           }`}>
                             {transaction.type === 'sale' ? '+' : '-'}{formatCurrency(transaction.amount)}
                           </p>
@@ -535,28 +600,28 @@ const BalancePage = () => {
           </>
         ) : (
           <>
-            {/* Pestañas de Deudas */}
-            <div className="bg-white rounded-3xl shadow-lg mb-6 mx-4 border border-purple-100 overflow-hidden">
-              <div className="flex border-b border-gray-100">
+            {/* Pestañas de Deudas Mejoradas */}
+            <div className="bg-white rounded-3xl shadow-xl mb-6 mx-4 border-2 border-purple-100 overflow-hidden">
+              <div className="flex bg-gradient-to-r from-gray-50 to-purple-50 p-1">
                 <button
                   onClick={() => setDebtSubTab('receivable')}
-                  className={`flex-1 py-4 text-center font-semibold transition-colors ${
+                  className={`flex-1 py-4 text-center font-bold transition-all duration-200 rounded-2xl ${
                     debtSubTab === 'receivable'
-                      ? 'text-gray-900 border-b-2 border-gray-900'
-                      : 'text-gray-400'
+                      ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg'
+                      : 'text-gray-500 hover:text-green-600'
                   }`}
                 >
-                  Por Cobrar
+                  💵 Por Cobrar
                 </button>
                 <button
                   onClick={() => setDebtSubTab('payable')}
-                  className={`flex-1 py-4 text-center font-semibold transition-colors ${
+                  className={`flex-1 py-4 text-center font-bold transition-all duration-200 rounded-2xl ${
                     debtSubTab === 'payable'
-                      ? 'text-gray-900 border-b-2 border-gray-900'
-                      : 'text-gray-400'
+                      ? 'bg-gradient-to-r from-red-500 to-pink-600 text-white shadow-lg'
+                      : 'text-gray-500 hover:text-red-600'
                   }`}
                 >
-                  Por Pagar
+                  💳 Por Pagar
                 </button>
               </div>
 
@@ -599,7 +664,7 @@ const BalancePage = () => {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {filteredDebts.map((debt) => {
+                    {filteredDebts.map((debt, index) => {
                       const isOverdue = debt.dueDate && debt.dueDate < new Date();
                       return (
                         <button
@@ -611,59 +676,66 @@ const BalancePage = () => {
                             }
                           }}
                           disabled={debt.type !== 'receivable'}
-                          className={`w-full flex items-center p-3 rounded-2xl transition-colors border border-gray-100 ${
+                          className={`w-full flex items-center p-4 rounded-2xl transition-all duration-200 border-2 ${
                             debt.type === 'receivable'
-                              ? 'hover:bg-gray-50 active:bg-gray-100 cursor-pointer'
-                              : 'cursor-default'
-                          }`}
+                              ? 'hover:shadow-lg active:scale-[0.98] cursor-pointer border-transparent hover:border-green-200 bg-gradient-to-r from-white to-green-50/50'
+                              : 'cursor-default border-transparent bg-gradient-to-r from-white to-red-50/50'
+                          } ${isOverdue ? 'border-red-300 bg-red-50/50' : ''}`}
+                          style={{
+                            animation: `fadeInUp 0.4s ease-out ${index * 0.05}s both`
+                          }}
                         >
-                          {/* Icono */}
-                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center mr-4 flex-shrink-0 ${
-                            debt.type === 'receivable' ? 'bg-green-100' : 'bg-red-100'
-                          }`}>
+                          {/* Icono Mejorado */}
+                          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mr-4 flex-shrink-0 shadow-md ${
+                            debt.type === 'receivable' 
+                              ? 'bg-gradient-to-br from-green-500 to-emerald-600' 
+                              : 'bg-gradient-to-br from-red-500 to-pink-600'
+                          } ${isOverdue ? 'ring-2 ring-red-400' : ''}`}>
                             {debt.type === 'receivable' ? (
-                              <ArrowUp className="w-6 h-6 text-green-600" />
+                              <ArrowUp className="w-7 h-7 text-white" />
                             ) : (
-                              <ArrowDown className="w-6 h-6 text-red-600" />
+                              <ArrowDown className="w-7 h-7 text-white" />
                             )}
               </div>
 
-                          {/* Información */}
+                          {/* Información Mejorada */}
                           <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-gray-800 truncate">
+                            <p className="font-bold text-gray-900 text-lg truncate mb-1">
                               {debt.concept}
                             </p>
-                            <div className="flex items-center space-x-2 mt-1 flex-wrap">
+                            {debt.description && (
+                              <p className="text-xs text-gray-500 mb-2">{debt.description}</p>
+                            )}
+                            <div className="flex items-center space-x-3 mt-2 flex-wrap">
                               {debt.dueDate && (
                                 <>
-                                  <div className={`flex items-center text-xs ${
-                                    isOverdue ? 'text-red-600 font-semibold' : 'text-gray-500'
+                                  <div className={`flex items-center text-xs font-semibold px-2.5 py-1 rounded-full ${
+                                    isOverdue 
+                                      ? 'bg-red-100 text-red-700 border border-red-300' 
+                                      : 'bg-gray-100 text-gray-600'
                                   }`}>
-                                    <Calendar className="w-3 h-3 mr-1" />
+                                    <Calendar className="w-3 h-3 mr-1.5" />
                                     <span>Vence: {formatDate(debt.dueDate)}</span>
                                   </div>
+                                  {isOverdue && (
+                                    <span className="text-xs text-red-600 font-bold flex items-center bg-red-100 px-2.5 py-1 rounded-full border border-red-300">
+                                      <AlertCircle className="w-3 h-3 mr-1" />
+                                      Vencida
+                                    </span>
+                                  )}
                                   <span className="text-gray-400">•</span>
                                 </>
                               )}
                               <div className="flex items-center text-xs text-gray-500">
-                                <Clock className="w-3 h-3 mr-1" />
+                                <Clock className="w-3 h-3 mr-1.5" />
                                 {formatDate(debt.createdAt)}
                   </div>
-                              {isOverdue && (
-                                <>
-                                  <span className="text-gray-400">•</span>
-                                  <span className="text-xs text-red-600 font-semibold flex items-center">
-                                    <AlertCircle className="w-3 h-3 mr-1" />
-                                    Vencida
-                                  </span>
-                                </>
-                              )}
                 </div>
               </div>
 
-                          {/* Monto */}
-                          <div className="ml-4 flex-shrink-0">
-                            <p className={`text-lg font-bold ${
+                          {/* Monto Mejorado */}
+                          <div className="ml-4 flex-shrink-0 text-right">
+                            <p className={`text-2xl font-extrabold ${
                               debt.type === 'receivable' ? 'text-green-600' : 'text-red-600'
                             }`}>
                               {formatCurrency(debt.amount)}
@@ -677,33 +749,33 @@ const BalancePage = () => {
                       </div>
                     </div>
 
-            {/* Botones de Acción Inferiores */}
+            {/* Botones de Acción Inferiores Mejorados */}
             <div className="fixed bottom-24 left-0 right-0 px-4 pb-4 z-40">
               <div className="flex gap-3 max-w-md mx-auto">
                 <button
                   onClick={() => router.push('/sales/new')}
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white rounded-xl px-4 py-3 flex items-center space-x-2 shadow-lg transition-all duration-200 active:scale-95"
+                  className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-xl px-3 py-2.5 flex items-center justify-center space-x-2 shadow-lg hover:shadow-green-300/50 transition-all duration-200 active:scale-95"
                 >
-                  <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center flex-shrink-0">
-                    <Plus className="w-4 h-4 text-green-600" />
+                  <div className="w-8 h-8 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0 border border-white/30">
+                    <Plus className="w-4 h-4 text-white" />
                   </div>
-                  <span className="text-base font-semibold">Nueva venta</span>
+                  <span className="text-sm font-bold">Nueva venta</span>
                 </button>
                 <button
                   onClick={() => router.push('/expenses/new')}
-                  className="flex-1 bg-red-600 hover:bg-red-700 text-white rounded-xl px-4 py-3 flex items-center space-x-2 shadow-lg transition-all duration-200 active:scale-95"
+                  className="flex-1 bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white rounded-xl px-3 py-2.5 flex items-center justify-center space-x-2 shadow-lg hover:shadow-red-300/50 transition-all duration-200 active:scale-95"
                 >
-                  <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center flex-shrink-0">
-                    <Minus className="w-4 h-4 text-red-600" />
+                  <div className="w-8 h-8 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0 border border-white/30">
+                    <Minus className="w-4 h-4 text-white" />
                   </div>
-                  <span className="text-base font-semibold">Nuevo gasto</span>
+                  <span className="text-sm font-bold">Nuevo gasto</span>
                 </button>
               </div>
             </div>
           </>
         )}
       </div>
-    </DashboardLayout>
+    </>
   );
 };
 

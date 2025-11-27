@@ -468,8 +468,8 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           }
         }
       `}} />
-        {/* Header */}
-        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-4 flex items-center justify-between">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-4 flex items-center justify-between">
         <button
           onClick={() => {
             setIsScannerOpen(false);
@@ -557,11 +557,11 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
                         pointerEvents: reverseIndex > 2 ? 'none' : 'auto' // Solo los 3 más recientes son interactuables
                       }}
                     >
-                      <SwipeableProductCard
-                        product={product}
-                        onUpdateQuantity={onUpdateQuantity}
-                        onRemove={onRemoveProduct}
-                      />
+                <SwipeableProductCard
+                  product={product}
+                  onUpdateQuantity={onUpdateQuantity}
+                  onRemove={onRemoveProduct}
+                />
                     </div>
                   );
                 })}

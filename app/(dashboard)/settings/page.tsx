@@ -10,10 +10,25 @@ import {
   ChevronRight,
   Save,
   Upload,
-  X
+  X,
+  Sparkles
 } from 'lucide-react';
 import axios from 'axios';
 import WhatsAppTestPanel from '@/components/WhatsAppTestPanel';
+
+// Estilos para animaciones
+const settingsStyles = `
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+`;
 
 interface BusinessSettings {
   _id?: string;
@@ -180,46 +195,77 @@ const SettingsPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen pb-24">
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Cargando configuración...</p>
+      <>
+        <style dangerouslySetInnerHTML={{__html: settingsStyles}} />
+        <div className="min-h-screen pb-24 bg-gradient-to-br from-purple-50 via-indigo-50 to-pink-50">
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-center">
+              <div className="relative">
+                <div className="animate-spin rounded-full h-16 w-16 border-4 border-purple-200 border-t-purple-600 mx-auto mb-4"></div>
+                <div className="absolute inset-0 animate-ping rounded-full h-16 w-16 border-2 border-purple-400 opacity-20"></div>
+              </div>
+              <p className="text-gray-600 font-semibold">Cargando configuración...</p>
+            </div>
           </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="min-h-screen pb-24">
-      <div className="px-6 py-6">
-        {/* Título y descripción */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Ajustes</h1>
-          <p className="text-gray-600">Configuración de la aplicación y tu negocio</p>
+    <>
+      <style dangerouslySetInnerHTML={{__html: settingsStyles}} />
+      <div className="min-h-screen pb-24 bg-gradient-to-br from-purple-50 via-indigo-50 to-pink-50">
+        {/* Header Mejorado */}
+        <div className="bg-gradient-to-br from-purple-600 via-indigo-600 to-pink-500 text-white px-4 py-4 flex items-center space-x-3 rounded-b-2xl mb-6 -mx-6 md:mx-0 md:rounded-2xl shadow-xl relative overflow-hidden">
+          <div className="relative z-10 flex items-center space-x-3">
+            <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg">
+              <Settings className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-extrabold drop-shadow-lg">Ajustes</h1>
+              <p className="text-xs text-white/90">Configuración de la aplicación</p>
+            </div>
+          </div>
         </div>
 
-        {/* Mensajes de error y éxito */}
+      <div className="px-4 space-y-6">
+
+        {/* Mensajes de error y éxito Mejorados */}
         {error && (
-          <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl">
-            {error}
+          <div className="bg-gradient-to-r from-red-50 to-orange-50 border-2 border-red-200 text-red-700 px-4 py-3 rounded-2xl shadow-lg">
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+              <span className="font-semibold">{error}</span>
+            </div>
           </div>
         )}
         {success && (
-          <div className="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl">
-            {success}
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 text-green-700 px-4 py-3 rounded-2xl shadow-lg">
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <span className="font-semibold">{success}</span>
+            </div>
           </div>
         )}
 
-        {/* Sección 1: Configuración del Negocio */}
-        <div className="bg-white rounded-3xl shadow-lg p-6 mb-6 border border-purple-100">
-          <div className="flex items-center mb-6">
-            <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center mr-3">
-              <Settings className="w-5 h-5 text-purple-600" />
-            </div>
-            <h2 className="text-xl font-bold text-gray-900">Configuración del Negocio</h2>
+        {/* Sección 1: Configuración del Negocio Mejorada */}
+        <div className="bg-white rounded-3xl shadow-xl p-6 mb-6 border-2 border-purple-100 relative overflow-hidden"
+          style={{
+            animation: 'fadeInUp 0.4s ease-out both'
+          }}
+        >
+          {/* Decoración de fondo */}
+          <div className="absolute top-0 right-0 w-32 h-32 opacity-5">
+            <Building2 className="w-full h-full text-purple-600" />
           </div>
+          <div className="relative z-10">
+            <div className="flex items-center mb-6">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center mr-3 shadow-lg">
+                <Building2 className="w-6 h-6 text-white" />
+              </div>
+              <h2 className="text-xl font-extrabold text-gray-900">Configuración del Negocio</h2>
+            </div>
 
           <div className="space-y-4">
             {/* Nombre del negocio */}
@@ -231,7 +277,7 @@ const SettingsPage = () => {
                 type="text"
                 value={businessProfile.businessName}
                 onChange={(e) => setBusinessProfile({ ...businessProfile, businessName: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-purple-300 shadow-sm hover:shadow-md transition-all"
                 placeholder="Ej: Multiciber Fast Food"
               />
             </div>
@@ -244,7 +290,7 @@ const SettingsPage = () => {
               <textarea
                 value={businessProfile.businessDescription}
                 onChange={(e) => setBusinessProfile({ ...businessProfile, businessDescription: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-purple-300 shadow-sm hover:shadow-md transition-all resize-none"
                 rows={3}
                 placeholder="Descripción de tu negocio"
               />
@@ -255,13 +301,13 @@ const SettingsPage = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Dirección
               </label>
-              <input
-                type="text"
-                value={businessProfile.businessAddress}
-                onChange={(e) => setBusinessProfile({ ...businessProfile, businessAddress: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                placeholder="Dirección completa"
-              />
+                <input
+                  type="text"
+                  value={businessProfile.businessAddress}
+                  onChange={(e) => setBusinessProfile({ ...businessProfile, businessAddress: e.target.value })}
+                  className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-purple-300 shadow-sm hover:shadow-md transition-all"
+                  placeholder="Dirección completa"
+                />
             </div>
 
             {/* Teléfono, WhatsApp y Email en fila */}
@@ -274,7 +320,7 @@ const SettingsPage = () => {
                   type="tel"
                   value={businessProfile.businessPhone}
                   onChange={(e) => setBusinessProfile({ ...businessProfile, businessPhone: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-purple-300 shadow-sm hover:shadow-md transition-all"
                   placeholder="+1234567890"
                 />
               </div>
@@ -286,7 +332,7 @@ const SettingsPage = () => {
                   type="tel"
                   value={businessProfile.whatsappPhone}
                   onChange={(e) => setBusinessProfile({ ...businessProfile, whatsappPhone: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-purple-300 shadow-sm hover:shadow-md transition-all"
                   placeholder="+1234567890"
                 />
               </div>
@@ -298,32 +344,42 @@ const SettingsPage = () => {
                   type="email"
                   value={businessProfile.businessEmail}
                   onChange={(e) => setBusinessProfile({ ...businessProfile, businessEmail: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-purple-300 shadow-sm hover:shadow-md transition-all"
                   placeholder="negocio@ejemplo.com"
                 />
               </div>
             </div>
 
-            {/* Botón de guardar */}
+            {/* Botón de guardar Mejorado */}
             <button
               onClick={handleSaveBusinessProfile}
               disabled={saving}
-              className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-3 rounded-xl font-semibold flex items-center justify-center space-x-2 hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-4 rounded-2xl font-bold flex items-center justify-center space-x-2 hover:shadow-xl hover:from-purple-700 hover:to-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 shadow-lg"
             >
               <Save className="w-5 h-5" />
               <span>{saving ? 'Guardando...' : 'Guardar Cambios'}</span>
             </button>
           </div>
+          </div>
         </div>
 
-        {/* Sección 2: Configuración Financiera */}
-        <div className="bg-white rounded-3xl shadow-lg p-6 mb-6 border border-purple-100">
-          <div className="flex items-center mb-6">
-            <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center mr-3">
-              <DollarSign className="w-5 h-5 text-indigo-600" />
-            </div>
-            <h2 className="text-xl font-bold text-gray-900">Configuración Financiera</h2>
+        {/* Sección 2: Configuración Financiera Mejorada */}
+        <div className="bg-white rounded-3xl shadow-xl p-6 mb-6 border-2 border-purple-100 relative overflow-hidden"
+          style={{
+            animation: 'fadeInUp 0.4s ease-out 0.1s both'
+          }}
+        >
+          {/* Decoración de fondo */}
+          <div className="absolute top-0 right-0 w-32 h-32 opacity-5">
+            <DollarSign className="w-full h-full text-indigo-600" />
           </div>
+          <div className="relative z-10">
+            <div className="flex items-center mb-6">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mr-3 shadow-lg">
+                <DollarSign className="w-6 h-6 text-white" />
+              </div>
+              <h2 className="text-xl font-extrabold text-gray-900">Configuración Financiera</h2>
+            </div>
 
            <div className="space-y-6">
              {/* Métodos de Pago */}
@@ -334,7 +390,7 @@ const SettingsPage = () => {
                 </label>
                 <button
                   onClick={addPaymentMethod}
-                  className="text-sm text-purple-600 font-medium hover:text-purple-700 flex items-center space-x-1"
+                  className="px-3 py-1.5 bg-gradient-to-r from-purple-500 to-indigo-600 text-white text-sm font-bold rounded-lg hover:from-purple-600 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg active:scale-95 flex items-center space-x-1"
                 >
                   <span>+ Agregar</span>
                 </button>
@@ -343,11 +399,13 @@ const SettingsPage = () => {
                 {financialSettings.paymentMethods.map((method, index) => (
                   <div
                     key={index}
-                    className="flex items-center justify-between p-3 rounded-xl border border-gray-200 hover:bg-gray-50"
+                    className="flex items-center justify-between p-4 rounded-2xl border-2 border-gray-200 hover:border-purple-200 hover:bg-purple-50/50 transition-all shadow-sm hover:shadow-md"
                   >
                     <div className="flex items-center space-x-3">
-                      <CreditCard className="w-5 h-5 text-gray-400" />
-                      <span className="text-gray-700 font-medium">{method.name}</span>
+                      <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
+                        <CreditCard className="w-5 h-5 text-purple-600" />
+                      </div>
+                      <span className="text-gray-700 font-bold">{method.name}</span>
                     </div>
                     <div className="flex items-center space-x-2">
                       <button
@@ -364,7 +422,7 @@ const SettingsPage = () => {
                       </button>
                       <button
                         onClick={() => removePaymentMethod(index)}
-                        className="p-1 text-red-500 hover:text-red-700"
+                        className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-all active:scale-95"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -374,22 +432,30 @@ const SettingsPage = () => {
               </div>
             </div>
 
-            {/* Botón de guardar */}
+            {/* Botón de guardar Mejorado */}
             <button
               onClick={handleSaveFinancialSettings}
               disabled={saving}
-              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-xl font-semibold flex items-center justify-center space-x-2 hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-4 rounded-2xl font-bold flex items-center justify-center space-x-2 hover:shadow-xl hover:from-indigo-700 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 shadow-lg"
             >
               <Save className="w-5 h-5" />
               <span>{saving ? 'Guardando...' : 'Guardar Configuración'}</span>
             </button>
           </div>
+          </div>
         </div>
 
         {/* Sección 3: Prueba de Notificaciones WhatsApp */}
-        <WhatsAppTestPanel className="mb-6" />
+        <div
+          style={{
+            animation: 'fadeInUp 0.4s ease-out 0.2s both'
+          }}
+        >
+          <WhatsAppTestPanel className="mb-6" />
+        </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 

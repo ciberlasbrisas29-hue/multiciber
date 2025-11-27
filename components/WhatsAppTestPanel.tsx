@@ -436,21 +436,6 @@ const WhatsAppTestPanel: React.FC<WhatsAppTestPanelProps> = ({ className = '' })
               </>
             )}
           </button>
-
-          {/* Información adicional */}
-          <div className="mt-4 p-3 bg-blue-50 rounded-xl border border-blue-200">
-            <div className="flex items-start space-x-2">
-              <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-              <div className="text-xs text-blue-700">
-                <p className="font-medium mb-1">Nota importante:</p>
-                <ul className="list-disc list-inside space-y-1 text-blue-600">
-                  <li>Para pruebas, asegúrate de que el número destino esté unido al Sandbox de Twilio</li>
-                  <li>En producción, necesitas un número de WhatsApp verificado</li>
-                  <li>Los mensajes de prueba usan datos de ejemplo</li>
-                </ul>
-              </div>
-            </div>
-          </div>
         </>
       )}
 

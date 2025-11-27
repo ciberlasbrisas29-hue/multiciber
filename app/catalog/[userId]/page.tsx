@@ -5,6 +5,49 @@ import { useParams } from 'next/navigation';
 import { MessageCircle, Package, Search, X, ShoppingCart, DollarSign, Box } from 'lucide-react';
 import DefaultProductImage from '@/components/DefaultProductImage';
 
+// Estilos para animaciones
+const catalogStyles = `
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+  
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+`;
+
 interface Product {
   _id: string;
   name: string;
@@ -157,52 +200,82 @@ ${emojiCart} Me gustaría obtener más información y realizar la compra. ¡Grac
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-pink-50">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-8 rounded-b-3xl shadow-lg">
-        {business.logo && (
-          <img src={business.logo} alt={business.name} className="w-16 h-16 rounded-full mx-auto mb-4 object-cover" />
-        )}
-        <h1 className="text-3xl font-bold text-center mb-2">{business.name}</h1>
-        {business.description && (
-          <p className="text-purple-100 text-center text-sm">{business.description}</p>
-        )}
+    <>
+      <style dangerouslySetInnerHTML={{__html: catalogStyles}} />
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-pink-50">
+      {/* Header Mejorado */}
+      <div className="bg-gradient-to-br from-purple-600 via-indigo-600 to-pink-500 text-white px-6 py-10 rounded-b-[3rem] shadow-2xl relative overflow-hidden">
+        {/* Decoración de fondo */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white rounded-full -mr-32 -mt-32"></div>
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-white rounded-full -ml-24 -mb-24"></div>
+        </div>
+        
+        <div className="relative z-10">
+          {business.logo && (
+            <div className="flex justify-center mb-4">
+              <div className="w-24 h-24 rounded-2xl bg-white/20 backdrop-blur-sm p-2 shadow-xl border-2 border-white/30">
+                <img 
+                  src={business.logo} 
+                  alt={business.name} 
+                  className="w-full h-full rounded-xl object-cover" 
+                />
+              </div>
+            </div>
+          )}
+          <h1 className="text-4xl font-extrabold text-center mb-3 drop-shadow-lg">{business.name}</h1>
+          {business.description && (
+            <p className="text-white/90 text-center text-sm max-w-md mx-auto leading-relaxed">
+              {business.description}
+            </p>
+          )}
+        </div>
       </div>
 
-      <div className="px-4 py-6">
-        {/* Buscador */}
+      <div className="px-4 py-6 -mt-6 relative z-20">
+        {/* Buscador Mejorado */}
         <div className="mb-6 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <div className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10">
+            <Search className="w-5 h-5 text-gray-400" />
+          </div>
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Buscar productos..."
-            className="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-sm"
+            placeholder="🔍 Buscar productos..."
+            className="w-full pl-12 pr-4 py-4 bg-white border-2 border-purple-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent shadow-lg text-gray-700 placeholder-gray-400 transition-all"
           />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <X className="w-4 h-4 text-gray-400" />
+            </button>
+          )}
         </div>
 
-        {/* Filtros de categoría */}
+        {/* Filtros de categoría Mejorados */}
         {categories.length > 0 && (
-          <div className="mb-6 flex gap-2 overflow-x-auto pb-2">
+          <div className="mb-6 flex gap-3 overflow-x-auto pb-3 scrollbar-hide">
             <button
               onClick={() => setSelectedCategory(null)}
-              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+              className={`px-5 py-2.5 rounded-full text-sm font-semibold whitespace-nowrap transition-all duration-200 shadow-md active:scale-95 ${
                 !selectedCategory
-                  ? 'bg-purple-600 text-white'
-                  : 'bg-white text-gray-700 border border-gray-300'
+                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-purple-200'
+                  : 'bg-white text-gray-700 border-2 border-gray-200 hover:border-purple-300 hover:shadow-md'
               }`}
             >
-              Todas
+              ✨ Todas
             </button>
             {categories.map(category => (
               <button
                 key={category}
                 onClick={() => setSelectedCategory(category)}
-                className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+                className={`px-5 py-2.5 rounded-full text-sm font-semibold whitespace-nowrap transition-all duration-200 shadow-md active:scale-95 ${
                   selectedCategory === category
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-white text-gray-700 border border-gray-300'
+                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-purple-200'
+                    : `bg-white text-gray-700 border-2 border-gray-200 hover:border-purple-300 hover:shadow-md ${getCategoryIcon(category)}`
                 }`}
               >
                 {formatCategoryName(category)}
@@ -211,57 +284,78 @@ ${emojiCart} Me gustaría obtener más información y realizar la compra. ¡Grac
           </div>
         )}
 
-        {/* Lista de productos */}
+        {/* Lista de productos - Grid Mejorado */}
         {filteredProducts.length === 0 ? (
-          <div className="text-center bg-white p-12 rounded-2xl shadow-md">
-            <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-700 mb-2">No hay productos disponibles</h3>
-            <p className="text-gray-500">
+          <div className="text-center bg-white p-16 rounded-3xl shadow-xl border-2 border-purple-100">
+            <div className="w-24 h-24 bg-gradient-to-br from-purple-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Package className="w-12 h-12 text-purple-500" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-800 mb-3">No hay productos disponibles</h3>
+            <p className="text-gray-500 text-lg">
               {searchTerm ? 'No se encontraron productos que coincidan con tu búsqueda' : 'No hay productos en el catálogo'}
             </p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {filteredProducts.map((product) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {filteredProducts.map((product, index) => (
               <div
                 key={product._id}
                 onClick={() => handleProductClick(product)}
-                className="bg-white rounded-2xl p-4 shadow-md border border-gray-100 cursor-pointer hover:shadow-lg transition-shadow active:scale-[0.98]"
+                className="bg-white rounded-3xl p-5 shadow-lg border-2 border-purple-50 cursor-pointer hover:shadow-2xl hover:border-purple-200 transition-all duration-300 active:scale-[0.97] group overflow-hidden relative"
+                style={{
+                  animation: `fadeInUp 0.5s ease-out ${index * 0.1}s both`
+                }}
               >
-                <div className="flex items-start space-x-4">
-                  {/* Imagen del producto */}
-                  <div className="w-20 h-20 flex-shrink-0 rounded-xl overflow-hidden bg-gray-100">
+                {/* Efecto de brillo al hover */}
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/0 via-indigo-500/0 to-pink-500/0 group-hover:from-purple-500/5 group-hover:via-indigo-500/5 group-hover:to-pink-500/5 transition-all duration-300 pointer-events-none"></div>
+                
+                <div className="relative z-10">
+                  {/* Imagen del producto mejorada */}
+                  <div className="w-full h-48 flex-shrink-0 rounded-2xl overflow-hidden bg-gradient-to-br from-purple-100 to-indigo-100 mb-4 shadow-inner group-hover:shadow-lg transition-shadow">
                     {product.image && product.image !== '/assets/images/products/default-product.svg' ? (
                       <img
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                         src={product.image}
                         alt={product.name}
                         onError={(e) => {
                           e.currentTarget.style.display = 'none';
                         }}
                       />
-                    ) : null}
-                    {(!product.image || product.image === '/assets/images/products/default-product.svg') && (
-                      <DefaultProductImage width={80} height={80} alt={product.name} />
+                    ) : (
+                      <DefaultProductImage width={400} height={200} alt={product.name} />
                     )}
                   </div>
 
                   {/* Información del producto */}
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-gray-900 text-lg mb-1">{product.name}</h3>
-                    {product.description && (
-                      <p className="text-sm text-gray-600 mb-2 line-clamp-2">{product.description}</p>
-                    )}
-                    <div className="flex items-center justify-between mt-3">
-                      <div>
-                        <p className="text-xs text-gray-500 mb-1">Precio</p>
-                        <p className="font-bold text-xl text-purple-600">
-                          ${product.price?.toLocaleString() || '0'}
+                  <div className="space-y-3">
+                    <div>
+                      <h3 className="font-bold text-gray-900 text-lg mb-1.5 line-clamp-2 group-hover:text-purple-600 transition-colors">
+                        {product.name}
+                      </h3>
+                      {product.description && (
+                        <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed">
+                          {product.description}
                         </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Stock: {product.stock} {product.unit || 'unidades'}
-                        </p>
-                      </div>
+                      )}
+                    </div>
+
+                    {/* Badge de categoría */}
+                    <div className="flex items-center justify-between">
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getCategoryIcon(product.category)}`}>
+                        {formatCategoryName(product.category)}
+                      </span>
+                      <span className="text-xs text-gray-500 flex items-center space-x-1">
+                        <Box className="w-3 h-3" />
+                        <span>{product.stock} {product.unit || 'disp.'}</span>
+                      </span>
+                    </div>
+
+                    {/* Precio destacado */}
+                    <div className="pt-2 border-t border-gray-100">
+                      <p className="text-xs text-gray-500 mb-1">Precio</p>
+                      <p className="font-extrabold text-2xl bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                        ${product.price?.toLocaleString() || '0'}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -271,32 +365,32 @@ ${emojiCart} Me gustaría obtener más información y realizar la compra. ¡Grac
         )}
       </div>
 
-      {/* Modal de Detalles del Producto */}
+      {/* Modal de Detalles del Producto Mejorado */}
       {showProductModal && selectedProduct && (
         <div 
-          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn"
           onClick={() => {
             setShowProductModal(false);
             setSelectedProduct(null);
           }}
         >
           <div 
-            className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 relative max-h-[90vh] overflow-y-auto"
+            className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 relative max-h-[90vh] overflow-y-auto animate-slideUp"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Botón cerrar */}
+            {/* Botón cerrar mejorado */}
             <button
               onClick={() => {
                 setShowProductModal(false);
                 setSelectedProduct(null);
               }}
-              className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
+              className="absolute top-4 right-4 p-2.5 hover:bg-red-50 rounded-full transition-all hover:rotate-90 active:scale-95 z-20"
             >
-              <X className="w-5 h-5 text-gray-500" />
+              <X className="w-5 h-5 text-gray-500 hover:text-red-500 transition-colors" />
             </button>
 
-            {/* Imagen del producto */}
-            <div className="w-full h-48 rounded-2xl overflow-hidden bg-gray-100 mb-4">
+            {/* Imagen del producto mejorada */}
+            <div className="w-full h-64 rounded-3xl overflow-hidden bg-gradient-to-br from-purple-100 via-indigo-100 to-pink-100 mb-6 shadow-xl">
               {selectedProduct.image && selectedProduct.image !== '/assets/images/products/default-product.svg' ? (
                 <img
                   className="w-full h-full object-cover"
@@ -307,75 +401,82 @@ ${emojiCart} Me gustaría obtener más información y realizar la compra. ¡Grac
                   }}
                 />
               ) : (
-                <DefaultProductImage width={400} height={200} alt={selectedProduct.name} />
+                <DefaultProductImage width={400} height={300} alt={selectedProduct.name} />
               )}
             </div>
 
-            {/* Información del producto */}
-            <div className="space-y-4">
+            {/* Información del producto mejorada */}
+            <div className="space-y-5">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">{selectedProduct.name}</h2>
+                <h2 className="text-3xl font-extrabold text-gray-900 mb-3 bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                  {selectedProduct.name}
+                </h2>
                 {selectedProduct.description && (
-                  <p className="text-gray-600 text-sm leading-relaxed">{selectedProduct.description}</p>
+                  <p className="text-gray-600 text-base leading-relaxed">{selectedProduct.description}</p>
                 )}
               </div>
 
-              {/* Detalles del producto */}
-              <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <DollarSign className="w-5 h-5 text-purple-600" />
-                    <span className="text-sm text-gray-600">Precio</span>
+              {/* Detalles del producto mejorados */}
+              <div className="bg-gradient-to-br from-purple-50 via-indigo-50 to-pink-50 rounded-3xl p-5 space-y-4 border-2 border-purple-100 shadow-inner">
+                <div className="flex items-center justify-between p-3 bg-white/60 rounded-2xl backdrop-blur-sm">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-md">
+                      <DollarSign className="w-5 h-5 text-white" />
+                    </div>
+                    <span className="text-sm font-semibold text-gray-700">Precio</span>
                   </div>
-                  <span className="text-2xl font-bold text-purple-600">
+                  <span className="text-3xl font-extrabold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
                     ${selectedProduct.price?.toLocaleString() || '0'}
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between border-t border-purple-200 pt-3">
-                  <div className="flex items-center space-x-2">
-                    <Box className="w-5 h-5 text-purple-600" />
-                    <span className="text-sm text-gray-600">Stock disponible</span>
+                <div className="flex items-center justify-between p-3 bg-white/60 rounded-2xl backdrop-blur-sm">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-md">
+                      <Box className="w-5 h-5 text-white" />
+                    </div>
+                    <span className="text-sm font-semibold text-gray-700">Stock disponible</span>
                   </div>
-                  <span className="text-lg font-semibold text-gray-900">
+                  <span className="text-xl font-bold text-gray-900">
                     {selectedProduct.stock} {selectedProduct.unit || 'unidades'}
                   </span>
                 </div>
 
                 {selectedProduct.category && (
-                  <div className="flex items-center justify-between border-t border-purple-200 pt-3">
-                    <span className="text-sm text-gray-600">Categoría</span>
-                    <span className="text-sm font-medium text-gray-900">
+                  <div className="flex items-center justify-between p-3 bg-white/60 rounded-2xl backdrop-blur-sm">
+                    <span className="text-sm font-semibold text-gray-700">Categoría</span>
+                    <span className={`px-4 py-2 rounded-full text-sm font-bold ${getCategoryIcon(selectedProduct.category)}`}>
                       {formatCategoryName(selectedProduct.category)}
                     </span>
                   </div>
                 )}
               </div>
 
-              {/* Botón de WhatsApp */}
+              {/* Botón de WhatsApp mejorado */}
               {business.whatsappPhone ? (
                 <button
                   onClick={() => handleWhatsAppClick(selectedProduct)}
-                  className="w-full bg-green-500 hover:bg-green-600 text-white py-4 rounded-2xl font-bold flex items-center justify-center space-x-3 transition-colors shadow-lg active:scale-[0.98]"
+                  className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white py-5 rounded-2xl font-bold flex items-center justify-center space-x-3 transition-all shadow-xl hover:shadow-2xl active:scale-[0.97] transform"
                 >
                   <MessageCircle className="w-6 h-6" />
-                  <span>Contactar por WhatsApp</span>
+                  <span className="text-lg">Contactar por WhatsApp</span>
                 </button>
               ) : (
-                <div className="w-full bg-gray-100 text-gray-500 py-4 rounded-2xl font-semibold text-center">
+                <div className="w-full bg-gray-100 text-gray-500 py-5 rounded-2xl font-semibold text-center border-2 border-gray-200">
                   WhatsApp no disponible
                 </div>
               )}
 
-              {/* Información adicional */}
-              <p className="text-xs text-gray-500 text-center">
-                Al hacer clic, se abrirá WhatsApp con un mensaje prellenado con los detalles del producto
+              {/* Información adicional mejorada */}
+              <p className="text-xs text-gray-500 text-center leading-relaxed">
+                💬 Al hacer clic, se abrirá WhatsApp con un mensaje prellenado con los detalles del producto
               </p>
             </div>
           </div>
         </div>
       )}
     </div>
+    </>
   );
 };
 

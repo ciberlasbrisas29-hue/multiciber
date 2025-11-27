@@ -399,16 +399,16 @@ const NewSalePage = () => {
       // IMPORTANTE: Recorrer en orden inverso para mantener el orden del apilado (más reciente primero)
       [...scannedProducts].reverse().forEach(scannedProduct => {
         const productInList = prev.find((p: any) => p._id === scannedProduct.id);
-        
+      
         if (productInList) {
           // Si el producto ya está en la lista, agregarlo a la lista de escaneados
           scannedProductsList.push(productInList);
         } else {
           // Si no está, crear el producto completo y agregarlo
           // Usar el spread primero y luego sobrescribir propiedades específicas
-          const fullProduct = {
+        const fullProduct = {
             ...scannedProduct,
-            _id: scannedProduct.id,
+          _id: scannedProduct.id,
             category: (scannedProduct as any).category || 'otros'
           };
           scannedProductsList.push(fullProduct);
@@ -427,12 +427,12 @@ const NewSalePage = () => {
       if (sortBy) {
         const sortedOthers = applySortingToArray(otherProductsList);
         return [...scannedProductsList, ...sortedOthers];
-      }
+          }
       
       return [...scannedProductsList, ...otherProductsList];
-    });
-    
-    // Agregar o actualizar la cantidad en selectedProducts
+        });
+      
+      // Agregar o actualizar la cantidad en selectedProducts
     scannedProducts.forEach(scannedProduct => {
       setTimeout(() => {
         setSelectedProducts(prev => {

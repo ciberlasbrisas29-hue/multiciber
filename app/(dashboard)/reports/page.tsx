@@ -2,10 +2,44 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, TrendingUp, DollarSign, ShoppingCart, Package, CreditCard, Wallet, Building2, MoreHorizontal, Download } from 'lucide-react';
+import { ArrowLeft, TrendingUp, DollarSign, ShoppingCart, Package, CreditCard, Wallet, Building2, MoreHorizontal, Download, BarChart3, Sparkles, AlertCircle } from 'lucide-react';
 import { LineChart, Line, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend, BarChart, Bar, PieLabelRenderProps } from 'recharts';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+
+// Estilos para animaciones
+const reportsStyles = `
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+`;
 
 interface ReportData {
   period: string;
@@ -331,20 +365,29 @@ const ReportsPage = () => {
   if (loading) {
     return (
       <>
-        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-4 mb-6 -mx-6 rounded-b-2xl md:mx-0 md:rounded-2xl">
-          <div className="flex items-center justify-between">
+        <style dangerouslySetInnerHTML={{__html: reportsStyles}} />
+        <div className="bg-gradient-to-br from-purple-600 via-indigo-600 to-pink-500 px-6 py-6 mb-6 -mx-6 rounded-b-[2.5rem] md:mx-0 md:rounded-2xl shadow-2xl relative overflow-hidden">
+          <div className="relative z-10 flex items-center justify-between">
             <button
               onClick={() => router.back()}
-              className="w-10 h-10 flex items-center justify-center active:opacity-70"
+              className="w-12 h-12 flex items-center justify-center bg-white/20 backdrop-blur-sm rounded-2xl hover:bg-white/30 transition-all active:scale-95"
             >
               <ArrowLeft className="w-6 h-6 text-white" />
             </button>
-            <h1 className="text-lg font-bold text-white">Reportes Avanzados</h1>
-            <div className="w-10"></div>
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                <BarChart3 className="w-6 h-6 text-white" />
+              </div>
+              <h1 className="text-xl font-extrabold text-white drop-shadow-lg">Reportes Avanzados</h1>
+            </div>
+            <div className="w-12"></div>
           </div>
         </div>
         <div className="flex justify-center items-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+          <div className="relative">
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-purple-200 border-t-purple-600"></div>
+            <div className="absolute inset-0 animate-ping rounded-full h-16 w-16 border-2 border-purple-400 opacity-20"></div>
+          </div>
         </div>
       </>
     );
@@ -353,20 +396,29 @@ const ReportsPage = () => {
   if (!reportData) {
     return (
       <>
-        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-4 mb-6 -mx-6 rounded-b-2xl md:mx-0 md:rounded-2xl">
-          <div className="flex items-center justify-between">
+        <style dangerouslySetInnerHTML={{__html: reportsStyles}} />
+        <div className="bg-gradient-to-br from-purple-600 via-indigo-600 to-pink-500 px-6 py-6 mb-6 -mx-6 rounded-b-[2.5rem] md:mx-0 md:rounded-2xl shadow-2xl relative overflow-hidden">
+          <div className="relative z-10 flex items-center justify-between">
             <button
               onClick={() => router.back()}
-              className="w-10 h-10 flex items-center justify-center active:opacity-70"
+              className="w-12 h-12 flex items-center justify-center bg-white/20 backdrop-blur-sm rounded-2xl hover:bg-white/30 transition-all active:scale-95"
             >
               <ArrowLeft className="w-6 h-6 text-white" />
             </button>
-            <h1 className="text-lg font-bold text-white">Reportes Avanzados</h1>
-            <div className="w-10"></div>
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                <BarChart3 className="w-6 h-6 text-white" />
+              </div>
+              <h1 className="text-xl font-extrabold text-white drop-shadow-lg">Reportes Avanzados</h1>
+            </div>
+            <div className="w-12"></div>
           </div>
         </div>
-        <div className="text-center py-20 text-gray-500">
-          <p>No se pudieron cargar los datos</p>
+        <div className="text-center py-20">
+          <div className="w-20 h-20 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="w-10 h-10 text-red-600" />
+          </div>
+          <p className="text-gray-600 font-semibold">No se pudieron cargar los datos</p>
         </div>
       </>
     );
@@ -374,204 +426,314 @@ const ReportsPage = () => {
 
   return (
     <>
-      {/* Encabezado */}
-      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-4 mb-6 -mx-6 rounded-b-2xl">
-        <div className="flex items-center justify-between">
+      <style dangerouslySetInnerHTML={{__html: reportsStyles}} />
+      {/* Encabezado Mejorado */}
+      <div className="bg-gradient-to-br from-purple-600 via-indigo-600 to-pink-500 px-6 py-6 mb-6 -mx-6 rounded-b-[2.5rem] md:mx-0 md:rounded-2xl shadow-2xl relative overflow-hidden">
+        <div className="relative z-10 flex items-center justify-between">
           <button
             onClick={() => router.back()}
-            className="w-10 h-10 flex items-center justify-center active:opacity-70"
+            className="w-12 h-12 flex items-center justify-center bg-white/20 backdrop-blur-sm rounded-2xl hover:bg-white/30 transition-all active:scale-95 shadow-lg"
           >
             <ArrowLeft className="w-6 h-6 text-white" />
           </button>
-          <h1 className="text-lg font-bold text-white">Reportes Avanzados</h1>
+          <div className="flex items-center space-x-3">
+            <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg">
+              <BarChart3 className="w-6 h-6 text-white" />
+            </div>
+            <h1 className="text-xl font-extrabold text-white drop-shadow-lg">Reportes Avanzados</h1>
+          </div>
           <button
             onClick={downloadPDF}
-            className="w-10 h-10 flex items-center justify-center bg-white/20 hover:bg-white/30 rounded-full transition-colors"
+            className="w-12 h-12 flex items-center justify-center bg-white/20 backdrop-blur-sm hover:bg-white/30 rounded-2xl transition-all active:scale-95 shadow-lg"
             title="Descargar PDF"
           >
-            <Download className="w-5 h-5 text-white" />
+            <Download className="w-6 h-6 text-white" />
           </button>
         </div>
       </div>
 
-      {/* Filtros de Período */}
-      <div className="mb-6">
-        <div className="flex space-x-2 overflow-x-auto pb-2">
-          {periodOptions.map((option) => (
-            <button
-              key={option.value}
-              onClick={() => setSelectedPeriod(option.value as any)}
-              className={`px-4 py-2 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
-                selectedPeriod === option.value
-                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg'
-                  : 'bg-white text-gray-700 border border-gray-200 hover:border-purple-300'
-              }`}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Resumen Financiero Diario */}
-      <div className="grid grid-cols-1 gap-4 mb-6">
-        <div className="bg-white rounded-3xl shadow-lg p-6 border border-purple-100">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm text-gray-500">Ventas Totales</p>
-            <TrendingUp className="w-5 h-5 text-purple-600" />
-          </div>
-          <h2 className="text-3xl font-bold text-purple-600">
-            {formatCurrency(reportData.summary.totalSales)}
-          </h2>
-        </div>
-
-        <div className="bg-white rounded-3xl shadow-lg p-6 border border-purple-100">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm text-gray-500">Rentabilidad (Margen Bruto)</p>
-            <DollarSign className="w-5 h-5 text-green-600" />
-          </div>
-          <h2 className="text-3xl font-bold text-green-600">
-            {formatCurrency(reportData.summary.grossProfit)}
-          </h2>
-        </div>
-
-        <div className="bg-white rounded-3xl shadow-lg p-6 border border-purple-100">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm text-gray-500">Ticket Promedio</p>
-            <ShoppingCart className="w-5 h-5 text-indigo-600" />
-          </div>
-          <h2 className="text-3xl font-bold text-indigo-600">
-            {formatCurrency(reportData.summary.averageTicket)}
-          </h2>
-        </div>
-      </div>
-
-      {/* Tendencia Semanal */}
-      <div className="bg-white rounded-3xl shadow-lg p-6 mb-6 border border-purple-100">
-        <h3 className="text-lg font-bold text-gray-900 mb-4">Tendencia de Ventas (7 días)</h3>
-        <ResponsiveContainer width="100%" height={250}>
-          <LineChart data={reportData.weeklyTrend}>
-            <XAxis 
-              dataKey="day" 
-              stroke="#6b7280"
-              fontSize={12}
-            />
-            <YAxis 
-              stroke="#6b7280"
-              fontSize={12}
-              tickFormatter={(value) => `$${value}`}
-            />
-            <Tooltip 
-              formatter={(value: number) => formatCurrency(value)}
-              contentStyle={{ 
-                backgroundColor: '#fff', 
-                border: '1px solid #e5e7eb',
-                borderRadius: '12px',
-                padding: '8px'
-              }}
-            />
-            <Line 
-              type="monotone" 
-              dataKey="revenue" 
-              stroke={colors.purple} 
-              strokeWidth={3}
-              dot={{ fill: colors.purple, r: 5 }}
-              activeDot={{ r: 7 }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* Métodos de Pago */}
-      <div className="bg-white rounded-3xl shadow-lg p-6 mb-6 border border-purple-100">
-        <h3 className="text-lg font-bold text-gray-900 mb-4">Métodos de Pago</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <ResponsiveContainer width="100%" height={250}>
-            <PieChart>
-              <Pie
-                data={reportData.paymentMethods}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={(props: PieLabelRenderProps) => {
-                  const { name, percent } = props;
-                  const percentage = percent !== undefined ? percent * 100 : 0;
-                  return `${name}: ${percentage.toFixed(1)}%`;
-                }}
-                outerRadius={80}
-                fill="#8884d8"
-                dataKey="value"
+      {/* Filtros de Período Mejorados */}
+      <div className="mb-6 mx-4">
+        <div className="bg-white rounded-3xl shadow-xl p-1.5 border-2 border-purple-100">
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2">
+            {periodOptions.map((option) => (
+              <button
+                key={option.value}
+                onClick={() => setSelectedPeriod(option.value as any)}
+                className={`px-5 py-3 rounded-2xl font-bold text-sm whitespace-nowrap transition-all duration-200 active:scale-95 shadow-md ${
+                  selectedPeriod === option.value
+                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-purple-200'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-lg'
+                }`}
               >
-                {reportData.paymentMethods.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={pieColors[index % pieColors.length]} />
-                ))}
-              </Pie>
-              <Tooltip formatter={(value: number) => formatCurrency(value)} />
-            </PieChart>
-          </ResponsiveContainer>
-          
-          <div className="flex flex-col justify-center space-y-3">
-            {reportData.paymentMethods.map((method, index) => {
-              const Icon = getPaymentMethodIcon(method.name);
-              return (
-                <div key={method.name} className="flex items-center space-x-3 p-3 rounded-xl bg-gray-50">
-                  <div 
-                    className="w-10 h-10 rounded-lg flex items-center justify-center"
-                    style={{ backgroundColor: `${pieColors[index % pieColors.length]}20` }}
-                  >
-                    <Icon className="w-5 h-5" style={{ color: pieColors[index % pieColors.length] }} />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-semibold text-gray-900">{method.name}</p>
-                    <p className="text-sm text-gray-600">
-                      {formatCurrency(method.value)} ({method.count} transacciones)
-                    </p>
-                  </div>
-                  <span className="text-sm font-bold text-gray-700">
-                    {method.percentage.toFixed(1)}%
-                  </span>
-                </div>
-              );
-            })}
+                {option.value === 'today' ? '📅 ' : option.value === 'yesterday' ? '📆 ' : option.value === 'week' ? '📊 ' : '🗓️ '}
+                {option.label}
+              </button>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Rendimiento de Inventario */}
-      <div className="grid grid-cols-1 gap-4 mb-6">
-        {/* Producto Estrella */}
-        {reportData.inventory.starProduct && (
-          <div className="bg-white rounded-3xl shadow-lg p-6 border border-purple-100">
-            <div className="flex items-center mb-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center mr-4">
+      {/* Resumen Financiero Diario Mejorado */}
+      <div className="grid grid-cols-1 gap-4 mb-6 mx-4">
+        <div className="bg-gradient-to-br from-purple-50 via-indigo-50 to-pink-50 rounded-3xl shadow-xl p-6 border-2 border-purple-200 relative overflow-hidden">
+          {/* Decoración de fondo */}
+          <div className="absolute top-0 right-0 w-32 h-32 opacity-20">
+            <div className="w-full h-full rounded-full bg-purple-200"></div>
+          </div>
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Ventas Totales</p>
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg">
                 <TrendingUp className="w-6 h-6 text-white" />
               </div>
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">Producto Estrella</h3>
-                <p className="text-sm text-gray-500">Mayor ingresos generados</p>
+            </div>
+                    <h2 className="text-2xl font-extrabold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                      {formatCurrency(reportData.summary.totalSales)}
+                    </h2>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 rounded-3xl shadow-xl p-6 border-2 border-green-200 relative overflow-hidden">
+          {/* Decoración de fondo */}
+          <div className="absolute top-0 right-0 w-32 h-32 opacity-20">
+            <div className="w-full h-full rounded-full bg-green-200"></div>
+          </div>
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Rentabilidad</p>
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg">
+                <DollarSign className="w-6 h-6 text-white" />
               </div>
             </div>
-            <div className="flex items-center space-x-4">
-              {reportData.inventory.starProduct.image ? (
-                <img 
-                  src={reportData.inventory.starProduct.image} 
-                  alt={reportData.inventory.starProduct.name}
-                  className="w-16 h-16 rounded-xl object-cover"
-                />
-              ) : (
-                <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-purple-100 to-indigo-100 flex items-center justify-center">
-                  <Package className="w-8 h-8 text-purple-600" />
+                    <h2 className="text-2xl font-extrabold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                      {formatCurrency(reportData.summary.grossProfit)}
+                    </h2>
+            <p className="text-xs text-gray-500 mt-1">Margen Bruto</p>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-indigo-50 via-blue-50 to-cyan-50 rounded-3xl shadow-xl p-6 border-2 border-indigo-200 relative overflow-hidden">
+          {/* Decoración de fondo */}
+          <div className="absolute top-0 right-0 w-32 h-32 opacity-20">
+            <div className="w-full h-full rounded-full bg-indigo-200"></div>
+          </div>
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Ticket Promedio</p>
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center shadow-lg">
+                <ShoppingCart className="w-6 h-6 text-white" />
+              </div>
+            </div>
+                    <h2 className="text-2xl font-extrabold bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent">
+                      {formatCurrency(reportData.summary.averageTicket)}
+                    </h2>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 rounded-3xl shadow-xl p-6 border-2 border-orange-200 relative overflow-hidden">
+          {/* Decoración de fondo */}
+          <div className="absolute top-0 right-0 w-32 h-32 opacity-20">
+            <div className="w-full h-full rounded-full bg-orange-200"></div>
+          </div>
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Transacciones</p>
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center shadow-lg">
+                <CreditCard className="w-6 h-6 text-white" />
+              </div>
+            </div>
+                    <h2 className="text-2xl font-extrabold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
+                      {reportData.summary.totalTransactions}
+                    </h2>
+          </div>
+        </div>
+      </div>
+
+      {/* Tendencia Semanal Mejorada */}
+      <div className="bg-white rounded-3xl shadow-xl p-6 mb-6 mx-4 border-2 border-purple-100 relative overflow-hidden">
+        {/* Decoración de fondo */}
+        <div className="absolute top-0 right-0 w-40 h-40 opacity-5">
+          <Sparkles className="w-full h-full text-purple-600" />
+        </div>
+        <div className="relative z-10">
+          <div className="flex items-center space-x-3 mb-6">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg">
+              <TrendingUp className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h3 className="text-lg font-extrabold text-gray-900">Tendencia de Ventas</h3>
+              <p className="text-sm text-gray-500">Últimos 7 días</p>
+            </div>
+          </div>
+          <ResponsiveContainer width="100%" height={280}>
+            <LineChart data={reportData.weeklyTrend}>
+              <XAxis 
+                dataKey="day" 
+                stroke="#6b7280"
+                fontSize={12}
+                tick={{ fill: '#6b7280' }}
+              />
+              <YAxis 
+                stroke="#6b7280"
+                fontSize={12}
+                tickFormatter={(value) => `$${value}`}
+                tick={{ fill: '#6b7280' }}
+              />
+              <Tooltip 
+                formatter={(value: number) => formatCurrency(value)}
+                contentStyle={{ 
+                  backgroundColor: '#fff', 
+                  border: '2px solid #e5e7eb',
+                  borderRadius: '16px',
+                  padding: '12px',
+                  boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
+                }}
+                labelStyle={{ color: '#9333ea', fontWeight: 'bold' }}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="revenue" 
+                stroke={colors.purple} 
+                strokeWidth={4}
+                dot={{ fill: colors.purple, r: 6, strokeWidth: 2, stroke: '#fff' }}
+                activeDot={{ r: 8, strokeWidth: 2, stroke: '#fff' }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Métodos de Pago Mejorados */}
+      <div className="bg-white rounded-3xl shadow-xl p-6 mb-6 mx-4 border-2 border-purple-100 relative overflow-hidden">
+        {/* Decoración de fondo */}
+        <div className="absolute top-0 left-0 w-32 h-32 opacity-5">
+          <CreditCard className="w-full h-full text-purple-600" />
+        </div>
+        <div className="relative z-10">
+          <div className="flex items-center space-x-3 mb-6">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg">
+              <CreditCard className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h3 className="text-lg font-extrabold text-gray-900">Métodos de Pago</h3>
+              <p className="text-sm text-gray-500">Distribución de pagos</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl p-4 border-2 border-purple-100">
+              <ResponsiveContainer width="100%" height={280}>
+                <PieChart>
+                  <Pie
+                    data={reportData.paymentMethods}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={(props: PieLabelRenderProps) => {
+                      const { name, percent } = props;
+                      const percentage = percent !== undefined ? percent * 100 : 0;
+                      return `${name}: ${percentage.toFixed(1)}%`;
+                    }}
+                    outerRadius={90}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {reportData.paymentMethods.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={pieColors[index % pieColors.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    formatter={(value: number) => formatCurrency(value)}
+                    contentStyle={{ 
+                      backgroundColor: '#fff', 
+                      border: '2px solid #e5e7eb',
+                      borderRadius: '16px',
+                      padding: '12px',
+                      boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            
+            <div className="flex flex-col justify-center space-y-3">
+              {reportData.paymentMethods.map((method, index) => {
+                const Icon = getPaymentMethodIcon(method.name);
+                return (
+                  <div 
+                    key={method.name} 
+                    className="flex items-center space-x-4 p-4 rounded-2xl bg-gradient-to-r from-white to-gray-50 border-2 border-gray-100 hover:border-purple-200 hover:shadow-lg transition-all duration-200"
+                    style={{
+                      animation: `slideIn 0.4s ease-out ${index * 0.1}s both`
+                    }}
+                  >
+                    <div 
+                      className="w-14 h-14 rounded-xl flex items-center justify-center shadow-md"
+                      style={{ backgroundColor: `${pieColors[index % pieColors.length]}20` }}
+                    >
+                      <Icon className="w-7 h-7" style={{ color: pieColors[index % pieColors.length] }} />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-bold text-gray-900 text-lg">{method.name}</p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {formatCurrency(method.value)} • {method.count} transacciones
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-lg font-extrabold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                        {method.percentage.toFixed(1)}%
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Rendimiento de Inventario Mejorado */}
+      <div className="grid grid-cols-1 gap-4 mb-6 mx-4">
+        {/* Producto Estrella */}
+        {reportData.inventory.starProduct && (
+          <div className="bg-gradient-to-br from-yellow-50 via-orange-50 to-amber-50 rounded-3xl shadow-xl p-6 border-2 border-yellow-200 relative overflow-hidden">
+            {/* Decoración de fondo */}
+            <div className="absolute top-0 right-0 w-40 h-40 opacity-10">
+              <div className="w-full h-full rounded-full bg-yellow-300"></div>
+            </div>
+            <div className="relative z-10">
+              <div className="flex items-center mb-5">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center mr-4 shadow-lg">
+                  <TrendingUp className="w-7 h-7 text-white" />
                 </div>
-              )}
-              <div className="flex-1">
-                <p className="font-bold text-gray-900 text-lg">
-                  {reportData.inventory.starProduct.name}
-                </p>
-                <p className="text-sm text-gray-600 mt-1">
-                  Ingresos: <span className="font-bold text-green-600">
-                    {formatCurrency(reportData.inventory.starProduct.revenue)}
-                  </span>
-                </p>
+                <div>
+                  <h3 className="text-lg font-extrabold text-gray-900">⭐ Producto Estrella</h3>
+                  <p className="text-sm text-gray-600 font-semibold">Mayor ingresos generados</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-5 bg-white/80 backdrop-blur-sm rounded-2xl p-4 border-2 border-white/50 shadow-lg">
+                {reportData.inventory.starProduct.image ? (
+                  <img 
+                    src={reportData.inventory.starProduct.image} 
+                    alt={reportData.inventory.starProduct.name}
+                    className="w-20 h-20 rounded-2xl object-cover border-2 border-yellow-200 shadow-md"
+                  />
+                ) : (
+                  <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-100 to-indigo-100 flex items-center justify-center border-2 border-purple-200 shadow-md">
+                    <Package className="w-10 h-10 text-purple-600" />
+                  </div>
+                )}
+                <div className="flex-1">
+                  <p className="font-extrabold text-gray-900 text-lg mb-2">
+                    {reportData.inventory.starProduct.name}
+                  </p>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-gray-600 font-semibold">Ingresos:</span>
+                    <span className="text-lg font-extrabold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                      {formatCurrency(reportData.inventory.starProduct.revenue)}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -579,37 +741,44 @@ const ReportsPage = () => {
 
         {/* Producto de Mayor Rotación */}
         {reportData.inventory.topRotationProduct && (
-          <div className="bg-white rounded-3xl shadow-lg p-6 border border-purple-100">
-            <div className="flex items-center mb-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center mr-4">
-                <ShoppingCart className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">Mayor Rotación</h3>
-                <p className="text-sm text-gray-500">Más unidades vendidas</p>
-              </div>
+          <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-cyan-50 rounded-3xl shadow-xl p-6 border-2 border-blue-200 relative overflow-hidden">
+            {/* Decoración de fondo */}
+            <div className="absolute top-0 right-0 w-40 h-40 opacity-10">
+              <div className="w-full h-full rounded-full bg-blue-300"></div>
             </div>
-            <div className="flex items-center space-x-4">
-              {reportData.inventory.topRotationProduct.image ? (
-                <img 
-                  src={reportData.inventory.topRotationProduct.image} 
-                  alt={reportData.inventory.topRotationProduct.name}
-                  className="w-16 h-16 rounded-xl object-cover"
-                />
-              ) : (
-                <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
-                  <Package className="w-8 h-8 text-blue-600" />
+            <div className="relative z-10">
+              <div className="flex items-center mb-5">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center mr-4 shadow-lg">
+                  <ShoppingCart className="w-7 h-7 text-white" />
                 </div>
-              )}
-              <div className="flex-1">
-                <p className="font-bold text-gray-900 text-lg">
-                  {reportData.inventory.topRotationProduct.name}
-                </p>
-                <p className="text-sm text-gray-600 mt-1">
-                  Unidades: <span className="font-bold text-blue-600">
-                    {reportData.inventory.topRotationProduct.quantity}
-                  </span>
-                </p>
+                <div>
+                  <h3 className="text-lg font-extrabold text-gray-900">🔄 Mayor Rotación</h3>
+                  <p className="text-sm text-gray-600 font-semibold">Más unidades vendidas</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-5 bg-white/80 backdrop-blur-sm rounded-2xl p-4 border-2 border-white/50 shadow-lg">
+                {reportData.inventory.topRotationProduct.image ? (
+                  <img 
+                    src={reportData.inventory.topRotationProduct.image} 
+                    alt={reportData.inventory.topRotationProduct.name}
+                    className="w-20 h-20 rounded-2xl object-cover border-2 border-blue-200 shadow-md"
+                  />
+                ) : (
+                  <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center border-2 border-blue-200 shadow-md">
+                    <Package className="w-10 h-10 text-blue-600" />
+                  </div>
+                )}
+                <div className="flex-1">
+                  <p className="font-extrabold text-gray-900 text-lg mb-2">
+                    {reportData.inventory.topRotationProduct.name}
+                  </p>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-gray-600 font-semibold">Unidades:</span>
+                    <span className="text-lg font-extrabold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                      {reportData.inventory.topRotationProduct.quantity}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
