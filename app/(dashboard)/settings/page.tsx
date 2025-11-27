@@ -13,6 +13,7 @@ import {
   X
 } from 'lucide-react';
 import axios from 'axios';
+import WhatsAppTestPanel from '@/components/WhatsAppTestPanel';
 
 interface BusinessSettings {
   _id?: string;
@@ -384,6 +385,9 @@ const SettingsPage = () => {
             </button>
           </div>
         </div>
+
+        {/* Sección 3: Prueba de Notificaciones WhatsApp */}
+        <WhatsAppTestPanel className="mb-6" />
       </div>
     </div>
   );

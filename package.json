@@ -9,6 +9,7 @@
     "lint": "eslint",
     "generate-icons": "node scripts/generate-icons-better.js",
     "generate-android-icons": "node scripts/generate-android-icons.js",
+    "check-twilio": "node scripts/check-twilio-env.js",
     "cap:sync": "npx cap sync android",
     "cap:open": "npx cap open android",
     "cap:build": "npm run build && npx cap sync android"

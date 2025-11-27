@@ -279,6 +279,28 @@ export async function POST(req) {
     await sale.populate('createdBy', 'username');
     console.log('POST /api/sales: Venta poblada con datos del usuario.');
 
+    // Enviar notificación de WhatsApp (no bloqueante)
+    // Si falla, no afecta la venta
+    try {
+      const { sendSaleNotification } = await import('@/lib/twilio');
+      
+      // Notificar al cliente si tiene teléfono
+      if (sale.client?.phone) {
+        sendSaleNotification(sale.client.phone, sale.toObject(), true)
+          .catch(err => console.log('Error enviando WhatsApp al cliente:', err));
+      }
+      
+      // Notificar al administrador (opcional - puedes configurar un número de admin)
+      // const adminPhone = process.env.ADMIN_PHONE_NUMBER;
+      // if (adminPhone) {
+      //   sendSaleNotification(adminPhone, sale.toObject(), false)
+      //     .catch(err => console.log('Error enviando WhatsApp al admin:', err));
+      // }
+    } catch (whatsappError) {
+      // Ignorar errores de WhatsApp - no es crítico para la venta
+      console.log('WhatsApp no disponible o no configurado:', whatsappError.message);
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Venta procesada exitosamente',
