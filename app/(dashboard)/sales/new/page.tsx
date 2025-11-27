@@ -29,7 +29,7 @@ const NewSalePage = () => {
   const [loading, setLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [isScannerOpen, setIsScannerOpen] = useState(false);
-  const [scannedProducts, setScannedProducts] = useState<Array<{ id: string; name: string; quantity: number; price: number; image?: string; stock: number }>>([]);
+  const [scannedProducts, setScannedProducts] = useState<Array<{ id: string; name: string; quantity: number; price: number; image?: string; stock: number; category?: string; barcode?: string; createdAt?: string | Date; [key: string]: any }>>([]);
   const scannedBarcodesRef = useRef<Set<string>>(new Set()); // Set para rastrear códigos de barras ya escaneados
   const [searchTerm, setSearchTerm] = useState('');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning'; isVisible: boolean }>({
@@ -409,7 +409,7 @@ const NewSalePage = () => {
           const fullProduct = {
             ...scannedProduct,
             _id: scannedProduct.id,
-            category: scannedProduct.category || 'otros'
+            category: (scannedProduct as any).category || 'otros'
           };
           scannedProductsList.push(fullProduct);
         }
