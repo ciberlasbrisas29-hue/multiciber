@@ -130,6 +130,7 @@ const DebtPaymentPage = () => {
         // Disparar evento para actualizar las listas
         window.dispatchEvent(new CustomEvent('sale-created'));
         window.dispatchEvent(new CustomEvent('debt-updated'));
+        window.dispatchEvent(new CustomEvent('payment-created'));
         
         // Si se pagó completamente, mostrar mensaje de éxito y redirigir
         if (newStatus === 'paid') {

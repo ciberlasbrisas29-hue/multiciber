@@ -1,21 +1,30 @@
 import { NextResponse } from 'next/server';
-import { headers } from 'next/headers';
 import dbConnect from '@/lib/db';
 import Expense from '@/lib/models/Expense';
+import Payment from '@/lib/models/Payment';
+import { verifyAuth } from '@/lib/auth';
+import mongoose from 'mongoose';
 
 // @desc    Obtener un gasto específico
 export async function GET(req, { params }) {
   await dbConnect();
 
   try {
-    const headersList = headers();
-    const userId = headersList.get('x-user-id');
-    const { id } = params;
+    const userId = await verifyAuth();
+    if (!userId) {
+      return NextResponse.json({ success: false, message: 'No autorizado' }, { status: 401 });
+    }
+
+    const { id } = await params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ success: false, message: 'ID de gasto inválido' }, { status: 400 });
+    }
 
     const expense = await Expense.findOne({
-      _id: id,
+      _id: new mongoose.Types.ObjectId(id),
       createdBy: userId
-    }).populate('createdBy', 'username');
+    }).populate('createdBy', 'username').lean();
 
     if (!expense) {
       return NextResponse.json({ success: false, message: 'Gasto no encontrado' }, { status: 404 });
@@ -37,18 +46,40 @@ export async function PUT(req, { params }) {
   await dbConnect();
   
   try {
-    const headersList = headers();
-    const userId = headersList.get('x-user-id');
-    const { id } = params;
+    const userId = await verifyAuth();
+    if (!userId) {
+      return NextResponse.json({ success: false, message: 'No autorizado' }, { status: 401 });
+    }
+
+    const { id } = await params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ success: false, message: 'ID de gasto inválido' }, { status: 400 });
+    }
+
     const body = await req.json();
 
     const expense = await Expense.findOne({
-      _id: id,
+      _id: new mongoose.Types.ObjectId(id),
       createdBy: userId
     });
 
     if (!expense) {
       return NextResponse.json({ success: false, message: 'Gasto no encontrado' }, { status: 404 });
+    }
+
+    // Si se está cambiando el status a 'paid' y antes era 'pending', crear registro de Payment
+    if (body.status === 'paid' && expense.status === 'pending') {
+      const payment = new Payment({
+        referenceType: 'expense',
+        referenceId: expense._id,
+        amount: expense.amount,
+        paymentMethod: body.paymentMethod || expense.paymentMethod || 'cash',
+        notes: body.paymentNotes || '',
+        createdBy: userId,
+        paymentDate: new Date()
+      });
+      await payment.save();
     }
 
     // Actualizar campos permitidos
@@ -83,12 +114,19 @@ export async function DELETE(req, { params }) {
   await dbConnect();
 
   try {
-    const headersList = headers();
-    const userId = headersList.get('x-user-id');
-    const { id } = params;
+    const userId = await verifyAuth();
+    if (!userId) {
+      return NextResponse.json({ success: false, message: 'No autorizado' }, { status: 401 });
+    }
+
+    const { id } = await params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ success: false, message: 'ID de gasto inválido' }, { status: 400 });
+    }
 
     const expense = await Expense.findOneAndDelete({
-      _id: id,
+      _id: new mongoose.Types.ObjectId(id),
       createdBy: userId
     });
 

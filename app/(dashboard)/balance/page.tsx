@@ -397,23 +397,23 @@ const BalancePage = () => {
               
               <div className="relative z-10">
                 <div className="flex items-start justify-between mb-6">
-                  <div className="flex-1">
+                <div className="flex-1">
                     <p className="text-sm font-semibold text-gray-600 mb-2 flex items-center">
                       <Calendar className="w-4 h-4 mr-2" />
                       Balance del {label}
                     </p>
                     <h2 className={`text-3xl font-extrabold mb-2 ${
-                      summary.balance < 0 
-                        ? 'text-red-600' 
+                    summary.balance < 0 
+                      ? 'text-red-600' 
                         : 'bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-600 bg-clip-text text-transparent'
-                    }`}>
-                      {formatCurrency(summary.balance)}
-                    </h2>
-                  </div>
-                  {summary.balance >= 0 && (
+                  }`}>
+                    {formatCurrency(summary.balance)}
+                  </h2>
+                </div>
+                {summary.balance >= 0 && (
                     <div className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-2xl text-xs font-bold flex items-center shadow-lg">
                       <CheckCircle className="w-4 h-4 mr-2" />
-                      Positivo
+                    Positivo
                     </div>
                   )}
                   {summary.balance < 0 && (
@@ -421,22 +421,22 @@ const BalancePage = () => {
                       <AlertCircle className="w-4 h-4 mr-2" />
                       Negativo
                     </div>
-                  )}
-                </div>
+                )}
+              </div>
 
                 <div className="grid grid-cols-2 gap-4 pt-4 border-t-2 border-white/50">
                   <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-green-100">
                     <div className="flex items-center space-x-3 mb-2">
                       <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-md">
                         <TrendingUp className="w-6 h-6 text-white" />
-                      </div>
+                  </div>
                       <div className="flex-1">
                         <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Ingresos</p>
                         <p className="text-xl font-extrabold text-green-600 mt-1">
                           {formatCurrency(summary.totalIncome)}
                         </p>
-                      </div>
-                    </div>
+                  </div>
+                </div>
                   </div>
                   <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-red-100">
                     <div className="flex items-center space-x-3 mb-2">
@@ -670,16 +670,17 @@ const BalancePage = () => {
                         <button
                           key={debt.id}
                           onClick={() => {
-                            // Solo hacer clicable las deudas por cobrar (ventas)
+                            // Navegar según el tipo de deuda
                             if (debt.type === 'receivable') {
                               router.push(`/balance/debt/${debt.id}/payment`);
+                            } else if (debt.type === 'payable') {
+                              router.push(`/balance/expense/${debt.id}/payment`);
                             }
                           }}
-                          disabled={debt.type !== 'receivable'}
                           className={`w-full flex items-center p-4 rounded-2xl transition-all duration-200 border-2 ${
                             debt.type === 'receivable'
                               ? 'hover:shadow-lg active:scale-[0.98] cursor-pointer border-transparent hover:border-green-200 bg-gradient-to-r from-white to-green-50/50'
-                              : 'cursor-default border-transparent bg-gradient-to-r from-white to-red-50/50'
+                              : 'hover:shadow-lg active:scale-[0.98] cursor-pointer border-transparent hover:border-red-200 bg-gradient-to-r from-white to-red-50/50'
                           } ${isOverdue ? 'border-red-300 bg-red-50/50' : ''}`}
                           style={{
                             animation: `fadeInUp 0.4s ease-out ${index * 0.05}s both`

@@ -198,8 +198,8 @@ const SettingsPage = () => {
       <>
         <style dangerouslySetInnerHTML={{__html: settingsStyles}} />
         <div className="min-h-screen pb-24 bg-gradient-to-br from-purple-50 via-indigo-50 to-pink-50">
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="text-center">
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
               <div className="relative">
                 <div className="animate-spin rounded-full h-16 w-16 border-4 border-purple-200 border-t-purple-600 mx-auto mb-4"></div>
                 <div className="absolute inset-0 animate-ping rounded-full h-16 w-16 border-2 border-purple-400 opacity-20"></div>
@@ -260,12 +260,12 @@ const SettingsPage = () => {
             <Building2 className="w-full h-full text-purple-600" />
           </div>
           <div className="relative z-10">
-            <div className="flex items-center mb-6">
+          <div className="flex items-center mb-6">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center mr-3 shadow-lg">
                 <Building2 className="w-6 h-6 text-white" />
-              </div>
-              <h2 className="text-xl font-extrabold text-gray-900">Configuración del Negocio</h2>
             </div>
+              <h2 className="text-xl font-extrabold text-gray-900">Configuración del Negocio</h2>
+          </div>
 
           <div className="space-y-4">
             {/* Nombre del negocio */}
@@ -301,13 +301,13 @@ const SettingsPage = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Dirección
               </label>
-                <input
-                  type="text"
-                  value={businessProfile.businessAddress}
-                  onChange={(e) => setBusinessProfile({ ...businessProfile, businessAddress: e.target.value })}
+              <input
+                type="text"
+                value={businessProfile.businessAddress}
+                onChange={(e) => setBusinessProfile({ ...businessProfile, businessAddress: e.target.value })}
                   className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-purple-300 shadow-sm hover:shadow-md transition-all"
-                  placeholder="Dirección completa"
-                />
+                placeholder="Dirección completa"
+              />
             </div>
 
             {/* Teléfono, WhatsApp y Email en fila */}
@@ -374,12 +374,12 @@ const SettingsPage = () => {
             <DollarSign className="w-full h-full text-indigo-600" />
           </div>
           <div className="relative z-10">
-            <div className="flex items-center mb-6">
+          <div className="flex items-center mb-6">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mr-3 shadow-lg">
                 <DollarSign className="w-6 h-6 text-white" />
-              </div>
-              <h2 className="text-xl font-extrabold text-gray-900">Configuración Financiera</h2>
             </div>
+              <h2 className="text-xl font-extrabold text-gray-900">Configuración Financiera</h2>
+          </div>
 
            <div className="space-y-6">
              {/* Métodos de Pago */}
@@ -454,7 +454,7 @@ const SettingsPage = () => {
           <WhatsAppTestPanel className="mb-6" />
         </div>
       </div>
-      </div>
+    </div>
     </>
   );
 };

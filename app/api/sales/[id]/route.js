@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Sale from '@/lib/models/Sale';
+import Payment from '@/lib/models/Payment';
 import { verifyAuth } from '@/lib/auth';
 import mongoose from 'mongoose';
 
@@ -66,6 +67,9 @@ export async function PUT(req, { params }) {
       return NextResponse.json({ success: false, message: 'Venta no encontrada' }, { status: 404 });
     }
 
+    // IMPORTANTE: Guardar el paidAmount anterior ANTES de actualizar el objeto
+    const previousPaidAmount = parseFloat(sale.paidAmount || 0);
+
     // Actualizar campos permitidos
     const allowedUpdates = ['status', 'notes', 'paymentMethod', 'client', 'paidAmount', 'debtAmount'];
     allowedUpdates.forEach(field => {
@@ -76,8 +80,56 @@ export async function PUT(req, { params }) {
 
     // Recalcular debtAmount y status si se actualiza paidAmount
     if (body.paidAmount !== undefined) {
-      const newPaidAmount = body.paidAmount;
+      const newPaidAmount = parseFloat(body.paidAmount);
+      const paymentAmount = newPaidAmount - previousPaidAmount;
       const newDebtAmount = Math.max(0, sale.total - newPaidAmount);
+      
+      console.log('PUT /api/sales/[id]: Actualizando paidAmount', {
+        saleId: sale._id.toString(),
+        previousPaidAmount,
+        newPaidAmount,
+        paymentAmount,
+        saleTotal: sale.total,
+        userId: userId.toString()
+      });
+      
+      // Solo crear registro de Payment si hay un incremento en el pago (abono)
+      if (paymentAmount > 0) {
+        try {
+          console.log('✅ Creando Payment - referenceId:', sale._id.toString(), 'amount:', paymentAmount, 'userId:', userId.toString());
+          const payment = new Payment({
+            referenceType: 'sale',
+            referenceId: sale._id,
+            amount: paymentAmount,
+            paymentMethod: body.paymentMethod || sale.paymentMethod || 'cash',
+            notes: body.paymentNotes || '',
+            createdBy: userId,
+            paymentDate: new Date()
+          });
+          const savedPayment = await payment.save();
+          console.log('✅ Payment creado exitosamente:', {
+            paymentId: savedPayment._id.toString(),
+            amount: savedPayment.amount,
+            createdBy: savedPayment.createdBy.toString(),
+            referenceId: savedPayment.referenceId.toString(),
+            referenceType: savedPayment.referenceType
+          });
+        } catch (paymentError) {
+          console.error('❌ Error creando Payment:', paymentError);
+          console.error('Error details:', paymentError.message);
+          if (paymentError.errors) {
+            console.error('Validation errors:', paymentError.errors);
+          }
+          // No fallar la actualización de la venta si falla el Payment
+        }
+      } else {
+        console.log('⚠️ No se crea Payment - paymentAmount <= 0:', {
+          paymentAmount,
+          previousPaidAmount,
+          newPaidAmount,
+          reason: paymentAmount <= 0 ? 'No hay incremento' : 'Monto inválido'
+        });
+      }
       
       sale.paidAmount = newPaidAmount;
       sale.debtAmount = newDebtAmount;

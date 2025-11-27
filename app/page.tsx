@@ -29,6 +29,9 @@ interface Movement {
   description?: string;
   totalAmount?: number; // Para ventas con deuda: mostrar el total
   paidAmount?: number; // Para ventas con deuda: mostrar el abono
+  isPayment?: boolean; // Indica si es un pago/abono
+  referenceId?: string; // ID de la venta/gasto relacionado
+  referenceType?: 'sale' | 'expense'; // Tipo de referencia
 }
 
 const HomePage = () => {
@@ -91,9 +94,10 @@ const HomePage = () => {
     const fetchRecentMovements = async () => {
       try {
         setLoadingMovements(true);
-        const [salesResponse, expensesResponse] = await Promise.all([
-          dashboardService.getRecentSales(5),
-          dashboardService.getRecentExpenses(5)
+        const [salesResponse, expensesResponse, paymentsResponse] = await Promise.all([
+          dashboardService.getRecentSales(10),
+          dashboardService.getRecentExpenses(10),
+          fetch('/api/payments?limit=10').then(res => res.json())
         ]);
 
         const movements: Movement[] = [];
@@ -165,17 +169,16 @@ const HomePage = () => {
             const paidAmount = sale.paidAmount || 0;
             const isDebt = sale.status === 'debt' && paidAmount > 0 && paidAmount < saleTotal;
 
+            // Mostrar todas las ventas, incluyendo las que tienen deuda parcial
+            // Los abonos aparecerán como pagos separados
             movements.push({
               id: sale._id,
               type: 'sale',
               title,
               subtitle,
-              // Para el cálculo del balance, usar solo el abono si hay deuda
-              amount: isDebt ? paidAmount : saleTotal,
-              // Usar updatedAt para que los abonos recientes aparezcan primero
-              date: new Date(sale.updatedAt || sale.createdAt),
+              amount: saleTotal,
+              date: new Date(sale.createdAt),
               description,
-              // Para mostrar en la UI: guardar el total y el abono si hay deuda
               totalAmount: isDebt ? saleTotal : undefined,
               paidAmount: isDebt ? paidAmount : undefined
             });
@@ -222,6 +225,64 @@ const HomePage = () => {
           });
         }
 
+        // Procesar pagos (abonos)
+        console.log('Payments response:', paymentsResponse);
+        if (paymentsResponse.success && paymentsResponse.data && paymentsResponse.data.length > 0) {
+          console.log('Procesando', paymentsResponse.data.length, 'pagos');
+          paymentsResponse.data.forEach((payment: any) => {
+            let title = '';
+            let subtitle = '';
+            
+            if (payment.referenceType === 'sale' && payment.referenceInfo) {
+              const sale = payment.referenceInfo;
+              // Título: concepto o nombre del cliente
+              if (sale.concept) {
+                title = sale.concept;
+              } else if (sale.client?.name) {
+                title = `Venta: ${sale.client.name}`;
+              } else {
+                title = 'Venta';
+              }
+              // Subtitle: mostrar el abono y el número de factura
+              const saleNumber = sale.saleNumber ? `#${sale.saleNumber}` : 'sin número';
+              subtitle = `Abono: +$${payment.amount.toFixed(2)} - Factura ${saleNumber}`;
+            } else if (payment.referenceType === 'expense' && payment.referenceInfo) {
+              const expense = payment.referenceInfo;
+              if (expense.vendor?.name) {
+                title = `Gasto: ${expense.vendor.name}`;
+              } else if (expense.description) {
+                title = expense.description;
+              } else {
+                title = 'Gasto';
+              }
+              subtitle = `Pago: -$${payment.amount.toFixed(2)}`;
+            } else {
+              // Fallback si no hay información de referencia
+              title = payment.referenceType === 'sale' ? 'Abono de Venta' : 'Pago de Gasto';
+              subtitle = payment.referenceType === 'sale' 
+                ? `Abono: +$${payment.amount.toFixed(2)}`
+                : `Pago: -$${payment.amount.toFixed(2)}`;
+              // Intentar obtener el número de factura desde el referenceId si es posible
+              if (payment.referenceType === 'sale' && payment.referenceId) {
+                subtitle += ` - Factura ${payment.referenceId.toString().substring(0, 8)}...`;
+              }
+            }
+
+            movements.push({
+              id: payment._id,
+              type: payment.referenceType === 'sale' ? 'sale' : 'expense',
+              title,
+              subtitle,
+              amount: payment.amount,
+              date: new Date(payment.paymentDate || payment.createdAt),
+              description: payment.referenceType === 'sale' ? 'Abono registrado' : 'Pago registrado',
+              isPayment: true,
+              referenceId: payment.referenceId,
+              referenceType: payment.referenceType
+            });
+          });
+        }
+
         // Ordenar por fecha (más reciente primero) y tomar los últimos 5
         movements.sort((a, b) => b.date.getTime() - a.date.getTime());
         setRecentMovements(movements.slice(0, 5));
@@ -243,11 +304,13 @@ const HomePage = () => {
     window.addEventListener('sale-created', handleUpdate);
     window.addEventListener('expense-created', handleUpdate);
     window.addEventListener('debt-updated', handleUpdate);
+    window.addEventListener('payment-created', handleUpdate);
 
     return () => {
       window.removeEventListener('sale-created', handleUpdate);
       window.removeEventListener('expense-created', handleUpdate);
       window.removeEventListener('debt-updated', handleUpdate);
+      window.removeEventListener('payment-created', handleUpdate);
     };
   }, []);
 
