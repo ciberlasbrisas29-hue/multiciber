@@ -105,6 +105,11 @@ export async function POST(req) {
           // Agregar userId al reportData para que sendDailyReport pueda usarlo
           reportData.userId = userId;
           
+          // Obtener la URL base desde la request para construir URLs absolutas
+          const requestUrl = new URL(req.url);
+          const origin = `${requestUrl.protocol}//${requestUrl.host}`;
+          reportData.baseUrl = origin;
+          
           // Enviar el reporte por WhatsApp
           result = await sendDailyReport(phoneNumber, period, reportData);
         } catch (reportError) {
