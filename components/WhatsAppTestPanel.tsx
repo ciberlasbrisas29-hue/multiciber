@@ -240,8 +240,8 @@ const WhatsAppTestPanel: React.FC<WhatsAppTestPanelProps> = ({ className = '' })
           <MessageSquare className="w-6 h-6 text-white" />
         </div>
         <div className="flex-1">
-          <h3 className="text-xl font-bold text-gray-900">Prueba de Notificaciones WhatsApp</h3>
-          <p className="text-sm text-gray-600">Envía notificaciones de prueba a tu WhatsApp</p>
+          <h3 className="text-xl font-bold text-gray-900">Notificaciones WhatsApp</h3>
+          <p className="text-sm text-gray-600">Envía notificaciones al cliente</p>
         </div>
       </div>
 

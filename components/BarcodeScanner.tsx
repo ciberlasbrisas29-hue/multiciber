@@ -5,6 +5,7 @@ import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
 import { X, Camera, Scan, Plus, Minus, Check, Clock, ChevronRight, Trash2 } from 'lucide-react';
 import { useScanner } from '@/contexts/ScannerContext';
 import SwipeableProductCard from './SwipeableProductCard';
+import StackedProductCards from './StackedProductCards';
 
 interface BarcodeScannerProps {
   onScan: (result: string) => void;
@@ -514,20 +515,15 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
         </div>
       </div>
 
-      {/* Lista de Productos Escaneados (solo en modo continuo) - Scrollable */}
+      {/* Lista de Productos Escaneados (solo en modo continuo) - Apilados estilo iOS */}
       {continuousMode && scannedProducts.length > 0 && (
-        <div className="bg-white border-t border-gray-200 flex-shrink-0">
-          <div ref={productsListRef} className="max-h-[40vh] overflow-y-auto">
-            <div className="p-4 space-y-3">
-              {scannedProducts.map((product) => (
-                <SwipeableProductCard
-                  key={product.id}
-                  product={product}
-                  onUpdateQuantity={onUpdateQuantity}
-                  onRemove={onRemoveProduct}
-                />
-              ))}
-            </div>
+        <div className="bg-gradient-to-b from-gray-50 to-white border-t border-gray-200 flex-shrink-0">
+          <div ref={productsListRef} className="py-4">
+            <StackedProductCards
+              products={scannedProducts}
+              onUpdateQuantity={onUpdateQuantity}
+              onRemove={onRemoveProduct}
+            />
           </div>
         </div>
       )}
