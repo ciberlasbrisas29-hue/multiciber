@@ -12,8 +12,10 @@ import { generateReportPDF } from '@/lib/pdf-generator';
  */
 export async function GET(req, { params }) {
   try {
-    // Obtener el ID del reporte desde los parámetros
-    const { id } = params;
+    // En Next.js 16+, params puede ser una Promise
+    const resolvedParams = params instanceof Promise ? await params : params;
+    const { id } = resolvedParams;
+    
     const { searchParams } = new URL(req.url);
     const period = searchParams.get('period') || 'today';
     const userIdFromQuery = searchParams.get('userId');
@@ -56,15 +58,25 @@ export async function GET(req, { params }) {
     // Generar PDF
     const pdfBuffer = await generateReportPDF(reportData, period);
 
+    // Validar que el PDF se generó correctamente
+    if (!pdfBuffer || pdfBuffer.length === 0) {
+      console.error('PDF generado está vacío');
+      return NextResponse.json(
+        { success: false, message: 'Error al generar PDF: archivo vacío' },
+        { status: 500 }
+      );
+    }
+
     // Retornar PDF como respuesta con headers para que sea accesible públicamente
     return new NextResponse(pdfBuffer, {
+      status: 200,
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `inline; filename="reporte-avanzado-${period}.pdf"`,
         'Content-Length': pdfBuffer.length.toString(),
         // Headers para permitir acceso desde cualquier origen (necesario para Twilio)
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type',
         // Cache por un tiempo corto para mejorar rendimiento
         'Cache-Control': 'public, max-age=300', // 5 minutos
@@ -72,10 +84,27 @@ export async function GET(req, { params }) {
     });
   } catch (error) {
     console.error('Error generando PDF del reporte:', error);
+    console.error('Stack trace:', error.stack);
     return NextResponse.json(
-      { success: false, message: 'Error al generar PDF' },
+      { 
+        success: false, 
+        message: 'Error al generar PDF',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      },
       { status: 500 }
     );
   }
+}
+
+// Manejar OPTIONS para CORS
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    }
+  });
 }
 

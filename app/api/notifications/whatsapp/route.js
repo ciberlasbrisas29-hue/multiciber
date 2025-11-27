@@ -102,6 +102,9 @@ export async function POST(req) {
           // Obtener datos del reporte directamente
           const reportData = await getAdvancedReportData(userId, period);
           
+          // Agregar userId al reportData para que sendDailyReport pueda usarlo
+          reportData.userId = userId;
+          
           // Enviar el reporte por WhatsApp
           result = await sendDailyReport(phoneNumber, period, reportData);
         } catch (reportError) {
