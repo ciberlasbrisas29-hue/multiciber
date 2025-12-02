@@ -128,9 +128,12 @@ const SwipeableProductCard: React.FC<SwipeableProductCardProps> = ({
 
           {/* Controles de cantidad */}
           {onUpdateQuantity && (
-            <div className="flex items-center space-x-2 flex-shrink-0">
+            <div className="flex items-center space-x-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
               <button
-                onClick={() => onUpdateQuantity(product.id, -1)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onUpdateQuantity(product.id, -1);
+                }}
                 disabled={product.quantity <= 1}
                 className={`w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-95 ${
                   product.quantity <= 1
@@ -144,7 +147,10 @@ const SwipeableProductCard: React.FC<SwipeableProductCardProps> = ({
                 {product.quantity}
               </span>
               <button
-                onClick={() => onUpdateQuantity(product.id, 1)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onUpdateQuantity(product.id, 1);
+                }}
                 className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 text-white flex items-center justify-center shadow-md hover:shadow-lg transition-all active:scale-95"
               >
                 <Plus className="w-4 h-4" />

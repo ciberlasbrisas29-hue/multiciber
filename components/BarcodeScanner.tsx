@@ -42,6 +42,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   const processingCodesRef = useRef<Set<string>>(new Set()); // Set de códigos que están siendo procesados
   const SCAN_COOLDOWN = 5000; // 5 segundos de cooldown entre escaneos del mismo código
   const productsListRef = useRef<HTMLDivElement>(null); // Ref para el contenedor de productos (auto-scroll)
+  const [isExpanded, setIsExpanded] = useState(false); // Estado para controlar expansión/colapso del stack
 
   // Sincronizar el estado del escáner con el contexto
   useEffect(() => {
@@ -475,6 +476,16 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
             transform: translateY(8px) scale(0.97);
           }
         }
+        @keyframes expandList {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
       `}} />
       {/* Header */}
       <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-4 flex items-center justify-between">
@@ -537,40 +548,102 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
 
       {/* Lista de Productos Escaneados (solo en modo continuo) - Apilado estilo iOS */}
       {continuousMode && scannedProducts.length > 0 && (
-        <div className="bg-white border-t border-gray-200 flex-shrink-0">
-          <div ref={productsListRef} className="max-h-[40vh] overflow-y-auto overflow-x-hidden">
-            <div className="p-4 relative">
-              {/* Contenedor con apilado estilo iOS - Solo mostrar los últimos 4 elementos visibles */}
-              <div className="relative" style={{ minHeight: `${Math.min(scannedProducts.length, 4) * 16 + 100}px` }}>
-                {scannedProducts.slice(-4).map((product, sliceIndex) => {
-                  // Calcular el índice real en el array completo
-                  const startIndex = Math.max(0, scannedProducts.length - 4);
-                  const realIndex = startIndex + sliceIndex;
-                  const reverseIndex = scannedProducts.length - 1 - realIndex;
+        <>
+          {/* Overlay para cerrar cuando está expandido */}
+          {isExpanded && (
+            <div 
+              className="fixed inset-0 bg-black/20 z-[9998]"
+              onClick={() => setIsExpanded(false)}
+            />
+          )}
+          <div className="bg-white border-t border-gray-200 flex-shrink-0 relative z-[9999]">
+            <div ref={productsListRef} className={`overflow-y-auto overflow-x-hidden transition-all duration-300 ${isExpanded ? 'max-h-[60vh]' : 'max-h-[40vh]'}`}>
+              <div className="p-4 relative">
+                {!isExpanded ? (
+                /* Modo Stack Apilado */
+                <div className="relative" style={{ minHeight: `${Math.min(scannedProducts.length, 4) * 16 + 100}px` }}>
+                  {scannedProducts.slice(-4).map((product, sliceIndex) => {
+                    const startIndex = Math.max(0, scannedProducts.length - 4);
+                    const realIndex = startIndex + sliceIndex;
+                    const reverseIndex = scannedProducts.length - 1 - realIndex;
+                    
+                    if (reverseIndex < 0 || reverseIndex > 3) return null;
+                    
+                    const offset = reverseIndex * 16;
+                    const zIndex = reverseIndex + 10;
+                    const scale = Math.max(1 - (reverseIndex * 0.04), 0.88);
+                    const opacity = Math.max(1 - (reverseIndex * 0.12), 0.5);
+                    const isNewest = realIndex === scannedProducts.length - 1;
+                    
+                    return (
+                      <div
+                        key={`${product.id}-${realIndex}`}
+                        className="absolute left-4 right-4 transition-all duration-500 ease-out"
+                        style={{
+                          top: `${offset}px`,
+                          zIndex: zIndex,
+                          transform: `scale(${scale}) translateY(${reverseIndex > 0 ? reverseIndex * 2 : 0}px)`,
+                          opacity: opacity,
+                          animation: isNewest ? 'slideInFromTop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)' : 'none',
+                          pointerEvents: reverseIndex > 2 ? 'none' : 'auto',
+                          transformOrigin: 'top center',
+                          willChange: 'transform, opacity'
+                        }}
+                        onClick={(e) => {
+                          // Solo el último producto puede expandir, y solo si no se hace click en los botones
+                          if (isNewest && !(e.target as HTMLElement).closest('button')) {
+                            setIsExpanded(true);
+                          }
+                        }}
+                      >
+                        <SwipeableProductCard
+                          product={product}
+                          onUpdateQuantity={onUpdateQuantity}
+                          onRemove={onRemoveProduct}
+                        />
+                      </div>
+                    );
+                  })}
                   
-                  // Solo mostrar los últimos 4 elementos
-                  if (reverseIndex < 0 || reverseIndex > 3) return null;
-                  
-                  const offset = reverseIndex * 16; // 16px de offset por cada elemento (más espaciado)
-                  const zIndex = reverseIndex + 10; // z-index más alto para elementos más recientes
-                  const scale = Math.max(1 - (reverseIndex * 0.04), 0.88); // Escala menor para elementos más abajo
-                  const opacity = Math.max(1 - (reverseIndex * 0.12), 0.5); // Opacidad menor para elementos más abajo
-                  const isNewest = realIndex === scannedProducts.length - 1;
-                  const isVisible = reverseIndex <= 3; // Solo mostrar los 4 más recientes
-                  
-                  return (
-                    <div
-                      key={`${product.id}-${realIndex}`}
-                      className="absolute left-4 right-4 transition-all duration-500 ease-out"
+                  {/* Indicador de más productos si hay más de 4 */}
+                  {scannedProducts.length > 4 && (
+                    <div 
+                      className="absolute left-4 right-4"
                       style={{
-                        top: `${offset}px`,
-                        zIndex: zIndex,
-                        transform: `scale(${scale}) translateY(${reverseIndex > 0 ? reverseIndex * 2 : 0}px)`,
-                        opacity: isVisible ? opacity : 0,
-                        animation: isNewest ? 'slideInFromTop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)' : 'stackCollapse 0.3s ease-out',
-                        pointerEvents: reverseIndex > 2 ? 'none' : 'auto', // Solo los 3 más recientes son interactuables
-                        transformOrigin: 'top center',
-                        willChange: 'transform, opacity'
+                        top: `${Math.min(scannedProducts.length, 4) * 16 + 20}px`,
+                        zIndex: 5,
+                        pointerEvents: 'none'
+                      }}
+                    >
+                      <div className="bg-gray-100 rounded-2xl p-3 text-center border-2 border-dashed border-gray-300">
+                        <p className="text-xs font-semibold text-gray-500">
+                          +{scannedProducts.length - 4} producto{scannedProducts.length - 4 !== 1 ? 's' : ''} más
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Modo Lista Expandida */
+                <div className="space-y-3" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-200">
+                    <h3 className="text-lg font-bold text-gray-900">Productos escaneados ({scannedProducts.length})</h3>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsExpanded(false);
+                      }}
+                      className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-all active:scale-95 shadow-sm"
+                      title="Colapsar"
+                    >
+                      <X className="w-5 h-5 text-gray-600" />
+                    </button>
+                  </div>
+                  {scannedProducts.map((product, index) => (
+                    <div
+                      key={`${product.id}-expanded-${index}`}
+                      style={{
+                        animation: `expandList 0.3s ease-out ${index * 0.05}s both`
                       }}
                     >
                       <SwipeableProductCard
@@ -579,30 +652,13 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
                         onRemove={onRemoveProduct}
                       />
                     </div>
-                  );
-                })}
-                
-                {/* Indicador de más productos si hay más de 4 */}
-                {scannedProducts.length > 4 && (
-                  <div 
-                    className="absolute left-4 right-4"
-                    style={{
-                      top: `${Math.min(scannedProducts.length, 4) * 16 + 20}px`,
-                      zIndex: 5,
-                      pointerEvents: 'none'
-                    }}
-                  >
-                    <div className="bg-gray-100 rounded-2xl p-3 text-center border-2 border-dashed border-gray-300">
-                      <p className="text-xs font-semibold text-gray-500">
-                        +{scannedProducts.length - 4} producto{scannedProducts.length - 4 !== 1 ? 's' : ''} más
-                      </p>
-                    </div>
-                  </div>
-                )}
+                  ))}
+                </div>
+              )}
               </div>
             </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* Footer con resumen y botón Finalizar */}
