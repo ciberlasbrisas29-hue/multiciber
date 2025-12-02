@@ -744,7 +744,7 @@ const BarcodeScanner = forwardRef<BarcodeScannerRef, BarcodeScannerProps>(({
       )}
     </div>
   );
-};
+});
 
 BarcodeScanner.displayName = 'BarcodeScanner';
 
