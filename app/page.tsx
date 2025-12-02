@@ -578,19 +578,19 @@ const HomePage = () => {
       setIsSaleDetailModalOpen(true);
       
       try {
-        // Si ya tenemos los datos de la venta, usarlos directamente
-        if (movement.saleData) {
-          setSelectedSale(movement.saleData);
-        } else {
-          // Si no, hacer fetch de la venta
-          const response = await fetch(`/api/sales/${movement.id}`);
-          const data = await response.json();
-          if (data.success) {
-            setSelectedSale(data.data);
-          } else {
-            console.error('Error obteniendo detalles de venta:', data.message);
-            setSelectedSale(null);
+        // Siempre hacer fetch de la venta para obtener los datos completos con el costo populado
+        const response = await fetch(`/api/sales/${movement.id}?_t=${Date.now()}`, {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate'
           }
+        });
+        const data = await response.json();
+        if (data.success) {
+          setSelectedSale(data.data);
+        } else {
+          console.error('Error obteniendo detalles de venta:', data.message);
+          setSelectedSale(null);
         }
       } catch (error) {
         console.error('Error obteniendo detalles de venta:', error);
@@ -675,7 +675,7 @@ const HomePage = () => {
             <div className="w-12 h-12 rounded-full bg-teal-500 flex items-center justify-center mb-2 group-hover:bg-teal-600 transition-colors shadow-sm">
               <Building2 className="w-6 h-6 text-white" />
             </div>
-            <span className="text-xs font-semibold text-gray-700">Proveedores</span>
+            <span className="text-xs font-semibold text-gray-700">Proveedor</span>
           </button>
         </div>
 

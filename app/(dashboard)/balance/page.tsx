@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { dashboardService, salesService, expensesService } from '@/services/api';
 import SaleDetailModal from '@/components/SaleDetailModal';
+import DatePickerModal from '@/components/DatePickerModal';
 
 // Estilos para animaciones
 const balanceStyles = `
@@ -77,6 +78,7 @@ const BalancePage = () => {
   const [selectedSale, setSelectedSale] = useState<any>(null);
   const [isSaleDetailModalOpen, setIsSaleDetailModalOpen] = useState(false);
   const [loadingSaleDetail, setLoadingSaleDetail] = useState(false);
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
   // Actualizar activeTab cuando cambia el parámetro de la URL
   useEffect(() => {
@@ -437,20 +439,20 @@ const BalancePage = () => {
         {activeTab === 'activity' ? (
           <>
             {/* Tarjeta de Resumen Mejorada */}
-            <div className={`rounded-2xl shadow-md p-6 mb-6 mx-4 border overflow-hidden relative ${
+            <div className={`rounded-2xl shadow-md p-4 mb-4 mx-4 border overflow-hidden relative ${
               summary.balance < 0 
                 ? 'bg-gradient-to-br from-red-50/80 to-orange-50/80 border-red-200/50' 
                 : 'bg-purple-50/40 border-purple-200/30'
             }`}>
               <div>
-                <div className="flex items-start justify-between mb-6">
+                <div className="flex items-center justify-between mb-3">
                 <div className="flex-1">
-                    <p className="text-sm font-semibold text-gray-600 mb-2 flex items-center">
-                      <Calendar className="w-4 h-4 mr-2" />
+                    <p className="text-xs font-semibold text-gray-600 mb-1 flex items-center">
+                      <Calendar className="w-3.5 h-3.5 mr-1.5" />
                       Balance del {label}
                     </p>
                     <h2 
-                      className={`text-3xl font-bold mb-2 ${
+                      className={`text-2xl font-bold ${
                         summary.balance < 0 
                           ? 'text-red-500' 
                           : ''
@@ -461,41 +463,41 @@ const BalancePage = () => {
                     </h2>
                 </div>
                 {summary.balance >= 0 && (
-                    <div className="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-xs font-semibold flex items-center">
-                      <CheckCircle className="w-3.5 h-3.5 mr-1.5" />
+                    <div className="px-2.5 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-semibold flex items-center">
+                      <CheckCircle className="w-3 h-3 mr-1" />
                     Positivo
                     </div>
                   )}
                   {summary.balance < 0 && (
-                    <div className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-xs font-semibold flex items-center">
-                      <AlertCircle className="w-3.5 h-3.5 mr-1.5" />
+                    <div className="px-2.5 py-1 bg-red-100 text-red-700 rounded-lg text-xs font-semibold flex items-center">
+                      <AlertCircle className="w-3 h-3 mr-1" />
                       Negativo
                     </div>
                 )}
               </div>
 
-                <div className="grid grid-cols-2 gap-3 pt-4 border-t border-gray-200/50">
-                  <div className="bg-white/70 rounded-xl p-4 shadow-sm border border-green-200/50 cursor-pointer hover:bg-white/90 transition-colors" onClick={() => setActiveSubTab('income')}>
-                    <div className="flex items-center space-x-2.5 mb-2">
-                      <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
-                        <TrendingUp className="w-4 h-4 text-green-600" />
+                <div className="grid grid-cols-2 gap-2 pt-3 border-t border-gray-200/50">
+                  <div className="bg-white/70 rounded-lg p-3 shadow-sm border border-green-200/50 cursor-pointer hover:bg-white/90 transition-colors" onClick={() => setActiveSubTab('income')}>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0">
+                        <TrendingUp className="w-3.5 h-3.5 text-green-600" />
                   </div>
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-gray-600">Ingresos</p>
-                        <p className="text-base font-bold text-green-600 mt-0.5">
+                        <p className="text-sm font-bold text-green-600">
                           {formatCurrency(summary.totalIncome)}
                         </p>
                   </div>
                 </div>
                   </div>
-                  <div className="bg-white/70 rounded-xl p-4 shadow-sm border border-red-200/50 cursor-pointer hover:bg-white/90 transition-colors" onClick={() => setActiveSubTab('expenses')}>
-                    <div className="flex items-center space-x-2.5 mb-2">
-                      <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
-                        <TrendingDown className="w-4 h-4 text-red-600" />
+                  <div className="bg-white/70 rounded-lg p-3 shadow-sm border border-red-200/50 cursor-pointer hover:bg-white/90 transition-colors" onClick={() => setActiveSubTab('expenses')}>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
+                        <TrendingDown className="w-3.5 h-3.5 text-red-600" />
                       </div>
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-gray-600">Egresos</p>
-                        <p className="text-base font-bold text-red-600 mt-0.5">
+                        <p className="text-sm font-bold text-red-600">
                           {formatCurrency(summary.totalExpenses)}
                         </p>
                       </div>
@@ -513,16 +515,8 @@ const BalancePage = () => {
                   Período
                 </h3>
                 <button
-                  onClick={() => {
-                    const input = document.createElement('input');
-                    input.type = 'date';
-                    input.value = selectedDate.toISOString().split('T')[0];
-                    input.onchange = (e: any) => {
-                      setSelectedDate(new Date(e.target.value));
-                      setDateRange('custom');
-                    };
-                    input.click();
-                  }}
+                  type="button"
+                  onClick={() => setIsDatePickerOpen(true)}
                   className="p-2 rounded-lg bg-purple-100 hover:bg-purple-200 transition-colors active:scale-95"
                   style={{ color: '#7031f8' }}
                 >
@@ -708,32 +702,32 @@ const BalancePage = () => {
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: '#7031f8' }}></div>
                   </div>
                 ) : filteredDebts.length === 0 ? (
-                  <div className="text-center py-12 flex flex-col items-center justify-center h-full">
+                  <div className="text-center py-8 flex flex-col items-center justify-center h-full">
                     {/* Ilustración de billetes con X */}
-                    <div className="relative mb-6">
+                    <div className="relative mb-4">
                       {/* Stack de billetes verdes */}
                       <div className="relative">
-                        <div className="w-24 h-32 bg-gradient-to-br from-green-400 to-green-600 rounded-lg shadow-lg transform rotate-[-8deg] relative z-10">
+                        <div className="w-20 h-28 bg-gradient-to-br from-green-400 to-green-600 rounded-lg shadow-lg transform rotate-[-8deg] relative z-10">
                           <div className="absolute inset-0 bg-gradient-to-b from-green-300/50 to-transparent rounded-lg"></div>
-                          <div className="absolute top-2 left-2 right-2 h-1 bg-green-200/30 rounded"></div>
-                          <div className="absolute top-6 left-2 right-2 h-1 bg-green-200/30 rounded"></div>
-                          <div className="absolute top-10 left-2 right-2 h-1 bg-green-200/30 rounded"></div>
+                          <div className="absolute top-1.5 left-1.5 right-1.5 h-0.5 bg-green-200/30 rounded"></div>
+                          <div className="absolute top-5 left-1.5 right-1.5 h-0.5 bg-green-200/30 rounded"></div>
+                          <div className="absolute top-8 left-1.5 right-1.5 h-0.5 bg-green-200/30 rounded"></div>
                         </div>
-                        <div className="w-24 h-32 bg-gradient-to-br from-green-500 to-green-700 rounded-lg shadow-md transform rotate-[4deg] absolute top-2 left-2 z-0">
+                        <div className="w-20 h-28 bg-gradient-to-br from-green-500 to-green-700 rounded-lg shadow-md transform rotate-[4deg] absolute top-1.5 left-1.5 z-0">
                           <div className="absolute inset-0 bg-gradient-to-b from-green-400/50 to-transparent rounded-lg"></div>
                         </div>
                         {/* Banda amarilla/clara */}
-                        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-28 h-3 bg-yellow-200 rounded-full z-20 shadow-sm"></div>
+                        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-24 h-2.5 bg-yellow-200 rounded-full z-20 shadow-sm"></div>
                         {/* X roja en círculo */}
-                        <div className="absolute -top-2 -right-2 w-12 h-12 bg-red-500 rounded-full flex items-center justify-center shadow-lg z-30 border-4 border-white">
-                          <X className="w-6 h-6 text-white" />
+                        <div className="absolute -top-1.5 -right-1.5 w-10 h-10 bg-red-500 rounded-full flex items-center justify-center shadow-lg z-30 border-2 border-white">
+                          <X className="w-5 h-5 text-white" />
                         </div>
                 </div>
               </div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">
+                    <h3 className="text-lg font-bold text-gray-900 mb-1.5">
                       No tienes deudas {debtSubTab === 'receivable' ? 'por cobrar' : 'por pagar'}
                     </h3>
-                    <p className="text-gray-500 text-sm">
+                    <p className="text-gray-500 text-xs">
                       {debtSubTab === 'receivable' 
                         ? "Créalas en 'Nueva venta'" 
                         : "Créalas en 'Nuevo gasto'"}
@@ -777,26 +771,26 @@ const BalancePage = () => {
               </div>
 
                           {/* Información Mejorada */}
-                          <div className="flex-1 min-w-0">
-                            <p className="font-bold text-gray-900 text-lg truncate mb-1">
+                          <div className="flex-1 min-w-0 pr-2">
+                            <p className="font-semibold text-gray-900 text-base break-words mb-1">
                               {debt.concept}
                             </p>
                             {debt.description && (
-                              <p className="text-xs text-gray-500 mb-2">{debt.description}</p>
+                              <p className="text-xs text-gray-500 mb-1.5 break-words">{debt.description}</p>
                             )}
-                            <div className="flex items-center space-x-3 mt-2 flex-wrap">
+                            <div className="flex items-center space-x-2 mt-1.5 flex-wrap gap-y-1">
                               {debt.dueDate && (
                                 <>
-                                  <div className={`flex items-center text-xs font-semibold px-2.5 py-1 rounded-full ${
+                                  <div className={`flex items-center text-xs font-semibold px-2 py-0.5 rounded-full ${
                                     isOverdue 
                                       ? 'bg-red-100 text-red-700 border border-red-300' 
                                       : 'bg-gray-100 text-gray-600'
                                   }`}>
-                                    <Calendar className="w-3 h-3 mr-1.5" />
+                                    <Calendar className="w-3 h-3 mr-1" />
                                     <span>Vence: {formatDate(debt.dueDate)}</span>
                                   </div>
                                   {isOverdue && (
-                                    <span className="text-xs text-red-600 font-bold flex items-center bg-red-100 px-2.5 py-1 rounded-full border border-red-300">
+                                    <span className="text-xs text-red-600 font-bold flex items-center bg-red-100 px-2 py-0.5 rounded-full border border-red-300">
                                       <AlertCircle className="w-3 h-3 mr-1" />
                                       Vencida
                                     </span>
@@ -805,15 +799,15 @@ const BalancePage = () => {
                                 </>
                               )}
                               <div className="flex items-center text-xs text-gray-500">
-                                <Clock className="w-3 h-3 mr-1.5" />
+                                <Clock className="w-3 h-3 mr-1" />
                                 {formatDate(debt.createdAt)}
                   </div>
                 </div>
               </div>
 
                           {/* Monto Mejorado */}
-                          <div className="ml-4 flex-shrink-0 text-right">
-                            <p className={`text-2xl font-extrabold ${
+                          <div className="ml-2 flex-shrink-0 text-right">
+                            <p className={`text-lg font-bold ${
                               debt.type === 'receivable' ? 'text-green-600' : 'text-red-600'
                             }`}>
                               {formatCurrency(debt.amount)}
@@ -863,6 +857,18 @@ const BalancePage = () => {
         }}
         sale={selectedSale}
         loading={loadingSaleDetail}
+      />
+
+      {/* Modal de selección de fecha */}
+      <DatePickerModal
+        isOpen={isDatePickerOpen}
+        selectedDate={selectedDate}
+        onSelectDate={(date) => {
+          setSelectedDate(date);
+          setDateRange('custom');
+          setIsDatePickerOpen(false);
+        }}
+        onClose={() => setIsDatePickerOpen(false)}
       />
     </>
   );

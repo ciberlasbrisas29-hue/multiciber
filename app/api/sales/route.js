@@ -184,6 +184,7 @@ export async function POST(req) {
       }
       
       const priceToUse = item.priceAtSale || product.price;
+      const costToUse = product.cost || 0;
       actualCalculatedTotal += priceToUse * item.quantity;
 
       itemsForSale.push({
@@ -192,6 +193,7 @@ export async function POST(req) {
         quantity: item.quantity,
         unitPrice: priceToUse,      // Corrección: Coincidir con el modelo Sale.js
         totalPrice: priceToUse * item.quantity,
+        cost: costToUse,            // Guardar el costo del producto al momento de la venta
       });
 
         // Reducir stock del producto

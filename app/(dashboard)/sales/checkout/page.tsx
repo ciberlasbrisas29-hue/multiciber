@@ -29,6 +29,7 @@ const CheckoutPage = () => {
   const searchParams = useSearchParams();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning'; isVisible: boolean }>({
     message: '',
     type: 'success',
@@ -167,26 +168,26 @@ const CheckoutPage = () => {
   return (
     <>
       {/* Encabezado */}
-      <div className="bg-yellow-400 px-6 py-4 mb-4 -mx-6 rounded-b-2xl">
+      <div className="px-6 py-4 mb-4 -mx-6 rounded-b-2xl shadow-md" style={{ backgroundColor: '#7031f8' }}>
         <div className="flex items-center justify-between">
           <button
             onClick={() => router.back()}
             className="w-10 h-10 flex items-center justify-center"
           >
-            <ArrowLeft className="w-6 h-6 text-gray-900" />
+            <ArrowLeft className="w-5 h-5 text-white" />
           </button>
-          <h1 className="text-lg font-bold text-gray-900">Confirma precios y cantidades</h1>
+          <h1 className="text-lg font-semibold text-white">Confirma precios y cantidades</h1>
           <div className="w-10"></div>
         </div>
       </div>
 
       {/* Banner Informativo */}
-      <div className="bg-blue-100 border border-blue-200 rounded-2xl p-4 mb-6 flex items-start space-x-3">
-        <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0">
-          <span className="text-white font-bold text-sm">i</span>
+      <div className="bg-purple-50 border border-purple-200 rounded-2xl p-4 mb-6 flex items-start space-x-3">
+        <div className="w-10 h-10 rounded-full bg-lilawhite flex items-center justify-center flex-shrink-0">
+          <span className="text-xl">😊</span>
         </div>
-        <p className="text-sm text-blue-900 flex-1 leading-relaxed">
-          Al crear la venta se descontarán las unidades seleccionadas de tu inventario.
+        <p className="text-sm text-purple-900 flex-1 leading-relaxed">
+          Revisa los precios y cantidades antes de confirmar. Los productos se descontarán automáticamente del inventario.
         </p>
       </div>
 
@@ -199,17 +200,23 @@ const CheckoutPage = () => {
           >
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-start space-x-4 flex-1">
-                {/* Imagen del producto */}
-                <div className="w-16 h-16 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
-                  {item.image && item.image !== '/assets/images/products/default-product.jpg' ? (
+                {/* Imagen del producto - Más grande y visible */}
+                <div className="w-24 h-24 rounded-2xl bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0 border border-purple-100 shadow-sm">
+                  {item.image && 
+                   !item.image.includes('/assets/images/products/default-product') && 
+                   !imageErrors.has(item.id || item._id) ? (
                     <img
                       src={item.image}
                       alt={item.name}
                       className="w-full h-full object-cover"
+                      onError={() => {
+                        // Si falla la imagen, agregar a la lista de errores
+                        setImageErrors(prev => new Set(prev).add(item.id || item._id));
+                      }}
                     />
                   ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-purple-200 to-indigo-200 flex items-center justify-center">
-                      <span className="text-xl font-bold text-purple-600">
+                    <div className="w-full h-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
+                      <span className="text-3xl font-bold text-white">
                         {item.name.charAt(0).toUpperCase()}
                       </span>
                     </div>
@@ -307,28 +314,31 @@ const CheckoutPage = () => {
       </div>
 
       {/* Footer Fijo */}
-      <div className="fixed bottom-24 left-0 right-0 bg-gray-900 px-6 py-4 rounded-t-3xl shadow-lg z-40">
+      <div className="fixed bottom-24 left-0 right-0 px-6 py-4 rounded-t-3xl shadow-2xl z-40" style={{ backgroundColor: '#7031f8' }}>
         <div className="flex items-center justify-between max-w-md mx-auto">
           <button
             onClick={handleConfirm}
             disabled={loading || cartItems.length === 0}
-            className="flex items-center space-x-2 text-white font-medium disabled:opacity-50"
+            className="flex items-center space-x-3 text-white font-semibold disabled:opacity-50 transition-opacity active:scale-95"
           >
-            <span className="w-6 h-6 rounded bg-white/20 flex items-center justify-center text-sm font-bold">
+            <span className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-sm font-bold border border-white/30">
               {cartItems.length}
             </span>
-            <span>Confirmar</span>
+            <span className="text-base">Confirmar</span>
           </button>
-          <div className="flex items-center space-x-2">
-            <span className="text-xl font-bold text-white">
-              ${getTotal().toFixed(2)}
-            </span>
+          <div className="flex items-center space-x-3">
+            <div className="text-right">
+              <p className="text-xs text-white/80 font-medium">Total</p>
+              <span className="text-2xl font-bold text-white">
+                ${getTotal().toFixed(2)}
+              </span>
+            </div>
             <button
               onClick={handleConfirm}
               disabled={loading || cartItems.length === 0}
-              className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center disabled:opacity-50"
+              className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center disabled:opacity-50 border border-white/30 transition-all active:scale-95 hover:bg-white/30"
             >
-              <ChevronRight className="w-5 h-5 text-white" />
+              <ChevronRight className="w-6 h-6 text-white" />
             </button>
           </div>
         </div>

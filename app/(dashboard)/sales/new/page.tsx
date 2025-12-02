@@ -440,7 +440,7 @@ const NewSalePage = () => {
           if (existing) {
             return prev.map(p =>
               p.id === scannedProduct.id
-                ? { ...p, quantity: p.quantity + scannedProduct.quantity }
+                ? { ...p, quantity: p.quantity + scannedProduct.quantity, image: scannedProduct.image || p.image }
                 : p
             );
           } else {
@@ -450,7 +450,8 @@ const NewSalePage = () => {
               price: scannedProduct.price,
               quantity: scannedProduct.quantity,
               stock: scannedProduct.stock,
-              _id: scannedProduct.id
+              _id: scannedProduct.id,
+              image: scannedProduct.image
             }];
           }
         });
@@ -523,7 +524,8 @@ const NewSalePage = () => {
       quantity: item.quantity,
       subtotal: item.price * item.quantity,
       stock: item.stock,
-      _id: item._id
+      _id: item._id,
+      image: item.image
     }));
     
     // Imprimir en consola

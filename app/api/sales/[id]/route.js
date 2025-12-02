@@ -21,21 +21,41 @@ export async function GET(req, { params }) {
       return NextResponse.json({ success: false, message: 'ID de venta inválido' }, { status: 400 });
     }
 
-    const sale = await Sale.findOne({
+    let sale = await Sale.findOne({
       _id: new mongoose.Types.ObjectId(id),
       createdBy: userId
     })
     .populate('createdBy', 'username')
-    .populate('items.product', 'name image')
-    .lean();
+    .populate({
+      path: 'items.product',
+      select: 'name image cost',
+      model: 'Product'
+    });
 
     if (!sale) {
       return NextResponse.json({ success: false, message: 'Venta no encontrada' }, { status: 404 });
     }
 
+    // Convertir a objeto y asegurar que el costo esté disponible
+    const saleData = sale.toObject ? sale.toObject() : JSON.parse(JSON.stringify(sale));
+
+    // Si los items no tienen costo guardado, obtenerlo del producto populado
+    if (saleData.items && saleData.items.length > 0) {
+      saleData.items = saleData.items.map(item => {
+        // Si el item no tiene costo guardado pero el producto populado sí, usarlo
+        if ((!item.cost || item.cost === 0) && item.product) {
+          // El producto puede ser un objeto o un ID
+          if (typeof item.product === 'object' && item.product !== null && item.product.cost) {
+            item.cost = item.product.cost;
+          }
+        }
+        return item;
+      });
+    }
+
     return NextResponse.json({
       success: true,
-      data: sale
+      data: saleData
     });
 
   } catch (error) {

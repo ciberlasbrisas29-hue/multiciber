@@ -51,7 +51,7 @@ const ExpensePaymentPage = () => {
   }> = [
     { value: 'cash', label: 'Efectivo', icon: Wallet },
     { value: 'card', label: 'Tarjeta', icon: CreditCard },
-    { value: 'transfer', label: 'Transferencia', icon: Building2 },
+    { value: 'transfer', label: 'Transf', icon: Building2 },
     { value: 'check', label: 'Cheque', icon: MoreHorizontal },
     { value: 'other', label: 'Otro', icon: MoreHorizontal },
   ];
@@ -158,24 +158,24 @@ const ExpensePaymentPage = () => {
   };
 
   return (
-    <div className="space-y-6 pb-24">
+    <div className="pb-24">
       {/* Header */}
-      <div className="bg-gradient-to-r from-red-600 to-pink-600 text-white px-6 py-4 flex items-center space-x-3 rounded-b-3xl shadow-lg -mt-4 mb-4">
+      <div className="bg-gradient-to-r from-red-600 to-pink-600 text-white px-6 py-4 flex items-center space-x-3 rounded-b-2xl shadow-md -mx-6 mb-4">
         <button
           onClick={() => router.back()}
-          className="p-2 hover:bg-white/20 rounded-full transition-colors"
+          className="p-2 hover:bg-white/20 rounded-full transition-colors active:scale-95"
         >
-          <ArrowLeft className="w-6 h-6 text-white" />
+          <ArrowLeft className="w-5 h-5 text-white" />
         </button>
-        <DollarSign className="w-6 h-6" />
-        <h1 className="text-xl font-bold text-white">Pagar Gasto</h1>
+        <DollarSign className="w-5 h-5" />
+        <h1 className="text-lg font-semibold text-white">Pagar Gasto</h1>
       </div>
 
-      <div className="px-6 py-4 space-y-6">
+      <div className="px-4 space-y-4">
         {/* Información del Gasto */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-red-100">
-          <h3 className="text-lg font-bold text-gray-900 mb-3">Información del Gasto</h3>
-          <div className="space-y-2">
+        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-200">
+          <h3 className="text-base font-semibold text-gray-900 mb-3">Información del Gasto</h3>
+          <div className="space-y-2.5">
             {expense.expenseNumber && (
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Número de Gasto:</span>
@@ -204,12 +204,12 @@ const ExpensePaymentPage = () => {
         </div>
 
         {/* Banner Informativo */}
-        <div className="bg-gradient-to-r from-red-50 to-pink-50 border border-red-200 rounded-xl p-4 flex items-start space-x-3 shadow-sm">
-          <div className="w-5 h-5 rounded-full bg-gradient-to-r from-red-500 to-pink-500 flex items-center justify-center flex-shrink-0 mt-0.5">
-            <Info className="w-3 h-3 text-white" />
+        <div className="bg-gradient-to-r from-red-50 to-pink-50 border border-red-200 rounded-xl p-3 flex items-start space-x-2.5">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-red-500 to-pink-500 flex items-center justify-center flex-shrink-0">
+            <Info className="w-4 h-4 text-white" />
           </div>
-          <p className="text-sm font-medium text-red-900">
-            Al confirmar el pago, este gasto se marcará como pagado y se registrará en tu balance.
+          <p className="text-xs text-red-900 leading-relaxed flex-1">
+            Una vez confirmado, el pago se registrará automáticamente y el gasto quedará marcado como pagado.
           </p>
         </div>
 
@@ -217,10 +217,10 @@ const ExpensePaymentPage = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Método de Pago */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2.5">
               Método de pago <span className="text-red-500">*</span>
             </label>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-5 gap-2">
               {paymentMethods.map((method) => {
                 const Icon = method.icon;
                 const isSelected = paymentMethod === method.value;
@@ -229,13 +229,13 @@ const ExpensePaymentPage = () => {
                     key={method.value}
                     type="button"
                     onClick={() => setPaymentMethod(method.value as 'cash' | 'card' | 'transfer' | 'check' | 'other')}
-                    className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all shadow-sm ${
+                    className={`flex flex-col items-center justify-center p-2.5 rounded-xl border-2 transition-all shadow-sm active:scale-95 ${
                       isSelected
                         ? 'bg-gradient-to-br from-red-500 to-pink-500 border-red-600 text-white shadow-md'
                         : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-red-300'
                     }`}
                   >
-                    <Icon className={`w-6 h-6 mb-1 ${isSelected ? 'text-white' : 'text-gray-600'}`} />
+                    <Icon className={`w-5 h-5 mb-1 ${isSelected ? 'text-white' : 'text-gray-600'}`} />
                     <span className="text-xs font-medium">{method.label}</span>
                   </button>
                 );
@@ -244,7 +244,7 @@ const ExpensePaymentPage = () => {
           </div>
 
           {/* Resumen de Pago */}
-          <div className="bg-gradient-to-r from-red-50 to-pink-50 border border-red-200 rounded-xl p-4">
+          <div className="bg-gradient-to-r from-red-50 to-pink-50 border border-red-200 rounded-xl p-3.5">
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-700">Monto a Pagar:</span>
@@ -260,11 +260,11 @@ const ExpensePaymentPage = () => {
           </div>
 
           {/* Botón de Acción Principal */}
-          <div className="pt-4 pb-6">
+          <div className="pt-3 pb-4">
             <button
               type="submit"
               disabled={loading}
-              className={`w-full py-4 rounded-xl font-bold text-white text-base transition-all shadow-lg ${
+              className={`w-full py-3.5 rounded-xl font-semibold text-white text-sm transition-all shadow-lg ${
                 loading
                   ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 active:scale-[0.98] shadow-md'
