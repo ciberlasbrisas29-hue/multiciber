@@ -486,6 +486,12 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
             transform: translateY(0);
           }
         }
+        /* Asegurar que el producto frontal tenga opacidad completa */
+        .product-front-item,
+        .product-front-item * {
+          opacity: 1 !important;
+          mix-blend-mode: normal !important;
+        }
       `}} />
       {/* Header */}
       <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-4 flex items-center justify-between">
@@ -580,17 +586,26 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
                       <div
                         key={`${product.id}-${realIndex}`}
                         className={`absolute left-4 right-4 transition-all duration-500 ease-out ${
-                          isNewest ? 'cursor-pointer' : ''
+                          isNewest ? 'cursor-pointer product-front-item' : ''
                         }`}
                         style={{
                           top: `${offset}px`,
                           zIndex: zIndex,
                           transform: `scale(${scale}) translateY(${reverseIndex > 0 ? reverseIndex * 1.5 : 0}px)`,
-                          opacity: opacity,
+                          // El producto frontal (isNewest) debe tener opacity: 1 explícitamente
+                          opacity: isNewest ? 1 : opacity,
                           animation: isNewest ? 'slideInFromTop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)' : 'none',
-                          pointerEvents: reverseIndex > 2 ? 'none' : (isNewest ? 'auto' : 'none'), // Solo el más reciente es clickeable
+                          pointerEvents: reverseIndex > 2 ? 'none' : (isNewest ? 'auto' : 'none'),
                           transformOrigin: 'top center',
-                          willChange: 'transform, opacity'
+                          willChange: 'transform, opacity',
+                          // Asegurar que el producto frontal no tenga ninguna transparencia
+                          ...(isNewest ? {
+                            opacity: 1,
+                            mixBlendMode: 'normal',
+                            backdropFilter: 'none',
+                            WebkitBackdropFilter: 'none',
+                            isolation: 'isolate' // Crear un nuevo contexto de apilamiento para evitar herencia de opacidad
+                          } : {})
                         }}
                         onClick={(e) => {
                           // Solo el último producto (reverseIndex === 0) puede expandir, y solo si no se hace click en los botones
