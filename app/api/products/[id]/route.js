@@ -59,6 +59,8 @@ export async function GET(req, { params }) {
 export async function PUT(req, { params }) {
   await dbConnect();
   
+  let productId = null; // Definir productId fuera del try para que esté disponible en el catch
+  
   try {
     const userId = await verifyAuth();
     
@@ -68,7 +70,13 @@ export async function PUT(req, { params }) {
 
     // Handle params (may be a Promise in Next.js 16+)
     const resolvedParams = params instanceof Promise ? await params : params;
+    
+    if (!resolvedParams || !resolvedParams.id) {
+      return NextResponse.json({ success: false, message: 'ID de producto no proporcionado' }, { status: 400 });
+    }
+    
     const { id } = resolvedParams;
+    productId = id; // Asignar a productId para que esté disponible en el catch
     
     // Validate MongoDB ObjectId format
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -277,9 +285,24 @@ export async function PUT(req, { params }) {
 
     await product.save();
 
+    // Obtener datos públicos del producto
+    let publicData;
+    try {
+      publicData = product.getPublicData ? product.getPublicData() : product.toObject();
+      // Asegurarse de eliminar createdBy si existe
+      if (publicData.createdBy) {
+        delete publicData.createdBy;
+      }
+    } catch (getDataError) {
+      logger.error('Error al obtener datos públicos del producto:', getDataError);
+      // Si falla getPublicData, usar toObject como fallback
+      publicData = product.toObject();
+      delete publicData.createdBy;
+    }
+
     return NextResponse.json({
       success: true,
-      data: product.getPublicData(),
+      data: publicData,
       message: 'Producto actualizado exitosamente'
     });
 
@@ -287,8 +310,8 @@ export async function PUT(req, { params }) {
     logger.error('Error al actualizar producto:', {
       error: error.message,
       stack: error.stack,
-      productId: id,
-      userId: userId?.toString()
+      productId: productId || 'unknown',
+      userId: typeof userId !== 'undefined' ? userId?.toString() : 'unknown'
     });
     
     // Si se subió una nueva imagen a Cloudinary pero falló la actualización del producto, eliminarla
