@@ -52,6 +52,41 @@ const BarcodeScanner = forwardRef<BarcodeScannerRef, BarcodeScannerProps>(({
   const productsListRef = useRef<HTMLDivElement>(null); // Ref para el contenedor de productos (auto-scroll)
   const onScanErrorRef = useRef<(() => void) | null>(null); // Ref para el callback de error
 
+  // Función para reproducir un beep corto y agudo (como escáner de supermercado)
+  const playBeep = useCallback(() => {
+    try {
+      // Crear un contexto de audio
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      
+      // Crear un oscilador para generar el tono
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      // Configurar el oscilador (frecuencia más alta para sonido agudo como cajero)
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.value = 4200; // Frecuencia muy aguda (4200Hz - como escáner de supermercado)
+      oscillator.type = 'sine'; // Tipo de onda (sine = suave)
+      
+      // Configurar el volumen (gain) para un beep corto y claro
+      gainNode.gain.setValueAtTime(0.4, audioContext.currentTime); // Volumen inicial un poco más alto
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.08); // Fade out rápido
+      
+      // Reproducir el beep por 80ms (más corto y agudo)
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.08);
+      
+      // Limpiar el contexto después de que termine
+      oscillator.onended = () => {
+        audioContext.close();
+      };
+    } catch (error) {
+      // Si falla la reproducción del beep, no interrumpir el flujo
+      console.warn('No se pudo reproducir el beep:', error);
+    }
+  }, []);
+
   // Función para reproducir un beep de error más largo
   const playErrorBeep = useCallback(() => {
     try {
@@ -120,41 +155,6 @@ const BarcodeScanner = forwardRef<BarcodeScannerRef, BarcodeScannerProps>(({
       setIsScannerOpen(false);
     };
   }, [isOpen, setIsScannerOpen]);
-
-  // Función para reproducir un beep corto y agudo (como escáner de supermercado)
-  const playBeep = useCallback(() => {
-    try {
-      // Crear un contexto de audio
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      
-      // Crear un oscilador para generar el tono
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      
-      // Configurar el oscilador (frecuencia más alta para sonido agudo como cajero)
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      
-      oscillator.frequency.value = 4200; // Frecuencia muy aguda (4200Hz - como escáner de supermercado)
-      oscillator.type = 'sine'; // Tipo de onda (sine = suave)
-      
-      // Configurar el volumen (gain) para un beep corto y claro
-      gainNode.gain.setValueAtTime(0.4, audioContext.currentTime); // Volumen inicial un poco más alto
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.08); // Fade out rápido
-      
-      // Reproducir el beep por 80ms (más corto y agudo)
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.08);
-      
-      // Limpiar el contexto después de que termine
-      oscillator.onended = () => {
-        audioContext.close();
-      };
-    } catch (error) {
-      // Si falla la reproducción del beep, no interrumpir el flujo
-      console.warn('No se pudo reproducir el beep:', error);
-    }
-  }, []);
 
   useEffect(() => {
     if (isOpen) {
