@@ -157,19 +157,53 @@ export async function PUT(req, { params }) {
     }
 
     // Validación de barcode si se está cambiando
-    // El índice único de MongoDB es global, así que debemos verificar todos los productos
+    // Permitir reutilizar códigos de barras de productos eliminados (isActive: false)
+    // pero bloquear si el código pertenece a un producto activo
     if (barcode && barcode.trim() !== '' && barcode !== product.barcode) {
-      const existingProduct = await Product.findOne({ 
-        barcode: barcode.trim(),
+      const trimmedBarcode = barcode.trim();
+      
+      // Primero verificar si existe un producto activo con ese código
+      const activeProduct = await Product.findOne({ 
+        barcode: trimmedBarcode,
         _id: { $ne: new mongoose.Types.ObjectId(id) },
-        createdBy: userId
-        // No filtrar por isActive porque el índice único es global
+        createdBy: userId,
+        isActive: true
       });
-      if (existingProduct) {
+      
+      if (activeProduct) {
         return NextResponse.json({ 
           success: false, 
-          message: `El código de barras "${barcode.trim()}" ya está en uso por otro producto (${existingProduct.name})` 
+          message: `El código de barras "${trimmedBarcode}" ya está en uso por el producto activo "${activeProduct.name}"` 
         }, { status: 400 });
+      }
+      
+      // Si hay un producto eliminado con ese código, está bien reutilizarlo
+      // El índice único de MongoDB permitirá esto si eliminamos el barcode del producto eliminado
+      // o si usamos un índice compuesto. Por ahora, simplemente permitimos la reutilización.
+      const deletedProduct = await Product.findOne({ 
+        barcode: trimmedBarcode,
+        _id: { $ne: new mongoose.Types.ObjectId(id) },
+        createdBy: userId,
+        isActive: false
+      });
+      
+      if (deletedProduct) {
+        // Si hay un producto eliminado con ese código, limpiar su barcode para evitar conflicto con el índice único
+        // Esto permite reutilizar el código de barras
+        try {
+          deletedProduct.barcode = undefined;
+          await deletedProduct.save();
+          logger.info('Barcode liberado de producto eliminado para reutilización', {
+            deletedProductId: deletedProduct._id,
+            barcode: trimmedBarcode,
+            newProductId: id
+          });
+        } catch (cleanupError) {
+          logger.warn('No se pudo limpiar barcode del producto eliminado, pero continuamos', {
+            error: cleanupError.message
+          });
+          // Continuar de todas formas, el índice único podría fallar pero lo manejaremos
+        }
       }
     }
 
