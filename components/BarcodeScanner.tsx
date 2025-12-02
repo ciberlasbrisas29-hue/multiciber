@@ -556,12 +556,12 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
               onClick={() => setIsExpanded(false)}
             />
           )}
-          <div className="bg-white border-t border-gray-200 flex-shrink-0 relative z-[9999]">
-            <div ref={productsListRef} className={`overflow-y-auto overflow-x-hidden transition-all duration-300 ${isExpanded ? 'max-h-[60vh]' : 'max-h-[40vh]'}`}>
+          <div className="bg-white border-t border-gray-200 flex-shrink-0 relative z-[9999] shadow-lg">
+            <div ref={productsListRef} className={`overflow-y-auto overflow-x-hidden transition-all duration-300 ease-out ${isExpanded ? 'max-h-[60vh]' : 'max-h-[40vh]'}`}>
               <div className="p-4 relative">
                 {!isExpanded ? (
-                /* Modo Stack Apilado */
-                <div className="relative" style={{ minHeight: `${Math.min(scannedProducts.length, 4) * 16 + 100}px` }}>
+                /* Modo Stack Apilado - Solo mostrar el último producto completo */
+                <div className="relative" style={{ minHeight: `${Math.min(scannedProducts.length, 4) * 14 + 120}px` }}>
                   {scannedProducts.slice(-4).map((product, sliceIndex) => {
                     const startIndex = Math.max(0, scannedProducts.length - 4);
                     const realIndex = startIndex + sliceIndex;
@@ -569,29 +569,33 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
                     
                     if (reverseIndex < 0 || reverseIndex > 3) return null;
                     
-                    const offset = reverseIndex * 16;
+                    const offset = reverseIndex * 14; // Más compacto: 14px en lugar de 16px
                     const zIndex = reverseIndex + 10;
-                    const scale = Math.max(1 - (reverseIndex * 0.04), 0.88);
-                    const opacity = Math.max(1 - (reverseIndex * 0.12), 0.5);
-                    const isNewest = realIndex === scannedProducts.length - 1;
+                    const scale = Math.max(1 - (reverseIndex * 0.05), 0.85); // Más diferencia de escala
+                    // El último producto (reverseIndex === 0) debe tener opacidad 1.0, los demás progresivamente menos
+                    const opacity = reverseIndex === 0 ? 1.0 : Math.max(1 - (reverseIndex * 0.2), 0.3);
+                    const isNewest = reverseIndex === 0; // Solo el más reciente (reverseIndex 0)
                     
                     return (
                       <div
                         key={`${product.id}-${realIndex}`}
-                        className="absolute left-4 right-4 transition-all duration-500 ease-out"
+                        className={`absolute left-4 right-4 transition-all duration-500 ease-out ${
+                          isNewest ? 'cursor-pointer' : ''
+                        }`}
                         style={{
                           top: `${offset}px`,
                           zIndex: zIndex,
-                          transform: `scale(${scale}) translateY(${reverseIndex > 0 ? reverseIndex * 2 : 0}px)`,
+                          transform: `scale(${scale}) translateY(${reverseIndex > 0 ? reverseIndex * 1.5 : 0}px)`,
                           opacity: opacity,
                           animation: isNewest ? 'slideInFromTop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)' : 'none',
-                          pointerEvents: reverseIndex > 2 ? 'none' : 'auto',
+                          pointerEvents: reverseIndex > 2 ? 'none' : (isNewest ? 'auto' : 'none'), // Solo el más reciente es clickeable
                           transformOrigin: 'top center',
                           willChange: 'transform, opacity'
                         }}
                         onClick={(e) => {
-                          // Solo el último producto puede expandir, y solo si no se hace click en los botones
+                          // Solo el último producto (reverseIndex === 0) puede expandir, y solo si no se hace click en los botones
                           if (isNewest && !(e.target as HTMLElement).closest('button')) {
+                            e.stopPropagation();
                             setIsExpanded(true);
                           }
                         }}
@@ -610,13 +614,13 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
                     <div 
                       className="absolute left-4 right-4"
                       style={{
-                        top: `${Math.min(scannedProducts.length, 4) * 16 + 20}px`,
+                        top: `${Math.min(scannedProducts.length, 4) * 14 + 16}px`,
                         zIndex: 5,
                         pointerEvents: 'none'
                       }}
                     >
-                      <div className="bg-gray-100 rounded-2xl p-3 text-center border-2 border-dashed border-gray-300">
-                        <p className="text-xs font-semibold text-gray-500">
+                      <div className="bg-gray-50 rounded-xl p-2 text-center border border-dashed border-gray-300">
+                        <p className="text-xs font-medium text-gray-500">
                           +{scannedProducts.length - 4} producto{scannedProducts.length - 4 !== 1 ? 's' : ''} más
                         </p>
                       </div>
@@ -625,34 +629,36 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
                 </div>
               ) : (
                 /* Modo Lista Expandida */
-                <div className="space-y-3" onClick={(e) => e.stopPropagation()}>
-                  <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-200">
-                    <h3 className="text-lg font-bold text-gray-900">Productos escaneados ({scannedProducts.length})</h3>
+                <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center justify-between mb-3 pb-3 border-b border-gray-200">
+                    <h3 className="text-base font-bold text-gray-900">Productos escaneados ({scannedProducts.length})</h3>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         setIsExpanded(false);
                       }}
-                      className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-all active:scale-95 shadow-sm"
+                      className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-all active:scale-95 shadow-sm"
                       title="Colapsar"
                     >
-                      <X className="w-5 h-5 text-gray-600" />
+                      <X className="w-4 h-4 text-gray-600" />
                     </button>
                   </div>
-                  {scannedProducts.map((product, index) => (
-                    <div
-                      key={`${product.id}-expanded-${index}`}
-                      style={{
-                        animation: `expandList 0.3s ease-out ${index * 0.05}s both`
-                      }}
-                    >
-                      <SwipeableProductCard
-                        product={product}
-                        onUpdateQuantity={onUpdateQuantity}
-                        onRemove={onRemoveProduct}
-                      />
-                    </div>
-                  ))}
+                  <div className="space-y-2 max-h-[50vh] overflow-y-auto">
+                    {scannedProducts.map((product, index) => (
+                      <div
+                        key={`${product.id}-expanded-${index}`}
+                        style={{
+                          animation: `expandList 0.3s ease-out ${index * 0.03}s both`
+                        }}
+                      >
+                        <SwipeableProductCard
+                          product={product}
+                          onUpdateQuantity={onUpdateQuantity}
+                          onRemove={onRemoveProduct}
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
               </div>
