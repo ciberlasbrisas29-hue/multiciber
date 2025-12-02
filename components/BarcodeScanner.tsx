@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState, useCallback, useImperativeHandle, forwardRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
 import { X, Camera, Scan, Plus, Minus, Check, Clock, ChevronRight, Trash2 } from 'lucide-react';
 import { useScanner } from '@/contexts/ScannerContext';
@@ -15,16 +15,9 @@ interface BarcodeScannerProps {
   onUpdateQuantity?: (productId: string, change: number) => void; // Callback para actualizar cantidad
   onRemoveProduct?: (productId: string) => void; // Callback para eliminar producto
   onFinish?: () => void; // Callback para finalizar escaneo
-  onScanError?: () => void; // Callback para cuando hay un error al escanear (producto no encontrado)
 }
 
-export interface BarcodeScannerRef {
-  playBeep: () => void;
-  playErrorBeep: () => void;
-  clearProcessingCode: (barcode: string) => void;
-}
-
-const BarcodeScanner = forwardRef<BarcodeScannerRef, BarcodeScannerProps>(({ 
+const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ 
   onScan, 
   onClose, 
   isOpen, 
@@ -32,9 +25,8 @@ const BarcodeScanner = forwardRef<BarcodeScannerRef, BarcodeScannerProps>(({
   scannedProducts = [],
   onUpdateQuantity,
   onRemoveProduct,
-  onFinish,
-  onScanError
-}, ref) => {
+  onFinish
+}) => {
   const { setIsScannerOpen } = useScanner();
   const videoRef = useRef<HTMLVideoElement>(null);
   const codeReader = useRef<BrowserMultiFormatReader | null>(null);
@@ -50,10 +42,26 @@ const BarcodeScanner = forwardRef<BarcodeScannerRef, BarcodeScannerProps>(({
   const processingCodesRef = useRef<Set<string>>(new Set()); // Set de códigos que están siendo procesados
   const SCAN_COOLDOWN = 5000; // 5 segundos de cooldown entre escaneos del mismo código
   const productsListRef = useRef<HTMLDivElement>(null); // Ref para el contenedor de productos (auto-scroll)
-  const onScanErrorRef = useRef<(() => void) | null>(null); // Ref para el callback de error
+
+  // Sincronizar el estado del escáner con el contexto
+  useEffect(() => {
+    setIsScannerOpen(isOpen);
+    
+    // Prevenir scroll del body cuando el escáner está abierto
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+
+    return () => {
+      document.body.style.overflow = '';
+      setIsScannerOpen(false);
+    };
+  }, [isOpen, setIsScannerOpen]);
 
   // Función para reproducir un beep corto y agudo (como escáner de supermercado)
-  const playBeep = useCallback(() => {
+  const playBeep = () => {
     try {
       // Crear un contexto de audio
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -85,76 +93,7 @@ const BarcodeScanner = forwardRef<BarcodeScannerRef, BarcodeScannerProps>(({
       // Si falla la reproducción del beep, no interrumpir el flujo
       console.warn('No se pudo reproducir el beep:', error);
     }
-  }, []);
-
-  // Función para reproducir un beep de error más largo
-  const playErrorBeep = useCallback(() => {
-    try {
-      // Crear un contexto de audio
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      
-      // Crear un oscilador para generar el tono
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      
-      // Configurar el oscilador (frecuencia más baja para sonido de error)
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      
-      oscillator.frequency.value = 800; // Frecuencia más baja para sonido de error
-      oscillator.type = 'sine'; // Tipo de onda (sine = suave)
-      
-      // Configurar el volumen (gain) para un beep más largo
-      gainNode.gain.setValueAtTime(0.5, audioContext.currentTime); // Volumen inicial
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3); // Fade out más lento
-      
-      // Reproducir el beep por 300ms (más largo que el beep normal)
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.3);
-      
-      // Limpiar el contexto después de que termine
-      oscillator.onended = () => {
-        audioContext.close();
-      };
-    } catch (error) {
-      // Si falla la reproducción del beep, no interrumpir el flujo
-      console.warn('No se pudo reproducir el beep de error:', error);
-    }
-  }, []);
-
-  // Exponer funciones a través del ref usando useImperativeHandle
-  useImperativeHandle(ref, () => ({
-    playBeep: () => {
-      playBeep();
-    },
-    playErrorBeep: () => {
-      playErrorBeep();
-      if (onScanError) {
-        onScanError();
-      }
-    },
-    clearProcessingCode: (barcode: string) => {
-      const normalizedBarcode = barcode.toLowerCase().trim();
-      processingCodesRef.current.delete(normalizedBarcode);
-    }
-  }), [onScanError, playErrorBeep, playBeep]);
-
-  // Sincronizar el estado del escáner con el contexto
-  useEffect(() => {
-    setIsScannerOpen(isOpen);
-    
-    // Prevenir scroll del body cuando el escáner está abierto
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-
-    return () => {
-      document.body.style.overflow = '';
-      setIsScannerOpen(false);
-    };
-  }, [isOpen, setIsScannerOpen]);
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -379,9 +318,11 @@ const BarcodeScanner = forwardRef<BarcodeScannerRef, BarcodeScannerProps>(({
               
               console.log('Barcode scanned:', scannedText);
               
-              // NO reproducir beep automáticamente - el handler decidirá si reproducir beep normal o de error
+              // Reproducir beep cuando se detecta un código
+              playBeep();
+              
               // Llamar al callback - el handler decidirá si marcar el código en scannedCodesSetRef
-              // Si el handler es exitoso, marcará el código y reproducirá el beep normal. Si falla, reproducirá el beep de error
+              // Si el handler es exitoso, marcará el código. Si falla, no lo marcará y podrá escanearse de nuevo
               onScan(scannedText);
               
               // Si NO es modo continuo, detener el escáner después de escanear
@@ -716,8 +657,6 @@ const BarcodeScanner = forwardRef<BarcodeScannerRef, BarcodeScannerProps>(({
       )}
     </div>
   );
-});
-
-BarcodeScanner.displayName = 'BarcodeScanner';
+};
 
 export default BarcodeScanner;

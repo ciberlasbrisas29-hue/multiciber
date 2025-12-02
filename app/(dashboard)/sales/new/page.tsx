@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { productsService, salesService } from '@/services/api';
-import BarcodeScanner, { BarcodeScannerRef } from '@/components/BarcodeScanner';
+import BarcodeScanner from '@/components/BarcodeScanner';
 import Toast from '@/components/Toast';
 import { 
   ArrowLeft, 
@@ -31,7 +31,6 @@ const NewSalePage = () => {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [scannedProducts, setScannedProducts] = useState<Array<{ id: string; name: string; quantity: number; price: number; image?: string; stock: number; category?: string; barcode?: string; createdAt?: string | Date; [key: string]: any }>>([]);
   const scannedBarcodesRef = useRef<Set<string>>(new Set()); // Set para rastrear códigos de barras ya escaneados
-  const scannerRef = useRef<BarcodeScannerRef | null>(null); // Ref para acceder a funciones del escáner
   const [searchTerm, setSearchTerm] = useState('');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning'; isVisible: boolean }>({
     message: '',
@@ -318,11 +317,6 @@ const NewSalePage = () => {
           // Esto previene que múltiples llamadas simultáneas pasen la validación
           scannedBarcodesRef.current.add(normalizedBarcode);
           
-          // Reproducir beep normal solo cuando el producto se encuentra exitosamente
-          if (scannerRef.current) {
-            scannerRef.current.playBeep();
-          }
-          
           // Agregarlo con cantidad 1 (solo la primera vez)
           // Incluir toda la información del producto para poder reordenar correctamente
           setScannedProducts(prev => [
@@ -346,31 +340,9 @@ const NewSalePage = () => {
         } else {
           // NO marcar en el Set porque el producto no se encontró
           showToast('Producto no encontrado con ese código de barras', 'error');
-          // Reproducir beep de error más largo
-          if (scannerRef.current) {
-            scannerRef.current.playErrorBeep();
-          }
-          // Después de 2 segundos, limpiar el código del Set de procesando para permitir escanear de nuevo
-          setTimeout(() => {
-            // Limpiar el código del Set de procesando para permitir escanear de nuevo
-            if (scannerRef.current) {
-              scannerRef.current.clearProcessingCode(barcode);
-            }
-          }, 2000);
         }
       } else {
         showToast('No se pudieron cargar los productos', 'error');
-        // Reproducir beep de error más largo
-        if (scannerRef.current) {
-          scannerRef.current.playErrorBeep();
-        }
-        // Después de 2 segundos, limpiar el código del Set de procesando para permitir escanear de nuevo
-        setTimeout(() => {
-          // Limpiar el código del Set de procesando para permitir escanear de nuevo
-          if (scannerRef.current) {
-            scannerRef.current.clearProcessingCode(barcode);
-          }
-        }, 2000);
       }
     } catch (error) {
       console.error('Error al buscar producto por código de barras:', error);
@@ -1085,7 +1057,6 @@ const NewSalePage = () => {
             }).catch(err => console.error('Error al buscar producto para limpiar barcode:', err));
           }}
           onFinish={handleFinishScanning}
-          ref={scannerRef}
         />
       )}
 
@@ -1095,7 +1066,7 @@ const NewSalePage = () => {
         type={toast.type}
         isVisible={toast.isVisible}
         onClose={() => setToast(prev => ({ ...prev, isVisible: false }))}
-        duration={toast.type === 'error' ? 2000 : toast.type === 'success' ? 2000 : 4000}
+        duration={toast.type === 'success' ? 2000 : 4000}
       />
 
     </>
