@@ -87,7 +87,7 @@ export async function PUT(req, { params }) {
     }
     
     // Extract fields based on data type
-    let name, price, cost, category, unit, barcode, stock, minStock, description, tags, imageFile;
+    let name, price, cost, category, unit, barcode, stock, minStock, description, tags, imageFile, supplier;
     
     if (isFormData) {
       name = formData.get('name');
@@ -99,6 +99,7 @@ export async function PUT(req, { params }) {
       stock = formData.get('stock') || '0';
       minStock = formData.get('minStock') || '0';
       description = formData.get('description') || '';
+      supplier = formData.get('supplier') || '';
       imageFile = formData.get('image');
       const processedTags = formData.get('processedTags');
       tags = processedTags ? JSON.parse(processedTags) : [];
@@ -113,6 +114,7 @@ export async function PUT(req, { params }) {
         stock = 0,
         minStock = 0,
         description = '',
+        supplier = '',
         tags = []
       } = formData);
     }
@@ -216,34 +218,61 @@ export async function PUT(req, { params }) {
       // FormData case
       if (name !== undefined && name !== null) product.name = name.trim();
       if (description !== undefined && description !== null) product.description = description.trim();
-      if (price !== undefined && price !== null) product.price = parseFloat(price);
-      if (cost !== undefined && cost !== null) product.cost = parseFloat(cost);
+      if (price !== undefined && price !== null && price !== '') {
+        const parsedPrice = parseFloat(price);
+        if (!isNaN(parsedPrice)) product.price = parsedPrice;
+      }
+      if (cost !== undefined && cost !== null && cost !== '') {
+        const parsedCost = parseFloat(cost);
+        if (!isNaN(parsedCost)) product.cost = parsedCost;
+      }
       if (category !== undefined && category !== null) product.category = category.trim();
       if (unit !== undefined && unit !== null) product.unit = unit.trim();
-      if (stock !== undefined && stock !== null) product.stock = parseInt(stock);
-      if (minStock !== undefined && minStock !== null) product.minStock = parseInt(minStock);
+      if (stock !== undefined && stock !== null && stock !== '') {
+        const parsedStock = parseInt(stock);
+        if (!isNaN(parsedStock)) product.stock = parsedStock;
+      }
+      if (minStock !== undefined && minStock !== null && minStock !== '') {
+        const parsedMinStock = parseInt(minStock);
+        if (!isNaN(parsedMinStock)) product.minStock = parsedMinStock;
+      }
       if (barcode !== undefined) product.barcode = barcode ? barcode.trim() : undefined;
+      if (supplier !== undefined) product.supplier = supplier ? supplier.trim() : undefined;
       if (imagePath) product.image = imagePath;
       if (tags !== undefined) product.tags = Array.isArray(tags) ? tags : [];
     } else {
       // JSON case - update all fields from body
       if (body.name !== undefined) product.name = body.name.trim();
       if (body.description !== undefined) product.description = body.description.trim();
-      if (body.price !== undefined) product.price = parseFloat(body.price);
-      if (body.cost !== undefined) product.cost = parseFloat(body.cost);
+      if (body.price !== undefined && body.price !== '') {
+        const parsedPrice = parseFloat(body.price);
+        if (!isNaN(parsedPrice)) product.price = parsedPrice;
+      }
+      if (body.cost !== undefined && body.cost !== '') {
+        const parsedCost = parseFloat(body.cost);
+        if (!isNaN(parsedCost)) product.cost = parsedCost;
+      }
       if (body.category !== undefined) product.category = body.category.trim();
       if (body.unit !== undefined) product.unit = body.unit.trim();
-      if (body.stock !== undefined) product.stock = parseInt(body.stock);
-      if (body.minStock !== undefined) product.minStock = parseInt(body.minStock);
+      if (body.stock !== undefined && body.stock !== '') {
+        const parsedStock = parseInt(body.stock);
+        if (!isNaN(parsedStock)) product.stock = parsedStock;
+      }
+      if (body.minStock !== undefined && body.minStock !== '') {
+        const parsedMinStock = parseInt(body.minStock);
+        if (!isNaN(parsedMinStock)) product.minStock = parsedMinStock;
+      }
       if (body.barcode !== undefined) product.barcode = body.barcode ? body.barcode.trim() : undefined;
+      if (body.supplier !== undefined) product.supplier = body.supplier ? body.supplier.trim() : undefined;
       if (body.tags !== undefined) product.tags = Array.isArray(body.tags) ? body.tags : [];
+      if (body.image !== undefined && body.image) product.image = body.image;
       
       // Update other fields that might exist in JSON body
-    Object.keys(body).forEach(key => {
-        if (!['name', 'description', 'price', 'cost', 'category', 'unit', 'stock', 'minStock', 'barcode', 'image', 'tags'].includes(key) && body[key] !== undefined) {
-        product[key] = body[key];
-      }
-    });
+      Object.keys(body).forEach(key => {
+        if (!['name', 'description', 'price', 'cost', 'category', 'unit', 'stock', 'minStock', 'barcode', 'supplier', 'image', 'tags'].includes(key) && body[key] !== undefined) {
+          product[key] = body[key];
+        }
+      });
     }
 
     await product.save();
@@ -255,7 +284,12 @@ export async function PUT(req, { params }) {
     });
 
   } catch (error) {
-    logger.error('Error al actualizar producto:', error);
+    logger.error('Error al actualizar producto:', {
+      error: error.message,
+      stack: error.stack,
+      productId: id,
+      userId: userId?.toString()
+    });
     
     // Si se subió una nueva imagen a Cloudinary pero falló la actualización del producto, eliminarla
     if (uploadedImagePublicId) {
@@ -277,7 +311,13 @@ export async function PUT(req, { params }) {
       }
     }
     
-    return NextResponse.json({ success: false, message: 'Error interno del servidor' }, { status: 500 });
+    // Retornar mensaje de error más descriptivo
+    const errorMessage = error.message || 'Error interno del servidor';
+    return NextResponse.json({ 
+      success: false, 
+      message: errorMessage,
+      error: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    }, { status: 500 });
   }
 }
 
