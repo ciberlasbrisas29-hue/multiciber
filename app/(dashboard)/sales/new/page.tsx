@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { productsService, salesService } from '@/services/api';
-import BarcodeScanner from '@/components/BarcodeScanner';
+import BarcodeScanner, { BarcodeScannerRef } from '@/components/BarcodeScanner';
 import Toast from '@/components/Toast';
 import { 
   ArrowLeft, 
@@ -31,6 +31,7 @@ const NewSalePage = () => {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [scannedProducts, setScannedProducts] = useState<Array<{ id: string; name: string; quantity: number; price: number; image?: string; stock: number; category?: string; barcode?: string; createdAt?: string | Date; [key: string]: any }>>([]);
   const scannedBarcodesRef = useRef<Set<string>>(new Set()); // Set para rastrear códigos de barras ya escaneados
+  const scannerRef = useRef<BarcodeScannerRef | null>(null); // Ref para acceder a funciones del escáner
   const [searchTerm, setSearchTerm] = useState('');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning'; isVisible: boolean }>({
     message: '',
@@ -340,9 +341,17 @@ const NewSalePage = () => {
         } else {
           // NO marcar en el Set porque el producto no se encontró
           showToast('Producto no encontrado con ese código de barras', 'error');
+          // Reproducir beep de error más largo
+          if (scannerRef.current) {
+            scannerRef.current.playErrorBeep();
+          }
         }
       } else {
         showToast('No se pudieron cargar los productos', 'error');
+        // Reproducir beep de error más largo
+        if (scannerRef.current) {
+          scannerRef.current.playErrorBeep();
+        }
       }
     } catch (error) {
       console.error('Error al buscar producto por código de barras:', error);
@@ -1057,6 +1066,7 @@ const NewSalePage = () => {
             }).catch(err => console.error('Error al buscar producto para limpiar barcode:', err));
           }}
           onFinish={handleFinishScanning}
+          ref={scannerRef}
         />
       )}
 

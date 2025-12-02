@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useImperativeHandle, forwardRef } from 'react';
 import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
 import { X, Camera, Scan, Plus, Minus, Check, Clock, ChevronRight, Trash2 } from 'lucide-react';
 import { useScanner } from '@/contexts/ScannerContext';
@@ -15,9 +15,14 @@ interface BarcodeScannerProps {
   onUpdateQuantity?: (productId: string, change: number) => void; // Callback para actualizar cantidad
   onRemoveProduct?: (productId: string) => void; // Callback para eliminar producto
   onFinish?: () => void; // Callback para finalizar escaneo
+  onScanError?: () => void; // Callback para cuando hay un error al escanear (producto no encontrado)
 }
 
-const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ 
+export interface BarcodeScannerRef {
+  playErrorBeep: () => void;
+}
+
+const BarcodeScanner = forwardRef<BarcodeScannerRef, BarcodeScannerProps>(({ 
   onScan, 
   onClose, 
   isOpen, 
@@ -25,8 +30,9 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   scannedProducts = [],
   onUpdateQuantity,
   onRemoveProduct,
-  onFinish
-}) => {
+  onFinish,
+  onScanError
+}, ref) => {
   const { setIsScannerOpen } = useScanner();
   const videoRef = useRef<HTMLVideoElement>(null);
   const codeReader = useRef<BrowserMultiFormatReader | null>(null);
@@ -42,6 +48,52 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   const processingCodesRef = useRef<Set<string>>(new Set()); // Set de códigos que están siendo procesados
   const SCAN_COOLDOWN = 5000; // 5 segundos de cooldown entre escaneos del mismo código
   const productsListRef = useRef<HTMLDivElement>(null); // Ref para el contenedor de productos (auto-scroll)
+  const onScanErrorRef = useRef<(() => void) | null>(null); // Ref para el callback de error
+
+  // Función para reproducir un beep de error más largo
+  const playErrorBeep = useCallback(() => {
+    try {
+      // Crear un contexto de audio
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      
+      // Crear un oscilador para generar el tono
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      // Configurar el oscilador (frecuencia más baja para sonido de error)
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.value = 800; // Frecuencia más baja para sonido de error
+      oscillator.type = 'sine'; // Tipo de onda (sine = suave)
+      
+      // Configurar el volumen (gain) para un beep más largo
+      gainNode.gain.setValueAtTime(0.5, audioContext.currentTime); // Volumen inicial
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3); // Fade out más lento
+      
+      // Reproducir el beep por 300ms (más largo que el beep normal)
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.3);
+      
+      // Limpiar el contexto después de que termine
+      oscillator.onended = () => {
+        audioContext.close();
+      };
+    } catch (error) {
+      // Si falla la reproducción del beep, no interrumpir el flujo
+      console.warn('No se pudo reproducir el beep de error:', error);
+    }
+  }, []);
+
+  // Exponer playErrorBeep a través del ref usando useImperativeHandle
+  useImperativeHandle(ref, () => ({
+    playErrorBeep: () => {
+      playErrorBeep();
+      if (onScanError) {
+        onScanError();
+      }
+    }
+  }), [onScanError, playErrorBeep]);
 
   // Sincronizar el estado del escáner con el contexto
   useEffect(() => {
@@ -92,6 +144,41 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
     } catch (error) {
       // Si falla la reproducción del beep, no interrumpir el flujo
       console.warn('No se pudo reproducir el beep:', error);
+    }
+  };
+
+  // Función para reproducir un beep de error más largo
+  const playErrorBeep = () => {
+    try {
+      // Crear un contexto de audio
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      
+      // Crear un oscilador para generar el tono
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      // Configurar el oscilador (frecuencia más baja para sonido de error)
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.value = 800; // Frecuencia más baja para sonido de error
+      oscillator.type = 'sine'; // Tipo de onda (sine = suave)
+      
+      // Configurar el volumen (gain) para un beep más largo
+      gainNode.gain.setValueAtTime(0.5, audioContext.currentTime); // Volumen inicial
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3); // Fade out más lento
+      
+      // Reproducir el beep por 300ms (más largo que el beep normal)
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.3);
+      
+      // Limpiar el contexto después de que termine
+      oscillator.onended = () => {
+        audioContext.close();
+      };
+    } catch (error) {
+      // Si falla la reproducción del beep, no interrumpir el flujo
+      console.warn('No se pudo reproducir el beep de error:', error);
     }
   };
 
@@ -658,5 +745,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
     </div>
   );
 };
+
+BarcodeScanner.displayName = 'BarcodeScanner';
 
 export default BarcodeScanner;
