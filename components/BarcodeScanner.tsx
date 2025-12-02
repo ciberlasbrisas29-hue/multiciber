@@ -486,9 +486,9 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
             transform: translateY(0);
           }
         }
-        /* Asegurar que el producto frontal tenga opacidad completa */
-        .product-front-item,
-        .product-front-item * {
+        /* Todos los productos tienen opacidad completa - se ocultan físicamente, no con transparencia */
+        .product-stack-item,
+        .product-stack-item * {
           opacity: 1 !important;
           mix-blend-mode: normal !important;
         }
@@ -575,37 +575,31 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
                     
                     if (reverseIndex < 0 || reverseIndex > 3) return null;
                     
-                    const offset = reverseIndex * 14; // Más compacto: 14px en lugar de 16px
-                    const zIndex = reverseIndex + 10;
-                    const scale = Math.max(1 - (reverseIndex * 0.05), 0.85); // Más diferencia de escala
-                    // El último producto (reverseIndex === 0) debe tener opacidad 1.0, los demás progresivamente menos
-                    const opacity = reverseIndex === 0 ? 1.0 : Math.max(1 - (reverseIndex * 0.2), 0.3);
+                    const offset = reverseIndex * 14; // Offset para apilar
+                    const zIndex = reverseIndex + 10; // z-index más alto para productos más recientes
+                    const scale = Math.max(1 - (reverseIndex * 0.05), 0.85); // Escala menor para productos más atrás
                     const isNewest = reverseIndex === 0; // Solo el más reciente (reverseIndex 0)
                     
                     return (
                       <div
                         key={`${product.id}-${realIndex}`}
                         className={`absolute left-4 right-4 transition-all duration-500 ease-out ${
-                          isNewest ? 'cursor-pointer product-front-item' : ''
+                          isNewest ? 'cursor-pointer' : ''
                         }`}
                         style={{
                           top: `${offset}px`,
                           zIndex: zIndex,
                           transform: `scale(${scale}) translateY(${reverseIndex > 0 ? reverseIndex * 1.5 : 0}px)`,
-                          // El producto frontal (isNewest) debe tener opacity: 1 explícitamente
-                          opacity: isNewest ? 1 : opacity,
+                          // TODOS los productos tienen opacity: 1 - se ocultan físicamente detrás, no con transparencia
+                          opacity: 1,
                           animation: isNewest ? 'slideInFromTop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)' : 'none',
                           pointerEvents: reverseIndex > 2 ? 'none' : (isNewest ? 'auto' : 'none'),
                           transformOrigin: 'top center',
-                          willChange: 'transform, opacity',
-                          // Asegurar que el producto frontal no tenga ninguna transparencia
-                          ...(isNewest ? {
-                            opacity: 1,
-                            mixBlendMode: 'normal',
-                            backdropFilter: 'none',
-                            WebkitBackdropFilter: 'none',
-                            isolation: 'isolate' // Crear un nuevo contexto de apilamiento para evitar herencia de opacidad
-                          } : {})
+                          willChange: 'transform',
+                          // Asegurar que no haya transparencia ni efectos de blend
+                          mixBlendMode: 'normal',
+                          backdropFilter: 'none',
+                          WebkitBackdropFilter: 'none'
                         }}
                         onClick={(e) => {
                           // Solo el último producto (reverseIndex === 0) puede expandir, y solo si no se hace click en los botones
