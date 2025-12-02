@@ -318,6 +318,11 @@ const NewSalePage = () => {
           // Esto previene que múltiples llamadas simultáneas pasen la validación
           scannedBarcodesRef.current.add(normalizedBarcode);
           
+          // Reproducir beep normal solo cuando el producto se encuentra exitosamente
+          if (scannerRef.current) {
+            scannerRef.current.playBeep();
+          }
+          
           // Agregarlo con cantidad 1 (solo la primera vez)
           // Incluir toda la información del producto para poder reordenar correctamente
           setScannedProducts(prev => [

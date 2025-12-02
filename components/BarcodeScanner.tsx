@@ -19,6 +19,7 @@ interface BarcodeScannerProps {
 }
 
 export interface BarcodeScannerRef {
+  playBeep: () => void;
   playErrorBeep: () => void;
   clearProcessingCode: (barcode: string) => void;
 }
@@ -88,6 +89,9 @@ const BarcodeScanner = forwardRef<BarcodeScannerRef, BarcodeScannerProps>(({
 
   // Exponer funciones a través del ref usando useImperativeHandle
   useImperativeHandle(ref, () => ({
+    playBeep: () => {
+      playBeep();
+    },
     playErrorBeep: () => {
       playErrorBeep();
       if (onScanError) {
@@ -98,7 +102,7 @@ const BarcodeScanner = forwardRef<BarcodeScannerRef, BarcodeScannerProps>(({
       const normalizedBarcode = barcode.toLowerCase().trim();
       processingCodesRef.current.delete(normalizedBarcode);
     }
-  }), [onScanError, playErrorBeep]);
+  }), [onScanError, playErrorBeep, playBeep]);
 
   // Sincronizar el estado del escáner con el contexto
   useEffect(() => {
@@ -118,7 +122,7 @@ const BarcodeScanner = forwardRef<BarcodeScannerRef, BarcodeScannerProps>(({
   }, [isOpen, setIsScannerOpen]);
 
   // Función para reproducir un beep corto y agudo (como escáner de supermercado)
-  const playBeep = () => {
+  const playBeep = useCallback(() => {
     try {
       // Crear un contexto de audio
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -150,7 +154,7 @@ const BarcodeScanner = forwardRef<BarcodeScannerRef, BarcodeScannerProps>(({
       // Si falla la reproducción del beep, no interrumpir el flujo
       console.warn('No se pudo reproducir el beep:', error);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -375,11 +379,9 @@ const BarcodeScanner = forwardRef<BarcodeScannerRef, BarcodeScannerProps>(({
               
               console.log('Barcode scanned:', scannedText);
               
-              // Reproducir beep cuando se detecta un código
-              playBeep();
-              
+              // NO reproducir beep automáticamente - el handler decidirá si reproducir beep normal o de error
               // Llamar al callback - el handler decidirá si marcar el código en scannedCodesSetRef
-              // Si el handler es exitoso, marcará el código. Si falla, no lo marcará y podrá escanearse de nuevo
+              // Si el handler es exitoso, marcará el código y reproducirá el beep normal. Si falla, reproducirá el beep de error
               onScan(scannedText);
               
               // Si NO es modo continuo, detener el escáner después de escanear
