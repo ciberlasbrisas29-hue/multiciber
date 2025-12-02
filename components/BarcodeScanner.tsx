@@ -20,6 +20,7 @@ interface BarcodeScannerProps {
 
 export interface BarcodeScannerRef {
   playErrorBeep: () => void;
+  clearProcessingCode: (barcode: string) => void;
 }
 
 const BarcodeScanner = forwardRef<BarcodeScannerRef, BarcodeScannerProps>(({ 
@@ -85,13 +86,17 @@ const BarcodeScanner = forwardRef<BarcodeScannerRef, BarcodeScannerProps>(({
     }
   }, []);
 
-  // Exponer playErrorBeep a través del ref usando useImperativeHandle
+  // Exponer funciones a través del ref usando useImperativeHandle
   useImperativeHandle(ref, () => ({
     playErrorBeep: () => {
       playErrorBeep();
       if (onScanError) {
         onScanError();
       }
+    },
+    clearProcessingCode: (barcode: string) => {
+      const normalizedBarcode = barcode.toLowerCase().trim();
+      processingCodesRef.current.delete(normalizedBarcode);
     }
   }), [onScanError, playErrorBeep]);
 

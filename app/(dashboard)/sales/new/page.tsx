@@ -345,6 +345,13 @@ const NewSalePage = () => {
           if (scannerRef.current) {
             scannerRef.current.playErrorBeep();
           }
+          // Después de 2 segundos, limpiar el código del Set de procesando para permitir escanear de nuevo
+          setTimeout(() => {
+            // Limpiar el código del Set de procesando para permitir escanear de nuevo
+            if (scannerRef.current) {
+              scannerRef.current.clearProcessingCode(barcode);
+            }
+          }, 2000);
         }
       } else {
         showToast('No se pudieron cargar los productos', 'error');
@@ -352,6 +359,13 @@ const NewSalePage = () => {
         if (scannerRef.current) {
           scannerRef.current.playErrorBeep();
         }
+        // Después de 2 segundos, limpiar el código del Set de procesando para permitir escanear de nuevo
+        setTimeout(() => {
+          // Limpiar el código del Set de procesando para permitir escanear de nuevo
+          if (scannerRef.current) {
+            scannerRef.current.clearProcessingCode(barcode);
+          }
+        }, 2000);
       }
     } catch (error) {
       console.error('Error al buscar producto por código de barras:', error);
@@ -1076,7 +1090,7 @@ const NewSalePage = () => {
         type={toast.type}
         isVisible={toast.isVisible}
         onClose={() => setToast(prev => ({ ...prev, isVisible: false }))}
-        duration={toast.type === 'success' ? 2000 : 4000}
+        duration={toast.type === 'error' ? 2000 : toast.type === 'success' ? 2000 : 4000}
       />
 
     </>
