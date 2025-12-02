@@ -62,8 +62,12 @@ const HomePage = () => {
   };
 
   useEffect(() => {
-    const fetchStats = async () => {
+    if (!mounted) return;
+
+    const fetchStats = async (forceRefresh = false) => {
       try {
+        // Agregar timestamp para evitar caché del navegador
+        const timestamp = forceRefresh ? `&_t=${Date.now()}` : '';
         const response = await dashboardService.getStats();
         if (response.success) {
           setStats(response.data);
@@ -75,36 +79,77 @@ const HomePage = () => {
       }
     };
 
-    fetchStats();
+    // Cargar inmediatamente
+    fetchStats(true);
     
     // Escuchar eventos de actualización cuando haya cambios en ventas, gastos o deudas
     const handleUpdate = () => {
-      fetchStats();
+      fetchStats(true);
+    };
+
+    // Función para recargar cuando la página gana foco
+    const handleFocus = () => {
+      fetchStats(true);
+    };
+
+    // Función para recargar cuando la visibilidad cambia
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchStats(true);
+      }
+    };
+
+    // Función para recargar cuando el usuario navega (popstate - botón atrás/adelante)
+    const handlePopState = () => {
+      setTimeout(() => {
+        fetchStats(true);
+      }, 100);
     };
 
     // Eventos personalizados que se dispararán cuando haya cambios
     window.addEventListener('sale-created', handleUpdate);
     window.addEventListener('expense-created', handleUpdate);
     window.addEventListener('debt-updated', handleUpdate);
+    window.addEventListener('payment-created', handleUpdate);
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('pageshow', handleFocus); // Se dispara cuando la página se muestra (incluye navegación)
+    window.addEventListener('popstate', handlePopState); // Se dispara cuando se usa el botón atrás/adelante
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       window.removeEventListener('sale-created', handleUpdate);
       window.removeEventListener('expense-created', handleUpdate);
       window.removeEventListener('debt-updated', handleUpdate);
+      window.removeEventListener('payment-created', handleUpdate);
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('pageshow', handleFocus);
+      window.removeEventListener('popstate', handlePopState);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, []);
+  }, [mounted]);
 
   useEffect(() => {
     // Solo ejecutar cuando el componente esté montado
     if (!mounted) return;
 
-    const fetchRecentMovements = async () => {
+    const fetchRecentMovements = async (forceRefresh = false) => {
       try {
         setLoadingMovements(true);
+        
+        // Limpiar movimientos anteriores antes de cargar nuevos (evitar mostrar datos antiguos)
+        setRecentMovements([]);
+        
         const [salesResponse, expensesResponse, paymentsResponse] = await Promise.all([
-          dashboardService.getRecentSales(10),
-          dashboardService.getRecentExpenses(10),
-          fetch('/api/payments?limit=10').then(res => res.json())
+          dashboardService.getRecentSales(10, forceRefresh),
+          dashboardService.getRecentExpenses(10, forceRefresh),
+          fetch(`/api/payments?limit=10${forceRefresh ? `&_t=${Date.now()}` : ''}`, {
+            cache: 'no-store',
+            headers: {
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache',
+              'Expires': '0'
+            }
+          }).then(res => res.json())
         ]);
 
         const movements: Movement[] = [];
@@ -321,24 +366,39 @@ const HomePage = () => {
         console.error("Error fetching recent movements:", err);
         // En caso de error, intentar recargar después de un breve delay
         setTimeout(() => {
-          fetchRecentMovements();
+          fetchRecentMovements(true);
         }, 1000);
       } finally {
         setLoadingMovements(false);
       }
     };
 
-    // Ejecutar inmediatamente
-    fetchRecentMovements();
+    // Ejecutar inmediatamente con refresh forzado
+    fetchRecentMovements(true);
     
-    // También ejecutar cuando la página gane foco (por si el usuario cambia de pestaña)
+    // Función para recargar cuando la página gane foco
     const handleFocus = () => {
-      fetchRecentMovements();
+      fetchRecentMovements(true);
+    };
+    
+    // Función para recargar cuando la visibilidad cambia
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchRecentMovements(true);
+      }
+    };
+    
+    // Función para recargar cuando el usuario navega (popstate - botón atrás/adelante)
+    const handlePopState = () => {
+      // Pequeño delay para asegurar que la navegación se complete
+      setTimeout(() => {
+        fetchRecentMovements(true);
+      }, 100);
     };
     
     // Escuchar eventos de actualización cuando haya cambios en ventas, gastos o deudas
     const handleUpdate = () => {
-      fetchRecentMovements();
+      fetchRecentMovements(true);
     };
 
     // Eventos personalizados que se dispararán cuando haya cambios
@@ -347,11 +407,9 @@ const HomePage = () => {
     window.addEventListener('debt-updated', handleUpdate);
     window.addEventListener('payment-created', handleUpdate);
     window.addEventListener('focus', handleFocus);
-    window.addEventListener('visibilitychange', () => {
-      if (!document.hidden) {
-        fetchRecentMovements();
-      }
-    });
+    window.addEventListener('pageshow', handleFocus); // Se dispara cuando la página se muestra (incluye navegación)
+    window.addEventListener('popstate', handlePopState); // Se dispara cuando se usa el botón atrás/adelante
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       window.removeEventListener('sale-created', handleUpdate);
@@ -359,6 +417,9 @@ const HomePage = () => {
       window.removeEventListener('debt-updated', handleUpdate);
       window.removeEventListener('payment-created', handleUpdate);
       window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('pageshow', handleFocus);
+      window.removeEventListener('popstate', handlePopState);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [mounted]); // Dependencia en mounted para ejecutar cuando esté listo
 

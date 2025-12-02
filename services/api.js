@@ -151,18 +151,49 @@ export const authService = {
 
 // Servicios del dashboard
 export const dashboardService = {
-  getStats: async () => {
-    const response = await api.get('/dashboard/stats');
+  getStats: async (forceRefresh = false) => {
+    const config = {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    };
+    // Agregar timestamp para evitar caché si se fuerza refresh
+    const url = forceRefresh ? `/dashboard/stats?_t=${Date.now()}` : '/dashboard/stats';
+    const response = await api.get(url, config);
     return response.data;
   },
 
-  getRecentSales: async (limit = 10) => {
-    const response = await api.get(`/dashboard/recent-sales?limit=${limit}`);
+  getRecentSales: async (limit = 10, forceRefresh = false) => {
+    const config = {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    };
+    // Agregar timestamp para evitar caché si se fuerza refresh
+    const url = forceRefresh 
+      ? `/dashboard/recent-sales?limit=${limit}&_t=${Date.now()}` 
+      : `/dashboard/recent-sales?limit=${limit}`;
+    const response = await api.get(url, config);
     return response.data;
   },
 
-  getRecentExpenses: async (limit = 10) => {
-    const response = await api.get(`/dashboard/recent-expenses?limit=${limit}`);
+  getRecentExpenses: async (limit = 10, forceRefresh = false) => {
+    const config = {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    };
+    // Agregar timestamp para evitar caché si se fuerza refresh
+    const url = forceRefresh 
+      ? `/dashboard/recent-expenses?limit=${limit}&_t=${Date.now()}` 
+      : `/dashboard/recent-expenses?limit=${limit}`;
+    const response = await api.get(url, config);
     return response.data;
   },
 };
