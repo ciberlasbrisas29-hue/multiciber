@@ -147,41 +147,6 @@ const BarcodeScanner = forwardRef<BarcodeScannerRef, BarcodeScannerProps>(({
     }
   };
 
-  // Función para reproducir un beep de error más largo
-  const playErrorBeep = () => {
-    try {
-      // Crear un contexto de audio
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      
-      // Crear un oscilador para generar el tono
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      
-      // Configurar el oscilador (frecuencia más baja para sonido de error)
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      
-      oscillator.frequency.value = 800; // Frecuencia más baja para sonido de error
-      oscillator.type = 'sine'; // Tipo de onda (sine = suave)
-      
-      // Configurar el volumen (gain) para un beep más largo
-      gainNode.gain.setValueAtTime(0.5, audioContext.currentTime); // Volumen inicial
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3); // Fade out más lento
-      
-      // Reproducir el beep por 300ms (más largo que el beep normal)
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.3);
-      
-      // Limpiar el contexto después de que termine
-      oscillator.onended = () => {
-        audioContext.close();
-      };
-    } catch (error) {
-      // Si falla la reproducción del beep, no interrumpir el flujo
-      console.warn('No se pudo reproducir el beep de error:', error);
-    }
-  };
-
   useEffect(() => {
     if (isOpen) {
       initializeScanner();
