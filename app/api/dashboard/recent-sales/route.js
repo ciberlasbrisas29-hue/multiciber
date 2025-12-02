@@ -17,12 +17,12 @@ export async function GET(req) {
     const limit = parseInt(searchParams.get('limit') || '10');
 
     // Incluir todas las ventas (de productos y libres) tanto pagadas como deudas
-    // Para los últimos movimientos, mostramos todas las ventas recientes
-    // Ordenar por updatedAt para que los abonos recientes aparezcan primero
+    // Para los últimos movimientos, ordenar por createdAt para mostrar las más recientes primero
+    // Esto asegura que las ventas nuevas aparezcan inmediatamente
     const recentSales = await Sale.find({
       createdBy: userId
     })
-    .sort({ updatedAt: -1 })
+    .sort({ createdAt: -1 }) // Ordenar por fecha de creación (más reciente primero)
     .limit(limit)
     .populate('createdBy', 'username')
     .populate('items.product', 'name image')

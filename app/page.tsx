@@ -95,6 +95,9 @@ const HomePage = () => {
   }, []);
 
   useEffect(() => {
+    // Solo ejecutar cuando el componente esté montado
+    if (!mounted) return;
+
     const fetchRecentMovements = async () => {
       try {
         setLoadingMovements(true);
@@ -303,16 +306,35 @@ const HomePage = () => {
         }
 
         // Ordenar por fecha (más reciente primero) y tomar los últimos 5
-        movements.sort((a, b) => b.date.getTime() - a.date.getTime());
+        movements.sort((a, b) => {
+          // Ordenar por fecha, y si son iguales, priorizar pagos sobre ventas/gastos
+          const dateDiff = b.date.getTime() - a.date.getTime();
+          if (dateDiff === 0) {
+            // Si tienen la misma fecha, los pagos van primero
+            if (a.isPayment && !b.isPayment) return -1;
+            if (!a.isPayment && b.isPayment) return 1;
+          }
+          return dateDiff;
+        });
         setRecentMovements(movements.slice(0, 5));
       } catch (err) {
         console.error("Error fetching recent movements:", err);
+        // En caso de error, intentar recargar después de un breve delay
+        setTimeout(() => {
+          fetchRecentMovements();
+        }, 1000);
       } finally {
         setLoadingMovements(false);
       }
     };
 
+    // Ejecutar inmediatamente
     fetchRecentMovements();
+    
+    // También ejecutar cuando la página gane foco (por si el usuario cambia de pestaña)
+    const handleFocus = () => {
+      fetchRecentMovements();
+    };
     
     // Escuchar eventos de actualización cuando haya cambios en ventas, gastos o deudas
     const handleUpdate = () => {
@@ -324,14 +346,21 @@ const HomePage = () => {
     window.addEventListener('expense-created', handleUpdate);
     window.addEventListener('debt-updated', handleUpdate);
     window.addEventListener('payment-created', handleUpdate);
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        fetchRecentMovements();
+      }
+    });
 
     return () => {
       window.removeEventListener('sale-created', handleUpdate);
       window.removeEventListener('expense-created', handleUpdate);
       window.removeEventListener('debt-updated', handleUpdate);
       window.removeEventListener('payment-created', handleUpdate);
+      window.removeEventListener('focus', handleFocus);
     };
-  }, []);
+  }, [mounted]); // Dependencia en mounted para ejecutar cuando esté listo
 
   // No renderizar contenido hasta que esté montado (evita problemas de SSR)
   if (!mounted) {
