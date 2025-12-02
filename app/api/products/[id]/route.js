@@ -156,16 +156,20 @@ export async function PUT(req, { params }) {
       }
     }
 
-    // Validación de barcode si se está cambiando (solo productos activos)
-    if (barcode && barcode !== product.barcode) {
+    // Validación de barcode si se está cambiando
+    // El índice único de MongoDB es global, así que debemos verificar todos los productos
+    if (barcode && barcode.trim() !== '' && barcode !== product.barcode) {
       const existingProduct = await Product.findOne({ 
-        barcode: barcode,
+        barcode: barcode.trim(),
         _id: { $ne: new mongoose.Types.ObjectId(id) },
-        createdBy: userId,
-        isActive: true  // Solo considerar productos activos
+        createdBy: userId
+        // No filtrar por isActive porque el índice único es global
       });
       if (existingProduct) {
-        return NextResponse.json({ success: false, message: 'El código de barras ya está en uso por un producto activo' }, { status: 400 });
+        return NextResponse.json({ 
+          success: false, 
+          message: `El código de barras "${barcode.trim()}" ya está en uso por otro producto (${existingProduct.name})` 
+        }, { status: 400 });
       }
     }
 
@@ -244,7 +248,13 @@ export async function PUT(req, { params }) {
         const parsedMinStock = parseInt(minStock);
         if (!isNaN(parsedMinStock)) product.minStock = parsedMinStock;
       }
-      if (barcode !== undefined) product.barcode = barcode ? barcode.trim() : undefined;
+      if (barcode !== undefined) {
+        // Solo actualizar si el barcode realmente cambió
+        const newBarcode = barcode && barcode.trim() !== '' ? barcode.trim() : undefined;
+        if (newBarcode !== product.barcode) {
+          product.barcode = newBarcode;
+        }
+      }
       if (supplier !== undefined) product.supplier = supplier ? supplier.trim() : undefined;
       if (imagePath) product.image = imagePath;
       if (tags !== undefined) product.tags = Array.isArray(tags) ? tags : [];
@@ -270,7 +280,13 @@ export async function PUT(req, { params }) {
         const parsedMinStock = parseInt(body.minStock);
         if (!isNaN(parsedMinStock)) product.minStock = parsedMinStock;
       }
-      if (body.barcode !== undefined) product.barcode = body.barcode ? body.barcode.trim() : undefined;
+      if (body.barcode !== undefined) {
+        // Solo actualizar si el barcode realmente cambió
+        const newBarcode = body.barcode && body.barcode.trim() !== '' ? body.barcode.trim() : undefined;
+        if (newBarcode !== product.barcode) {
+          product.barcode = newBarcode;
+        }
+      }
       if (body.supplier !== undefined) product.supplier = body.supplier ? body.supplier.trim() : undefined;
       if (body.tags !== undefined) product.tags = Array.isArray(body.tags) ? body.tags : [];
       if (body.image !== undefined && body.image) product.image = body.image;
@@ -313,6 +329,21 @@ export async function PUT(req, { params }) {
       productId: productId || 'unknown',
       userId: typeof userId !== 'undefined' ? userId?.toString() : 'unknown'
     });
+    
+    // Manejar error de clave duplicada de MongoDB (barcode duplicado)
+    if (error.code === 11000 || error.message?.includes('duplicate key')) {
+      const duplicateField = error.keyPattern ? Object.keys(error.keyPattern)[0] : 'campo';
+      let errorMessage = 'Ya existe un producto con este valor';
+      
+      if (duplicateField === 'barcode') {
+        errorMessage = 'El código de barras ya está en uso por otro producto';
+      }
+      
+      return NextResponse.json({ 
+        success: false, 
+        message: errorMessage
+      }, { status: 400 });
+    }
     
     // Si se subió una nueva imagen a Cloudinary pero falló la actualización del producto, eliminarla
     if (uploadedImagePublicId) {
