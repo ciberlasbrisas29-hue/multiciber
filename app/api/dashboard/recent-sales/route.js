@@ -25,6 +25,7 @@ export async function GET(req) {
     .sort({ updatedAt: -1 })
     .limit(limit)
     .populate('createdBy', 'username')
+    .populate('items.product', 'name image')
     .lean();
 
     console.log(`GET /api/dashboard/recent-sales: Encontradas ${recentSales.length} ventas recientes para el usuario ${userId}`);

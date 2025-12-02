@@ -315,23 +315,23 @@ const CategoryManagementPage = () => {
   return (
     <div className="space-y-6 pb-24">
       {/* Header */}
-      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-4 flex items-center justify-between rounded-b-2xl mb-6 -mx-6 md:mx-0 md:rounded-2xl">
+      <div className="text-white px-6 py-4 flex items-center justify-between rounded-b-2xl mb-6 -mx-6 md:mx-0 md:rounded-2xl shadow-md" style={{ backgroundColor: '#7031f8' }}>
         <div className="flex items-center space-x-3">
           <button
             onClick={() => router.back()}
-            className="p-2 hover:bg-white/20 rounded-full transition-colors -ml-2"
+            className="w-10 h-10 flex items-center justify-center bg-white/20 hover:bg-white/30 rounded-lg transition-all active:scale-95"
           >
-            <ArrowLeft className="w-6 h-6 text-white" />
+            <ArrowLeft className="w-5 h-5 text-white" />
           </button>
-          <Package className="w-6 h-6" />
-          <h1 className="text-2xl font-bold">Gestión de Categorías</h1>
+          <Package className="w-5 h-5 opacity-95" />
+          <h1 className="text-2xl font-semibold">Gestión de Categorías</h1>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="p-2.5 bg-white/20 hover:bg-white/30 rounded-full transition-colors flex items-center justify-center"
+          className="w-10 h-10 flex items-center justify-center bg-white/20 hover:bg-white/30 rounded-lg transition-all active:scale-95"
           title="Crear nueva categoría"
         >
-          <Plus className="w-6 h-6" />
+          <Plus className="w-5 h-5 text-white" />
         </button>
       </div>
 

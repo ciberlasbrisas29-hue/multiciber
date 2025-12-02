@@ -366,22 +366,18 @@ const ReportsPage = () => {
     return (
       <>
         <style dangerouslySetInnerHTML={{__html: reportsStyles}} />
-        <div className="bg-gradient-to-br from-purple-600 via-indigo-600 to-pink-500 px-6 py-6 mb-6 -mx-6 rounded-b-[2.5rem] md:mx-0 md:rounded-2xl shadow-2xl relative overflow-hidden">
-          <div className="relative z-10 flex items-center justify-between">
-            <button
-              onClick={() => router.back()}
-              className="w-12 h-12 flex items-center justify-center bg-white/20 backdrop-blur-sm rounded-2xl hover:bg-white/30 transition-all active:scale-95"
-            >
-              <ArrowLeft className="w-6 h-6 text-white" />
-            </button>
-            <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                <BarChart3 className="w-6 h-6 text-white" />
-              </div>
-              <h1 className="text-xl font-extrabold text-white drop-shadow-lg">Reportes Avanzados</h1>
-            </div>
-            <div className="w-12"></div>
+        <div className="text-white px-6 py-4 flex items-center justify-between rounded-b-2xl mb-6 -mx-6 md:mx-0 md:rounded-2xl shadow-md" style={{ backgroundColor: '#7031f8' }}>
+          <button
+            onClick={() => router.back()}
+            className="w-10 h-10 flex items-center justify-center bg-white/20 hover:bg-white/30 rounded-lg transition-all active:scale-95"
+          >
+            <ArrowLeft className="w-5 h-5 text-white" />
+          </button>
+          <div className="flex items-center space-x-3">
+            <BarChart3 className="w-5 h-5 opacity-95" />
+            <h1 className="text-2xl font-semibold">Reportes</h1>
           </div>
+          <div className="w-10"></div>
         </div>
         <div className="flex justify-center items-center py-20">
           <div className="relative">
@@ -397,22 +393,18 @@ const ReportsPage = () => {
     return (
       <>
         <style dangerouslySetInnerHTML={{__html: reportsStyles}} />
-        <div className="bg-gradient-to-br from-purple-600 via-indigo-600 to-pink-500 px-6 py-6 mb-6 -mx-6 rounded-b-[2.5rem] md:mx-0 md:rounded-2xl shadow-2xl relative overflow-hidden">
-          <div className="relative z-10 flex items-center justify-between">
-            <button
-              onClick={() => router.back()}
-              className="w-12 h-12 flex items-center justify-center bg-white/20 backdrop-blur-sm rounded-2xl hover:bg-white/30 transition-all active:scale-95"
-            >
-              <ArrowLeft className="w-6 h-6 text-white" />
-            </button>
-            <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                <BarChart3 className="w-6 h-6 text-white" />
-              </div>
-              <h1 className="text-xl font-extrabold text-white drop-shadow-lg">Reportes Avanzados</h1>
-            </div>
-            <div className="w-12"></div>
+        <div className="text-white px-6 py-4 flex items-center justify-between rounded-b-2xl mb-6 -mx-6 md:mx-0 md:rounded-2xl shadow-md" style={{ backgroundColor: '#7031f8' }}>
+          <button
+            onClick={() => router.back()}
+            className="w-10 h-10 flex items-center justify-center bg-white/20 hover:bg-white/30 rounded-lg transition-all active:scale-95"
+          >
+            <ArrowLeft className="w-5 h-5 text-white" />
+          </button>
+          <div className="flex items-center space-x-3">
+            <BarChart3 className="w-5 h-5 opacity-95" />
+            <h1 className="text-2xl font-semibold">Reportes</h1>
           </div>
+          <div className="w-10"></div>
         </div>
         <div className="text-center py-20">
           <div className="w-20 h-20 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
@@ -427,29 +419,25 @@ const ReportsPage = () => {
   return (
     <>
       <style dangerouslySetInnerHTML={{__html: reportsStyles}} />
-      {/* Encabezado Mejorado */}
-      <div className="bg-gradient-to-br from-purple-600 via-indigo-600 to-pink-500 px-6 py-6 mb-6 -mx-6 rounded-b-[2.5rem] md:mx-0 md:rounded-2xl shadow-2xl relative overflow-hidden">
-        <div className="relative z-10 flex items-center justify-between">
-          <button
-            onClick={() => router.back()}
-            className="w-12 h-12 flex items-center justify-center bg-white/20 backdrop-blur-sm rounded-2xl hover:bg-white/30 transition-all active:scale-95 shadow-lg"
-          >
-            <ArrowLeft className="w-6 h-6 text-white" />
-          </button>
-          <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg">
-              <BarChart3 className="w-6 h-6 text-white" />
-            </div>
-            <h1 className="text-xl font-extrabold text-white drop-shadow-lg">Reportes Avanzados</h1>
-          </div>
-          <button
-            onClick={downloadPDF}
-            className="w-12 h-12 flex items-center justify-center bg-white/20 backdrop-blur-sm hover:bg-white/30 rounded-2xl transition-all active:scale-95 shadow-lg"
-            title="Descargar PDF"
-          >
-            <Download className="w-6 h-6 text-white" />
-          </button>
+      {/* Header */}
+      <div className="text-white px-6 py-4 flex items-center justify-between rounded-b-2xl mb-6 -mx-6 md:mx-0 md:rounded-2xl shadow-md" style={{ backgroundColor: '#7031f8' }}>
+        <button
+          onClick={() => router.back()}
+          className="w-10 h-10 flex items-center justify-center bg-white/20 hover:bg-white/30 rounded-lg transition-all active:scale-95"
+        >
+          <ArrowLeft className="w-5 h-5 text-white" />
+        </button>
+        <div className="flex items-center space-x-3">
+          <BarChart3 className="w-5 h-5 opacity-95" />
+          <h1 className="text-2xl font-semibold">Reportes</h1>
         </div>
+        <button
+          onClick={downloadPDF}
+          className="w-10 h-10 flex items-center justify-center bg-white/20 hover:bg-white/30 rounded-lg transition-all active:scale-95"
+          title="Descargar PDF"
+        >
+          <Download className="w-5 h-5 text-white" />
+        </button>
       </div>
 
       {/* Filtros de Período Mejorados */}
@@ -552,10 +540,6 @@ const ReportsPage = () => {
 
       {/* Tendencia Semanal Mejorada */}
       <div className="bg-white rounded-3xl shadow-xl p-6 mb-6 mx-4 border-2 border-purple-100 relative overflow-hidden">
-        {/* Decoración de fondo */}
-        <div className="absolute top-0 right-0 w-40 h-40 opacity-5">
-          <Sparkles className="w-full h-full text-purple-600" />
-        </div>
         <div className="relative z-10">
           <div className="flex items-center space-x-3 mb-6">
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg">
@@ -606,10 +590,6 @@ const ReportsPage = () => {
 
       {/* Métodos de Pago Mejorados */}
       <div className="bg-white rounded-3xl shadow-xl p-6 mb-6 mx-4 border-2 border-purple-100 relative overflow-hidden">
-        {/* Decoración de fondo */}
-        <div className="absolute top-0 left-0 w-32 h-32 opacity-5">
-          <CreditCard className="w-full h-full text-purple-600" />
-        </div>
         <div className="relative z-10">
           <div className="flex items-center space-x-3 mb-6">
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg">

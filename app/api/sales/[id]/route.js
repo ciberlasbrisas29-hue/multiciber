@@ -24,7 +24,10 @@ export async function GET(req, { params }) {
     const sale = await Sale.findOne({
       _id: new mongoose.Types.ObjectId(id),
       createdBy: userId
-    }).populate('createdBy', 'username').lean();
+    })
+    .populate('createdBy', 'username')
+    .populate('items.product', 'name image')
+    .lean();
 
     if (!sale) {
       return NextResponse.json({ success: false, message: 'Venta no encontrada' }, { status: 404 });

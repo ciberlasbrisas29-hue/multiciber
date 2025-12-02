@@ -261,7 +261,7 @@ const NotificationsDropdown: React.FC<NotificationsDropdownProps> = ({
                         <div className="px-3 py-1.5 bg-gray-100 rounded-lg">
                           <span className="text-sm text-gray-600 font-semibold">
                             Mínimo: <span className="font-bold text-gray-700">{product.minStock}</span>
-                          </span>
+                        </span>
                         </div>
                       </div>
 

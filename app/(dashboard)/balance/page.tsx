@@ -8,6 +8,7 @@ import {
   AlertCircle, CheckCircle, Minus, Plus, X, Wallet
 } from 'lucide-react';
 import { dashboardService, salesService, expensesService } from '@/services/api';
+import SaleDetailModal from '@/components/SaleDetailModal';
 
 // Estilos para animaciones
 const balanceStyles = `
@@ -73,6 +74,9 @@ const BalancePage = () => {
     totalExpenses: 0,
     balance: 0
   });
+  const [selectedSale, setSelectedSale] = useState<any>(null);
+  const [isSaleDetailModalOpen, setIsSaleDetailModalOpen] = useState(false);
+  const [loadingSaleDetail, setLoadingSaleDetail] = useState(false);
 
   // Actualizar activeTab cuando cambia el parámetro de la URL
   useEffect(() => {
@@ -153,20 +157,68 @@ const BalancePage = () => {
           const endDate = new Date(range.end);
 
           if (saleDate >= startDate && saleDate <= endDate && sale.status === 'paid') {
+            // Determinar el concepto basado en el tipo de venta
+            let concept = '';
+            let description = '';
+            
+            const isFreeSale = sale.type === 'free';
+            
+            if (isFreeSale) {
+              // Para ventas libres, usar concepto o cliente
+              if (sale.concept) {
+                concept = sale.concept;
+              } else if (sale.client?.name) {
+                concept = sale.client.name;
+              } else if (sale.saleNumber) {
+                concept = `Venta #${sale.saleNumber}`;
+              } else {
+                concept = 'Venta Libre';
+              }
+              description = sale.saleNumber ? `#${sale.saleNumber}` : '';
+            } else {
+              // Para ventas de productos, mostrar nombres de productos
+              if (sale.items && sale.items.length > 0) {
+                // Si hay un solo producto, mostrar su nombre completo
+                if (sale.items.length === 1) {
+                  const item = sale.items[0];
+                  concept = item.productName || item.product?.name || 'Producto';
+                  description = sale.saleNumber ? `#${sale.saleNumber}` : '';
+                } else {
+                  // Si hay múltiples productos, mostrar los primeros 2-3 nombres
+                  const productNames = sale.items
+                    .slice(0, 3)
+                    .map((item: any) => item.productName || item.product?.name || 'Producto')
+                    .join(', ');
+                  const remaining = sale.items.length - 3;
+                  concept = productNames + (remaining > 0 ? ` y ${remaining} más` : '');
+                  description = sale.saleNumber ? `#${sale.saleNumber}` : '';
+                }
+                
+                // Si no hay description, agregar información adicional
+                if (!description) {
+                  description = `${sale.items.length} producto${sale.items.length > 1 ? 's' : ''}`;
+                }
+              } else {
+                // Fallback si no hay items
+                if (sale.client?.name) {
+                  concept = sale.client.name;
+                } else if (sale.saleNumber) {
+                  concept = `Venta #${sale.saleNumber}`;
+                } else {
+                  concept = 'Venta de Productos';
+                }
+                description = '';
+              }
+            }
+
             formattedTransactions.push({
               id: sale._id,
               type: 'sale',
-              concept: sale.client?.name 
-                ? `Venta: ${sale.client.name}` 
-                : sale.saleNumber 
-                  ? `Venta #${sale.saleNumber}` 
-                  : 'Venta',
+              concept: concept,
               paymentMethod: sale.paymentMethod || 'Efectivo',
               date: saleDate,
               amount: sale.total || 0,
-              description: sale.items?.length > 0 
-                ? `${sale.items.length} producto${sale.items.length > 1 ? 's' : ''}`
-                : undefined
+              description: description || undefined
             });
           }
         });
@@ -349,33 +401,35 @@ const BalancePage = () => {
       <style dangerouslySetInnerHTML={{__html: balanceStyles}} />
       <div className="min-h-screen pb-24">
               {/* Header */}
-              <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-4 flex items-center space-x-3 rounded-b-2xl mb-6 -mx-6 md:mx-0 md:rounded-2xl">
-                <Wallet className="w-6 h-6" />
-                <h1 className="text-2xl font-bold">Balance</h1>
+              <div className="text-white px-6 py-4 flex items-center space-x-3 rounded-b-2xl mb-6 -mx-6 md:mx-0 md:rounded-2xl shadow-md" style={{ backgroundColor: '#7031f8' }}>
+                <Wallet className="w-5 h-5 opacity-95" />
+                <h1 className="text-2xl font-semibold">Balance</h1>
               </div>
 
         {/* Pestañas Principales Mejoradas */}
-        <div className="bg-white rounded-3xl shadow-xl p-1.5 mb-6 mx-4 mt-4 border-2 border-purple-100">
+        <div className="bg-white rounded-2xl shadow-md p-1.5 mb-6 mx-4 mt-4 border border-gray-200">
           <div className="flex gap-2">
                 <button
               onClick={() => setActiveTab('activity')}
-              className={`flex-1 py-4 text-center font-bold rounded-2xl transition-all duration-200 active:scale-95 ${
+              className={`flex-1 py-3.5 text-center font-semibold rounded-xl transition-all duration-200 active:scale-95 ${
                 activeTab === 'activity'
-                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg'
-                  : 'text-gray-500 hover:bg-purple-50 hover:text-purple-600'
+                  ? 'text-white shadow-sm'
+                  : 'text-gray-600 hover:bg-gray-50'
               }`}
+              style={activeTab === 'activity' ? { backgroundColor: '#7031f8' } : {}}
             >
-              📊 Actividad
+              Actividad
                 </button>
             <button
               onClick={() => setActiveTab('debts')}
-              className={`flex-1 py-4 text-center font-bold rounded-2xl transition-all duration-200 active:scale-95 ${
+              className={`flex-1 py-3.5 text-center font-semibold rounded-xl transition-all duration-200 active:scale-95 ${
                 activeTab === 'debts'
-                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg'
-                  : 'text-gray-500 hover:bg-purple-50 hover:text-purple-600'
+                  ? 'text-white shadow-sm'
+                  : 'text-gray-600 hover:bg-gray-50'
               }`}
+              style={activeTab === 'debts' ? { backgroundColor: '#7031f8' } : {}}
             >
-              💳 Deudas
+              Deudas
             </button>
           </div>
         </div>
@@ -383,69 +437,65 @@ const BalancePage = () => {
         {activeTab === 'activity' ? (
           <>
             {/* Tarjeta de Resumen Mejorada */}
-            <div className={`rounded-3xl shadow-2xl p-6 mb-6 mx-4 border-2 overflow-hidden relative ${
+            <div className={`rounded-2xl shadow-md p-6 mb-6 mx-4 border overflow-hidden relative ${
               summary.balance < 0 
-                ? 'bg-gradient-to-br from-red-50 to-orange-50 border-red-200' 
-                : 'bg-gradient-to-br from-purple-50 via-indigo-50 to-pink-50 border-purple-200'
+                ? 'bg-gradient-to-br from-red-50/80 to-orange-50/80 border-red-200/50' 
+                : 'bg-purple-50/40 border-purple-200/30'
             }`}>
-              {/* Decoración de fondo */}
-              <div className="absolute top-0 right-0 w-32 h-32 opacity-20">
-                <div className={`w-full h-full rounded-full ${
-                  summary.balance < 0 ? 'bg-red-200' : 'bg-purple-200'
-                }`}></div>
-              </div>
-              
-              <div className="relative z-10">
+              <div>
                 <div className="flex items-start justify-between mb-6">
                 <div className="flex-1">
                     <p className="text-sm font-semibold text-gray-600 mb-2 flex items-center">
                       <Calendar className="w-4 h-4 mr-2" />
                       Balance del {label}
                     </p>
-                    <h2 className={`text-3xl font-extrabold mb-2 ${
-                    summary.balance < 0 
-                      ? 'text-red-600' 
-                        : 'bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-600 bg-clip-text text-transparent'
-                  }`}>
-                    {formatCurrency(summary.balance)}
-                  </h2>
+                    <h2 
+                      className={`text-3xl font-bold mb-2 ${
+                        summary.balance < 0 
+                          ? 'text-red-500' 
+                          : ''
+                      }`}
+                      style={summary.balance >= 0 ? { color: '#7031f8' } : {}}
+                    >
+                      {formatCurrency(summary.balance)}
+                    </h2>
                 </div>
                 {summary.balance >= 0 && (
-                    <div className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-2xl text-xs font-bold flex items-center shadow-lg">
-                      <CheckCircle className="w-4 h-4 mr-2" />
+                    <div className="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-xs font-semibold flex items-center">
+                      <CheckCircle className="w-3.5 h-3.5 mr-1.5" />
                     Positivo
                     </div>
                   )}
                   {summary.balance < 0 && (
-                    <div className="px-4 py-2 bg-gradient-to-r from-red-500 to-orange-600 text-white rounded-2xl text-xs font-bold flex items-center shadow-lg">
-                      <AlertCircle className="w-4 h-4 mr-2" />
+                    <div className="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-xs font-semibold flex items-center">
+                      <AlertCircle className="w-3.5 h-3.5 mr-1.5" />
                       Negativo
                     </div>
                 )}
               </div>
 
-                <div className="grid grid-cols-2 gap-4 pt-4 border-t-2 border-white/50">
-                  <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-green-100">
-                    <div className="flex items-center space-x-3 mb-2">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-md">
-                        <TrendingUp className="w-6 h-6 text-white" />
+                <div className="grid grid-cols-2 gap-3 pt-4 border-t border-gray-200/50">
+                  <div className="bg-white/70 rounded-xl p-4 shadow-sm border border-green-200/50 cursor-pointer hover:bg-white/90 transition-colors" onClick={() => setActiveSubTab('income')}>
+                    <div className="flex items-center space-x-2.5 mb-2">
+                      <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
+                        <TrendingUp className="w-4 h-4 text-green-600" />
                   </div>
                       <div className="flex-1">
-                        <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Ingresos</p>
-                        <p className="text-xl font-extrabold text-green-600 mt-1">
+                        <p className="text-xs font-medium text-gray-600">Ingresos</p>
+                        <p className="text-base font-bold text-green-600 mt-0.5">
                           {formatCurrency(summary.totalIncome)}
                         </p>
                   </div>
                 </div>
                   </div>
-                  <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-red-100">
-                    <div className="flex items-center space-x-3 mb-2">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-pink-600 flex items-center justify-center shadow-md">
-                        <TrendingDown className="w-6 h-6 text-white" />
+                  <div className="bg-white/70 rounded-xl p-4 shadow-sm border border-red-200/50 cursor-pointer hover:bg-white/90 transition-colors" onClick={() => setActiveSubTab('expenses')}>
+                    <div className="flex items-center space-x-2.5 mb-2">
+                      <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
+                        <TrendingDown className="w-4 h-4 text-red-600" />
                       </div>
                       <div className="flex-1">
-                        <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Egresos</p>
-                        <p className="text-xl font-extrabold text-red-600 mt-1">
+                        <p className="text-xs font-medium text-gray-600">Egresos</p>
+                        <p className="text-base font-bold text-red-600 mt-0.5">
                           {formatCurrency(summary.totalExpenses)}
                         </p>
                       </div>
@@ -456,10 +506,10 @@ const BalancePage = () => {
             </div>
 
             {/* Selector de Período Mejorado */}
-            <div className="bg-white rounded-3xl shadow-xl p-5 mb-6 mx-4 border-2 border-purple-100">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-base font-bold text-gray-800 flex items-center">
-                  <Calendar className="w-5 h-5 mr-2 text-purple-600" />
+            <div className="bg-white rounded-2xl shadow-md p-4 mb-6 mx-4 border border-gray-200">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-gray-700 flex items-center">
+                  <Calendar className="w-4 h-4 mr-1.5 text-gray-500" />
                   Período
                 </h3>
                 <button
@@ -473,57 +523,59 @@ const BalancePage = () => {
                     };
                     input.click();
                   }}
-                  className="p-2.5 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 text-white hover:from-purple-600 hover:to-indigo-700 transition-all shadow-md active:scale-95"
+                  className="p-2 rounded-lg bg-purple-100 hover:bg-purple-200 transition-colors active:scale-95"
+                  style={{ color: '#7031f8' }}
                 >
-                  <Calendar className="w-5 h-5" />
+                  <Calendar className="w-4 h-4" />
                 </button>
               </div>
-              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
                 {(['today', 'yesterday', 'last7days'] as const).map((range) => (
                   <button
                     key={range}
                     onClick={() => setDateRange(range)}
-                    className={`px-5 py-3 rounded-2xl text-sm font-bold whitespace-nowrap transition-all duration-200 active:scale-95 shadow-md ${
+                    className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 active:scale-95 ${
                       dateRange === range
-                        ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-purple-200'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-lg'
+                        ? 'text-white shadow-sm'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }`}
+                    style={dateRange === range ? { backgroundColor: '#7031f8' } : {}}
                   >
-                    {range === 'today' ? '📅 Hoy' : range === 'yesterday' ? '📆 Ayer' : '📊 Últimos 7 días'}
+                    {range === 'today' ? 'Hoy' : range === 'yesterday' ? 'Ayer' : 'Últimos 7 días'}
                   </button>
             ))}
           </div>
             </div>
 
             {/* Pestañas de Movimientos Mejoradas */}
-            <div className="bg-white rounded-3xl shadow-xl mb-6 mx-4 border-2 border-purple-100 overflow-hidden">
-              <div className="flex bg-gradient-to-r from-gray-50 to-purple-50 p-1">
+            <div className="bg-white rounded-2xl shadow-md mb-6 mx-4 border border-gray-200 overflow-hidden">
+              <div className="flex bg-gray-50 p-1">
                 <button
                   onClick={() => setActiveSubTab('income')}
-                  className={`flex-1 py-4 text-center font-bold transition-all duration-200 rounded-2xl ${
+                  className={`flex-1 py-3 text-center font-semibold transition-all duration-200 rounded-lg ${
                     activeSubTab === 'income'
-                      ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg'
-                      : 'text-gray-500 hover:text-green-600'
+                      ? 'bg-green-500 text-white shadow-sm'
+                      : 'text-gray-600 hover:text-green-600'
                   }`}
                 >
-                  💰 Ingresos
+                  Ingresos
                 </button>
             <button
                   onClick={() => setActiveSubTab('expenses')}
-                  className={`flex-1 py-4 text-center font-bold transition-all duration-200 rounded-2xl ${
+                  className={`flex-1 py-3 text-center font-semibold transition-all duration-200 rounded-lg ${
                     activeSubTab === 'expenses'
-                      ? 'bg-gradient-to-r from-red-500 to-pink-600 text-white shadow-lg'
-                      : 'text-gray-500 hover:text-red-600'
+                      ? 'bg-red-500 text-white shadow-sm'
+                      : 'text-gray-600 hover:text-red-600'
                   }`}
                 >
-                  💸 Egresos
+                  Egresos
             </button>
           </div>
 
               <div className="p-4">
         {loading ? (
                   <div className="flex justify-center items-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: '#7031f8' }}></div>
                   </div>
                 ) : filteredTransactions.length === 0 ? (
                   <div className="text-center py-12">
@@ -535,7 +587,7 @@ const BalancePage = () => {
                       )}
                 </div>
                     <p className="text-gray-500 text-sm">
-                      No hay {activeSubTab === 'income' ? 'ingresos' : 'egresos'} para este período
+                      {activeSubTab === 'income' ? 'Aún no hay ingresos' : 'Aún no hay egresos'} en este período
                     </p>
                   </div>
                 ) : (
@@ -543,47 +595,72 @@ const BalancePage = () => {
                     {filteredTransactions.map((transaction, index) => (
                       <div
                         key={transaction.id}
-                        className="flex items-center p-4 rounded-2xl hover:shadow-lg transition-all duration-200 border-2 border-transparent hover:border-purple-200 bg-gradient-to-r from-white to-gray-50/50 active:scale-[0.98]"
+                        onClick={async () => {
+                          if (transaction.type === 'sale') {
+                            setLoadingSaleDetail(true);
+                            setIsSaleDetailModalOpen(true);
+                            try {
+                              const response = await fetch(`/api/sales/${transaction.id}`);
+                              const data = await response.json();
+                              if (data.success) {
+                                setSelectedSale(data.data);
+                              } else {
+                                setSelectedSale(null);
+                              }
+                            } catch (error) {
+                              console.error('Error obteniendo detalles de venta:', error);
+                              setSelectedSale(null);
+                            } finally {
+                              setLoadingSaleDetail(false);
+                            }
+                          }
+                        }}
+                        className={`flex items-center p-3 rounded-xl hover:shadow-md transition-all duration-200 border border-transparent hover:border-gray-200 bg-white active:scale-[0.98] ${
+                          transaction.type === 'sale' ? 'cursor-pointer' : ''
+                        }`}
                         style={{
                           animation: `fadeInUp 0.4s ease-out ${index * 0.05}s both`
                         }}
                       >
                         {/* Icono Mejorado */}
-                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mr-4 flex-shrink-0 shadow-md ${
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center mr-3 flex-shrink-0 shadow-sm ${
                           transaction.type === 'sale' 
                             ? 'bg-gradient-to-br from-green-500 to-emerald-600' 
                             : 'bg-gradient-to-br from-red-500 to-pink-600'
                         }`}>
                           {transaction.type === 'sale' ? (
-                            <ArrowUp className="w-7 h-7 text-white" />
+                            <ArrowUp className="w-4 h-4 text-white" />
                           ) : (
-                            <ArrowDown className="w-7 h-7 text-white" />
+                            <ArrowDown className="w-4 h-4 text-white" />
                           )}
                 </div>
 
                         {/* Información Mejorada */}
-                        <div className="flex-1 min-w-0">
-                          <p className="font-bold text-gray-900 text-lg truncate mb-1">
+                        <div className="flex-1 min-w-0 pr-2">
+                          <p className="font-semibold text-gray-900 text-base mb-1 break-words">
                             {transaction.concept}
                           </p>
                           {transaction.description && (
-                            <p className="text-xs text-gray-500 mb-2">{transaction.description}</p>
+                            <p className="text-xs text-gray-500 mb-1.5">{transaction.description}</p>
                           )}
-                          <div className="flex items-center space-x-3 mt-2 flex-wrap">
-                            <div className="flex items-center text-xs font-semibold text-gray-600 bg-gray-100 px-2.5 py-1 rounded-full">
-                              <DollarSign className="w-3 h-3 mr-1.5" />
+                          <div className="flex items-center space-x-2 mt-1.5 flex-wrap gap-y-1">
+                            {transaction.description && transaction.description.startsWith('#') && (
+                              <span className="text-xs text-gray-500">{transaction.description}</span>
+                            )}
+                            <div className="flex items-center text-xs font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full">
+                              <DollarSign className="w-3 h-3 mr-1" />
                               <span>{transaction.paymentMethod || 'Efectivo'}</span>
               </div>
                             <div className="flex items-center text-xs text-gray-500">
-                              <Clock className="w-3 h-3 mr-1.5" />
+                              <Clock className="w-3 h-3 mr-1" />
                               {formatDateTime(transaction.date)}
                   </div>
                 </div>
               </div>
 
                         {/* Monto Mejorado */}
-                        <div className="ml-4 flex-shrink-0 text-right">
-                          <p className={`text-2xl font-extrabold ${
+                        <div className="ml-2 flex-shrink-0 text-right">
+                          <p className={`text-xl font-bold ${
                             transaction.type === 'sale' 
                               ? 'text-green-600' 
                               : 'text-red-600'
@@ -628,7 +705,7 @@ const BalancePage = () => {
               <div className="p-4 min-h-[400px]">
                 {loading ? (
                   <div className="flex justify-center items-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: '#7031f8' }}></div>
                   </div>
                 ) : filteredDebts.length === 0 ? (
                   <div className="text-center py-12 flex flex-col items-center justify-center h-full">
@@ -776,6 +853,17 @@ const BalancePage = () => {
           </>
         )}
       </div>
+
+      {/* Modal de detalles de venta */}
+      <SaleDetailModal
+        isOpen={isSaleDetailModalOpen}
+        onClose={() => {
+          setIsSaleDetailModalOpen(false);
+          setSelectedSale(null);
+        }}
+        sale={selectedSale}
+        loading={loadingSaleDetail}
+      />
     </>
   );
 };

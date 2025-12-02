@@ -16,10 +16,26 @@ const Header = () => {
   const { lowStockData } = useLowStock(true); // Escuchar eventos de actualización
 
   const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Buenos días';
-    if (hour < 18) return 'Buenas tardes';
-    return 'Buenas noches';
+    // Obtener la hora de El Salvador (UTC-6)
+    const now = new Date();
+    const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const elSalvadorTime = new Date(utcTime + (-6 * 3600000)); // UTC-6
+    const hour = elSalvadorTime.getHours();
+    
+    // Dividir en períodos según la hora de El Salvador
+    if (hour >= 0 && hour < 6) {
+      // Madrugada: 0:00 - 5:59
+      return 'Buenas noches';
+    } else if (hour >= 6 && hour < 12) {
+      // Mañana: 6:00 - 11:59
+      return 'Buenos días';
+    } else if (hour >= 12 && hour < 18) {
+      // Tarde: 12:00 - 17:59
+      return 'Buenas tardes';
+    } else {
+      // Noche: 18:00 - 23:59
+      return 'Buenas noches';
+    }
   };
 
   const handleLogout = async () => {
@@ -39,11 +55,11 @@ const Header = () => {
   const userName = user?.username || 'Usuario';
 
   return (
-    <header className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 pt-12 pb-8 rounded-b-3xl shadow-lg md:rounded-none md:pt-6 md:pb-4">
+    <header className="text-white px-6 pt-12 pb-8 rounded-b-2xl shadow-md md:rounded-none md:pt-6 md:pb-4" style={{ backgroundColor: '#7031f8' }}>
       <div className="flex items-center justify-between mb-6 md:max-w-7xl md:mx-auto md:px-8 lg:px-12 xl:px-16 md:mb-4">
         <div className="flex items-center space-x-4">
           <div className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border-2 border-white/30 overflow-hidden">
-            <Logo width={56} height={56} alt="Logo Multiciber" className="rounded-full" />
+            <Logo width={52} height={52} alt="Logo Multiciber" className="rounded-full" />
           </div>
           <div>
             <p className="text-sm opacity-90">{getGreeting()}</p>

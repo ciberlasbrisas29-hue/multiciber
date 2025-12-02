@@ -134,13 +134,13 @@ const DebtPaymentPage = () => {
         
         // Si se pagó completamente, mostrar mensaje de éxito y redirigir
         if (newStatus === 'paid') {
-          setSuccessMessage('¡Deuda pagada completamente!');
+          setSuccessMessage('¡Listo! Deuda pagada completamente');
           setShowSuccessNotification(true);
           setTimeout(() => {
             router.push('/balance?tab=debts');
           }, 2000);
         } else {
-          setSuccessMessage(`Abono de ${formatCurrency(amountToPay)} registrado exitosamente`);
+          setSuccessMessage(`Abono de ${formatCurrency(amountToPay)} registrado`);
           setShowSuccessNotification(true);
           // Actualizar la vista de la venta
           setSale({
@@ -367,7 +367,7 @@ const DebtPaymentPage = () => {
                 </div>
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-lg font-bold text-gray-900 mb-1">¡Éxito!</h3>
+                <h3 className="text-lg font-bold text-gray-900 mb-1">¡Listo!</h3>
                 <p className="text-sm text-gray-600 leading-relaxed">{successMessage}</p>
               </div>
               <button

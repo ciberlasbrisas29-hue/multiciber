@@ -105,7 +105,7 @@ const ExpensePaymentPage = () => {
         window.dispatchEvent(new CustomEvent('expense-updated'));
         window.dispatchEvent(new CustomEvent('debt-updated'));
         
-        setSuccessMessage('¡Gasto pagado exitosamente!');
+        setSuccessMessage('¡Listo! Gasto pagado');
         setShowSuccessNotification(true);
         setTimeout(() => {
           router.push('/balance?tab=debts');
@@ -287,7 +287,7 @@ const ExpensePaymentPage = () => {
                 </div>
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-lg font-bold text-gray-900 mb-1">¡Éxito!</h3>
+                <h3 className="text-lg font-bold text-gray-900 mb-1">¡Listo!</h3>
                 <p className="text-sm text-gray-600 leading-relaxed">{successMessage}</p>
               </div>
               <button

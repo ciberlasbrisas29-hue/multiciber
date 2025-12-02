@@ -171,8 +171,8 @@ const SuppliersPage = () => {
               <div className="w-20 h-20 rounded-full bg-purple-100 flex items-center justify-center mx-auto mb-4">
                 <Building2 className="w-10 h-10 text-purple-600" />
               </div>
-              <p className="text-gray-700 text-xl font-bold mb-2">No hay proveedores</p>
-              <p className="text-gray-500 text-sm mb-6">Comienza agregando tu primer proveedor</p>
+              <p className="text-gray-700 text-xl font-bold mb-2">Aún no tienes proveedores</p>
+              <p className="text-gray-500 text-sm mb-6">Agrega tu primer proveedor para empezar</p>
               <button
                 onClick={() => router.push('/suppliers/new')}
                 className="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 active:scale-95 flex items-center space-x-2 mx-auto"

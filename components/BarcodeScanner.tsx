@@ -459,12 +459,20 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes slideInFromTop {
           from {
-            transform: translateY(-20px) scale(0.95);
+            transform: translateY(-30px) scale(0.9);
             opacity: 0;
           }
           to {
             transform: translateY(0) scale(1);
             opacity: 1;
+          }
+        }
+        @keyframes stackCollapse {
+          from {
+            transform: translateY(0) scale(1);
+          }
+          to {
+            transform: translateY(8px) scale(0.97);
           }
         }
       `}} />
@@ -532,39 +540,65 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
         <div className="bg-white border-t border-gray-200 flex-shrink-0">
           <div ref={productsListRef} className="max-h-[40vh] overflow-y-auto overflow-x-hidden">
             <div className="p-4 relative">
-              {/* Contenedor con apilado estilo iOS */}
-              <div className="relative" style={{ minHeight: `${scannedProducts.length * 12 + 100}px` }}>
-                {scannedProducts.map((product, index) => {
-                  // Calcular el offset para el efecto de apilado
-                  // Los productos más recientes (al final del array) aparecen más arriba
-                  const reverseIndex = scannedProducts.length - 1 - index;
-                  const offset = reverseIndex * 12; // 12px de offset por cada elemento
+              {/* Contenedor con apilado estilo iOS - Solo mostrar los últimos 4 elementos visibles */}
+              <div className="relative" style={{ minHeight: `${Math.min(scannedProducts.length, 4) * 16 + 100}px` }}>
+                {scannedProducts.slice(-4).map((product, sliceIndex) => {
+                  // Calcular el índice real en el array completo
+                  const startIndex = Math.max(0, scannedProducts.length - 4);
+                  const realIndex = startIndex + sliceIndex;
+                  const reverseIndex = scannedProducts.length - 1 - realIndex;
+                  
+                  // Solo mostrar los últimos 4 elementos
+                  if (reverseIndex < 0 || reverseIndex > 3) return null;
+                  
+                  const offset = reverseIndex * 16; // 16px de offset por cada elemento (más espaciado)
                   const zIndex = reverseIndex + 10; // z-index más alto para elementos más recientes
-                  const scale = Math.max(1 - (reverseIndex * 0.03), 0.85); // Escala menor para elementos más abajo (mínimo 0.85)
-                  const opacity = Math.max(1 - (reverseIndex * 0.08), 0.6); // Opacidad menor para elementos más abajo (mínimo 0.6)
-                  const isNewest = index === scannedProducts.length - 1;
+                  const scale = Math.max(1 - (reverseIndex * 0.04), 0.88); // Escala menor para elementos más abajo
+                  const opacity = Math.max(1 - (reverseIndex * 0.12), 0.5); // Opacidad menor para elementos más abajo
+                  const isNewest = realIndex === scannedProducts.length - 1;
+                  const isVisible = reverseIndex <= 3; // Solo mostrar los 4 más recientes
                   
                   return (
                     <div
-                      key={product.id}
-                      className="absolute left-4 right-4 transition-all duration-300 ease-out"
+                      key={`${product.id}-${realIndex}`}
+                      className="absolute left-4 right-4 transition-all duration-500 ease-out"
                       style={{
                         top: `${offset}px`,
                         zIndex: zIndex,
-                        transform: `scale(${scale})`,
-                        opacity: opacity,
-                        animation: isNewest ? 'slideInFromTop 0.4s ease-out' : 'none',
-                        pointerEvents: reverseIndex > 2 ? 'none' : 'auto' // Solo los 3 más recientes son interactuables
+                        transform: `scale(${scale}) translateY(${reverseIndex > 0 ? reverseIndex * 2 : 0}px)`,
+                        opacity: isVisible ? opacity : 0,
+                        animation: isNewest ? 'slideInFromTop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)' : 'stackCollapse 0.3s ease-out',
+                        pointerEvents: reverseIndex > 2 ? 'none' : 'auto', // Solo los 3 más recientes son interactuables
+                        transformOrigin: 'top center',
+                        willChange: 'transform, opacity'
                       }}
                     >
-                <SwipeableProductCard
-                  product={product}
-                  onUpdateQuantity={onUpdateQuantity}
-                  onRemove={onRemoveProduct}
-                />
+                      <SwipeableProductCard
+                        product={product}
+                        onUpdateQuantity={onUpdateQuantity}
+                        onRemove={onRemoveProduct}
+                      />
                     </div>
                   );
                 })}
+                
+                {/* Indicador de más productos si hay más de 4 */}
+                {scannedProducts.length > 4 && (
+                  <div 
+                    className="absolute left-4 right-4"
+                    style={{
+                      top: `${Math.min(scannedProducts.length, 4) * 16 + 20}px`,
+                      zIndex: 5,
+                      pointerEvents: 'none'
+                    }}
+                  >
+                    <div className="bg-gray-100 rounded-2xl p-3 text-center border-2 border-dashed border-gray-300">
+                      <p className="text-xs font-semibold text-gray-500">
+                        +{scannedProducts.length - 4} producto{scannedProducts.length - 4 !== 1 ? 's' : ''} más
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

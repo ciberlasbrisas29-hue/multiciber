@@ -290,9 +290,9 @@ ${emojiCart} Me gustaría obtener más información y realizar la compra. ¡Grac
             <div className="w-24 h-24 bg-gradient-to-br from-purple-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6">
               <Package className="w-12 h-12 text-purple-500" />
             </div>
-            <h3 className="text-2xl font-bold text-gray-800 mb-3">No hay productos disponibles</h3>
+            <h3 className="text-2xl font-bold text-gray-800 mb-3">Aún no hay productos</h3>
             <p className="text-gray-500 text-lg">
-              {searchTerm ? 'No se encontraron productos que coincidan con tu búsqueda' : 'No hay productos en el catálogo'}
+              {searchTerm ? 'No encontramos productos con ese nombre' : 'El catálogo está vacío por ahora'}
             </p>
           </div>
         ) : (

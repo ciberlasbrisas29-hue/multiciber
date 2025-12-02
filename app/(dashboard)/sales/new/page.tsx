@@ -551,7 +551,7 @@ const NewSalePage = () => {
     salesService.createSale(saleData)
       .then(response => {
         if (response.success) {
-          alert('Venta registrada exitosamente');
+          alert('¡Venta registrada!');
           router.push('/sales');
         } else {
           alert('Error al registrar la venta: ' + response.message);
@@ -895,9 +895,12 @@ const NewSalePage = () => {
         ) : searchTerm.trim() && Object.keys(searchResults).length === 0 ? (
           <div className="text-center bg-white p-12 rounded-2xl shadow-md">
             <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-700 mb-2">No se encontraron productos</h3>
+            <h3 className="text-xl font-semibold text-gray-700 mb-2">No encontramos nada</h3>
             <p className="text-gray-500 mb-4">
               No hay productos que coincidan con "{searchTerm}"
+            </p>
+            <p className="text-sm text-gray-400 mb-4">
+              Prueba con otro término o agrega el producto desde el inventario
             </p>
             <button
               onClick={() => {
@@ -911,7 +914,8 @@ const NewSalePage = () => {
           </div>
         ) : products.length === 0 ? (
           <div className="text-center py-12 text-gray-500">
-            <p>No hay productos disponibles</p>
+            <p>Aún no hay productos</p>
+            <p className="text-sm mt-1 text-gray-400">Agrega productos desde el inventario</p>
           </div>
         ) : (
           products.map((product: any) => {

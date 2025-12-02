@@ -10,9 +10,9 @@ export function Providers({ children }) {
     <AuthProvider>
       <ScannerProvider>
         <ToastProvider>
-          <RouteGuard>
-            {children}
-          </RouteGuard>
+        <RouteGuard>
+          {children}
+        </RouteGuard>
         </ToastProvider>
       </ScannerProvider>
     </AuthProvider>

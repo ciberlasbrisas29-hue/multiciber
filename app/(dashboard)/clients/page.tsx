@@ -144,7 +144,7 @@ const ClientsPage = () => {
       }
 
       fetchClients();
-      showToast('Cliente eliminado exitosamente', 'success');
+      showToast('Cliente eliminado', 'success');
     } catch (error) {
       console.error('Error deleting client:', error);
       showToast('Error al eliminar cliente', 'error');
@@ -221,8 +221,8 @@ const ClientsPage = () => {
               <div className="w-20 h-20 rounded-full bg-purple-100 flex items-center justify-center mx-auto mb-4">
                 <User className="w-10 h-10 text-purple-600" />
               </div>
-              <p className="text-gray-700 text-xl font-bold mb-2">No hay clientes</p>
-              <p className="text-gray-500 text-sm mb-6">Comienza agregando tu primer cliente</p>
+              <p className="text-gray-700 text-xl font-bold mb-2">Aún no tienes clientes</p>
+              <p className="text-gray-500 text-sm mb-6">Agrega tu primer cliente para empezar</p>
               <button
                 onClick={() => router.push('/clients/new')}
                 className="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 active:scale-95 flex items-center space-x-2 mx-auto"

@@ -164,15 +164,15 @@ const FreeSalePage = () => {
 
   return (
     <>
-      {/* Header con gradiente morado/índigo - se combina con el header principal */}
-      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-4 flex items-center space-x-3 rounded-b-3xl shadow-lg -mt-4 mb-4">
+      {/* Header */}
+      <div className="text-white px-6 py-4 flex items-center space-x-3 rounded-b-2xl mb-6 -mx-6 md:mx-0 md:rounded-2xl shadow-md" style={{ backgroundColor: '#7031f8' }}>
         <button
           onClick={() => router.back()}
-          className="p-2 hover:bg-white/20 rounded-full transition-colors"
+          className="w-10 h-10 flex items-center justify-center bg-white/20 hover:bg-white/30 rounded-lg transition-all active:scale-95"
         >
-          <ArrowLeft className="w-6 h-6 text-white" />
+          <ArrowLeft className="w-5 h-5 text-white" />
         </button>
-        <h1 className="text-xl font-bold text-white">Nueva venta</h1>
+        <h1 className="text-2xl font-semibold">Nueva venta</h1>
       </div>
 
       <div className="px-6 py-4 pb-24 space-y-4">
@@ -269,19 +269,37 @@ const FreeSalePage = () => {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Cliente <span className="text-red-500">*</span>
             </label>
-            <button
-              type="button"
-              onClick={() => setShowClientPicker(true)}
-              className="w-full bg-white border border-gray-300 rounded-xl px-4 py-3 flex items-center justify-between text-left hover:bg-gray-50 transition-colors shadow-sm"
-            >
-              <div className="flex items-center space-x-3 flex-1">
-                <User className="w-5 h-5 text-gray-400" />
-                <span className={formData.client ? 'text-gray-900 font-medium' : 'text-gray-400'}>
-                  {formData.client ? formData.client.name : 'Selecciona un cliente'}
-                </span>
+            <div className="flex items-center space-x-2">
+              <div className="flex-1 relative">
+                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  value={formData.client?.name || ''}
+                  onChange={(e) => {
+                    const name = e.target.value;
+                    setFormData({
+                      ...formData,
+                      client: name ? { name } : null
+                    });
+                  }}
+                  placeholder="Escribe el nombre del cliente"
+                  className="w-full bg-white border border-gray-300 rounded-xl pl-10 pr-4 py-3 text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent shadow-sm"
+                />
               </div>
-              <ChevronDown className="w-5 h-5 text-gray-400" />
-            </button>
+              <button
+                type="button"
+                onClick={() => setShowClientPicker(true)}
+                className="px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl transition-colors shadow-sm flex items-center justify-center"
+                title="Seleccionar de la lista"
+              >
+                <User className="w-5 h-5" />
+              </button>
+            </div>
+            {formData.client && (
+              <p className="mt-1 text-xs text-gray-500">
+                Cliente: {formData.client.name}
+              </p>
+            )}
           </div>
 
           {/* Descuento */}

@@ -127,7 +127,7 @@ const SettingsPage = () => {
       });
 
       if (response.data.success) {
-        setSuccess('Perfil del negocio actualizado exitosamente');
+        setSuccess('¡Listo! Perfil actualizado');
         setSettings(response.data.data);
         setTimeout(() => setSuccess(''), 3000);
       }
@@ -152,7 +152,7 @@ const SettingsPage = () => {
       });
 
       if (response.data.success) {
-        setSuccess('Configuración financiera actualizada exitosamente');
+        setSuccess('¡Listo! Configuración guardada');
         setSettings(response.data.data);
         setTimeout(() => setSuccess(''), 3000);
       }
@@ -204,7 +204,7 @@ const SettingsPage = () => {
                 <div className="animate-spin rounded-full h-16 w-16 border-4 border-purple-200 border-t-purple-600 mx-auto mb-4"></div>
                 <div className="absolute inset-0 animate-ping rounded-full h-16 w-16 border-2 border-purple-400 opacity-20"></div>
               </div>
-              <p className="text-gray-600 font-semibold">Cargando configuración...</p>
+              <p className="text-gray-600 font-semibold">Cargando...</p>
             </div>
           </div>
         </div>
@@ -216,17 +216,10 @@ const SettingsPage = () => {
     <>
       <style dangerouslySetInnerHTML={{__html: settingsStyles}} />
       <div className="min-h-screen pb-24 bg-gradient-to-br from-purple-50 via-indigo-50 to-pink-50">
-        {/* Header Mejorado */}
-        <div className="bg-gradient-to-br from-purple-600 via-indigo-600 to-pink-500 text-white px-4 py-4 flex items-center space-x-3 rounded-b-2xl mb-6 -mx-6 md:mx-0 md:rounded-2xl shadow-xl relative overflow-hidden">
-          <div className="relative z-10 flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg">
-              <Settings className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-extrabold drop-shadow-lg">Ajustes</h1>
-              <p className="text-xs text-white/90">Configuración de la aplicación</p>
-            </div>
-          </div>
+        {/* Header */}
+        <div className="text-white px-6 py-4 flex items-center space-x-3 rounded-b-2xl mb-6 -mx-6 md:mx-0 md:rounded-2xl shadow-md" style={{ backgroundColor: '#7031f8' }}>
+          <Settings className="w-5 h-5 opacity-95" />
+          <h1 className="text-2xl font-semibold">Ajustes</h1>
         </div>
 
       <div className="px-4 space-y-6">
@@ -255,10 +248,6 @@ const SettingsPage = () => {
             animation: 'fadeInUp 0.4s ease-out both'
           }}
         >
-          {/* Decoración de fondo */}
-          <div className="absolute top-0 right-0 w-32 h-32 opacity-5">
-            <Building2 className="w-full h-full text-purple-600" />
-          </div>
           <div className="relative z-10">
           <div className="flex items-center mb-6">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center mr-3 shadow-lg">
@@ -369,10 +358,6 @@ const SettingsPage = () => {
             animation: 'fadeInUp 0.4s ease-out 0.1s both'
           }}
         >
-          {/* Decoración de fondo */}
-          <div className="absolute top-0 right-0 w-32 h-32 opacity-5">
-            <DollarSign className="w-full h-full text-indigo-600" />
-          </div>
           <div className="relative z-10">
           <div className="flex items-center mb-6">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mr-3 shadow-lg">

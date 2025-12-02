@@ -4,12 +4,12 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { dashboardService } from '@/services/api';
 import SaleTypeModal from '@/components/SaleTypeModal';
+import SaleDetailModal from '@/components/SaleDetailModal';
 import { 
   Plus, 
   DollarSign,
   Package,
   MoreVertical,
-  Sparkles,
   ArrowUp,
   ArrowDown,
   Clock,
@@ -32,6 +32,7 @@ interface Movement {
   isPayment?: boolean; // Indica si es un pago/abono
   referenceId?: string; // ID de la venta/gasto relacionado
   referenceType?: 'sale' | 'expense'; // Tipo de referencia
+  saleData?: any; // Datos completos de la venta para el modal
 }
 
 const HomePage = () => {
@@ -42,6 +43,9 @@ const HomePage = () => {
   const [loadingMovements, setLoadingMovements] = useState(true);
   const [mounted, setMounted] = useState(false);
   const [isSaleModalOpen, setIsSaleModalOpen] = useState(false);
+  const [selectedSale, setSelectedSale] = useState<any>(null);
+  const [isSaleDetailModalOpen, setIsSaleDetailModalOpen] = useState(false);
+  const [loadingSaleDetail, setLoadingSaleDetail] = useState(false);
 
   // Asegurar que el componente está montado (solo en cliente)
   useEffect(() => {
@@ -139,7 +143,30 @@ const HomePage = () => {
               
               description = sale.concept || (sale.client?.name ? `Cliente: ${sale.client.name}` : 'Venta libre registrada');
             } else {
-              // Para ventas de productos, usar la lógica anterior
+              // Para ventas de productos, mostrar nombres de productos
+              if (sale.items && sale.items.length > 0) {
+                // Si hay un solo producto, mostrar su nombre completo
+                if (sale.items.length === 1) {
+                  const item = sale.items[0];
+                  title = item.productName || item.product?.name || 'Producto';
+                  subtitle = sale.saleNumber ? `#${sale.saleNumber}` : '';
+                } else {
+                  // Si hay múltiples productos, mostrar los primeros 2-3 nombres
+                  const productNames = sale.items
+                    .slice(0, 3)
+                    .map((item: any) => item.productName || item.product?.name || 'Producto')
+                    .join(', ');
+                  const remaining = sale.items.length - 3;
+                  title = productNames + (remaining > 0 ? ` y ${remaining} más` : '');
+                  subtitle = sale.saleNumber ? `#${sale.saleNumber}` : '';
+                }
+                
+                // Si no hay subtitle, agregar información adicional
+                if (!subtitle) {
+                  subtitle = `${sale.items.length} producto${sale.items.length > 1 ? 's' : ''}`;
+                }
+              } else {
+                // Fallback si no hay items
             if (sale.client?.name) {
               title = `Venta: Cliente ${sale.client.name}`;
               subtitle = sale.saleNumber ? `#${sale.saleNumber}` : '';
@@ -148,15 +175,6 @@ const HomePage = () => {
             } else {
                 title = 'Venta de Productos';
             }
-
-            // Si no hay información específica, mostrar fecha/hora en subtitle
-            if (!subtitle && !sale.client?.name && !sale.saleNumber) {
-              const saleDate = new Date(sale.createdAt);
-              subtitle = formatDateTime(saleDate);
-            } else if (!subtitle) {
-              subtitle = sale.items?.length > 0 
-                ? `${sale.items.length} producto${sale.items.length > 1 ? 's' : ''}`
-                : '';
             }
               
               description = sale.items?.length > 0 
@@ -180,7 +198,8 @@ const HomePage = () => {
               date: new Date(sale.createdAt),
               description,
               totalAmount: isDebt ? saleTotal : undefined,
-              paidAmount: isDebt ? paidAmount : undefined
+              paidAmount: isDebt ? paidAmount : undefined,
+              saleData: sale // Guardar datos completos para el modal
             });
           });
         }
@@ -332,16 +351,50 @@ const HomePage = () => {
     const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
     
     if (diffInSeconds < 60) {
-      return 'Hace unos momentos';
+      const variations = ['Recién', 'Ahora mismo', 'Hace un rato'];
+      return variations[Math.floor(Math.random() * variations.length)];
     } else if (diffInSeconds < 3600) {
       const minutes = Math.floor(diffInSeconds / 60);
-      return `Hace ${minutes} minuto${minutes > 1 ? 's' : ''}`;
+      if (minutes === 1) return 'Hace 1 min';
+      return `Hace ${minutes} min`;
     } else if (diffInSeconds < 86400) {
       const hours = Math.floor(diffInSeconds / 3600);
-      return `Hace ${hours} hora${hours > 1 ? 's' : ''}`;
+      if (hours === 1) return 'Hace 1 hora';
+      return `Hace ${hours} horas`;
     } else {
       const days = Math.floor(diffInSeconds / 86400);
-      return `Hace ${days} día${days > 1 ? 's' : ''}`;
+      if (days === 1) return 'Ayer';
+      return `Hace ${days} días`;
+    }
+  };
+
+  const handleMovementClick = async (movement: Movement) => {
+    // Solo abrir modal para ventas (no para gastos o pagos)
+    if (movement.type === 'sale' && !movement.isPayment) {
+      setLoadingSaleDetail(true);
+      setIsSaleDetailModalOpen(true);
+      
+      try {
+        // Si ya tenemos los datos de la venta, usarlos directamente
+        if (movement.saleData) {
+          setSelectedSale(movement.saleData);
+        } else {
+          // Si no, hacer fetch de la venta
+          const response = await fetch(`/api/sales/${movement.id}`);
+          const data = await response.json();
+          if (data.success) {
+            setSelectedSale(data.data);
+          } else {
+            console.error('Error obteniendo detalles de venta:', data.message);
+            setSelectedSale(null);
+          }
+        }
+      } catch (error) {
+        console.error('Error obteniendo detalles de venta:', error);
+        setSelectedSale(null);
+      } finally {
+        setLoadingSaleDetail(false);
+      }
     }
   };
 
@@ -349,102 +402,100 @@ const HomePage = () => {
   return (
     <div className="min-h-screen">
         {/* Card Principal */}
-        <div className="bg-white rounded-3xl shadow-xl p-6 mb-6 border border-purple-100">
+        <div className="bg-white rounded-3xl shadow-lg p-6 mb-6 border border-gray-100">
           <div className="flex items-start justify-between mb-4">
             <div className="flex-1">
-              <p className="text-sm text-gray-500 mb-1">Balance Actual</p>
-              <h2 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+              <p className="text-sm text-gray-500 mb-2 font-medium">Balance Actual</p>
+              <h2 className="text-3xl font-bold text-purple-600 mb-1">
                 ${currentBalance}
               </h2>
             </div>
-            <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold flex items-center">
-              <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+            <span className="px-4 py-2 bg-green-50 border border-green-200 text-green-700 rounded-full text-xs font-semibold flex items-center shadow-sm">
+              <span className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
               Activo
             </span>
           </div>
           <div className="pt-4 border-t border-gray-100">
-            <p className="text-xs text-gray-400">Actualizado hace unos momentos</p>
+            <p className="text-xs text-gray-400 flex items-center">
+              <Clock className="w-3 h-3 mr-1" />
+              Actualizado recién
+            </p>
           </div>
         </div>
 
         {/* Fila de Botones de Acción */}
-        <div className="grid grid-cols-5 gap-2 mb-6">
+        <div className="grid grid-cols-5 gap-3 mb-6">
           <button 
             onClick={() => router.push('/balance')}
-            className="flex flex-col items-center justify-center bg-white rounded-2xl p-4 shadow-md hover:shadow-lg transition-all duration-200 active:scale-95 border border-purple-100"
+            className="flex flex-col items-center justify-center bg-white rounded-2xl p-3 shadow-sm hover:shadow-lg transition-all duration-200 active:scale-95 border border-gray-100 group"
           >
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center mb-2">
+            <div className="w-12 h-12 rounded-full bg-indigo-600 flex items-center justify-center mb-2 group-hover:bg-indigo-700 transition-colors shadow-sm">
               <DollarSign className="w-6 h-6 text-white" />
             </div>
-            <span className="text-xs font-medium text-gray-700">Balance</span>
+            <span className="text-xs font-semibold text-gray-700">Balance</span>
           </button>
 
           <button 
             onClick={() => router.push('/inventory')}
-            className="flex flex-col items-center justify-center bg-white rounded-2xl p-4 shadow-md hover:shadow-lg transition-all duration-200 active:scale-95 border border-purple-100"
+            className="flex flex-col items-center justify-center bg-white rounded-2xl p-3 shadow-sm hover:shadow-lg transition-all duration-200 active:scale-95 border border-gray-100 group"
           >
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-500 to-pink-600 flex items-center justify-center mb-2">
+            <div className="w-12 h-12 rounded-full bg-pink-500 flex items-center justify-center mb-2 group-hover:bg-pink-600 transition-colors shadow-sm">
               <Package className="w-6 h-6 text-white" />
             </div>
-            <span className="text-xs font-medium text-gray-700">Inventario</span>
+            <span className="text-xs font-semibold text-gray-700">Inventario</span>
           </button>
 
           <button 
             onClick={() => router.push('/balance?tab=debts')}
-            className="flex flex-col items-center justify-center bg-white rounded-2xl p-4 shadow-md hover:shadow-lg transition-all duration-200 active:scale-95 border border-purple-100"
+            className="flex flex-col items-center justify-center bg-white rounded-2xl p-3 shadow-sm hover:shadow-lg transition-all duration-200 active:scale-95 border border-gray-100 group"
           >
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center mb-2">
+            <div className="w-12 h-12 rounded-full bg-purple-600 flex items-center justify-center mb-2 group-hover:bg-purple-700 transition-colors shadow-sm">
               <FileText className="w-6 h-6 text-white" />
             </div>
-            <span className="text-xs font-medium text-gray-700">Deudas</span>
+            <span className="text-xs font-semibold text-gray-700">Deudas</span>
           </button>
 
           <button 
             onClick={() => router.push('/clients')}
-            className="flex flex-col items-center justify-center bg-white rounded-2xl p-4 shadow-md hover:shadow-lg transition-all duration-200 active:scale-95 border border-purple-100"
+            className="flex flex-col items-center justify-center bg-white rounded-2xl p-3 shadow-sm hover:shadow-lg transition-all duration-200 active:scale-95 border border-gray-100 group"
           >
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center mb-2">
+            <div className="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center mb-2 group-hover:bg-green-600 transition-colors shadow-sm">
               <User className="w-6 h-6 text-white" />
             </div>
-            <span className="text-xs font-medium text-gray-700">Clientes</span>
+            <span className="text-xs font-semibold text-gray-700">Clientes</span>
           </button>
 
           <button 
             onClick={() => router.push('/suppliers')}
-            className="flex flex-col items-center justify-center bg-white rounded-2xl p-4 shadow-md hover:shadow-lg transition-all duration-200 active:scale-95 border border-purple-100"
+            className="flex flex-col items-center justify-center bg-white rounded-2xl p-3 shadow-sm hover:shadow-lg transition-all duration-200 active:scale-95 border border-gray-100 group"
           >
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center mb-2">
+            <div className="w-12 h-12 rounded-full bg-teal-500 flex items-center justify-center mb-2 group-hover:bg-teal-600 transition-colors shadow-sm">
               <Building2 className="w-6 h-6 text-white" />
             </div>
-            <span className="text-xs font-medium text-gray-700">Proveedores</span>
+            <span className="text-xs font-semibold text-gray-700">Proveedores</span>
           </button>
         </div>
 
         {/* Sección Destacada - Banner */}
-        <div className="bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-600 rounded-3xl p-6 mb-6 shadow-xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
-          <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full -ml-12 -mb-12"></div>
-          <div className="relative z-10">
-            <div className="flex items-center mb-3">
-              <Sparkles className="w-6 h-6 text-white mr-2" />
-              <h3 className="text-xl font-bold text-white">Sistema de Reportes Avanzados</h3>
-            </div>
-            <p className="text-white/90 text-sm mb-4 leading-relaxed">
-              Descubre nuestro nuevo sistema de reportes avanzados con análisis en tiempo real
-            </p>
-            <button 
-              onClick={() => router.push('/reports')}
-              className="bg-white text-purple-600 px-6 py-2.5 rounded-xl font-semibold text-sm flex items-center hover:bg-purple-50 transition-colors"
-            >
-              Explorar
-              <ArrowRightLeft className="w-4 h-4 ml-2" />
-            </button>
+        <div className="text-white px-6 py-5 rounded-3xl mb-6 shadow-lg" style={{ backgroundColor: '#7031f8' }}>
+          <div className="mb-3">
+            <h3 className="text-2xl font-bold text-white mb-2">Reportes Avanzados</h3>
           </div>
+          <p className="text-white/95 text-sm mb-5 leading-relaxed">
+            Sistema de reportes con análisis en tiempo real
+          </p>
+          <button 
+            onClick={() => router.push('/reports')}
+            className="bg-white text-purple-600 px-6 py-3 rounded-xl font-bold text-sm flex items-center hover:bg-purple-50 transition-all shadow-md hover:shadow-lg active:scale-95"
+          >
+            Explorar
+            <ArrowRightLeft className="w-4 h-4 ml-2" />
+          </button>
         </div>
 
         {/* Últimos Movimientos */}
-        <div className="bg-white rounded-3xl shadow-lg p-4 mb-6 border border-purple-100">
-          <h2 className="text-lg font-bold text-gray-900 mb-4 px-2">Últimos Movimientos</h2>
+        <div className="bg-white rounded-3xl shadow-lg p-5 mb-6 border border-gray-100">
+          <h2 className="text-xl font-bold text-gray-900 mb-5 px-1">Últimos Movimientos</h2>
           
           {loadingMovements ? (
             <div className="flex justify-center items-center py-8">
@@ -452,7 +503,8 @@ const HomePage = () => {
             </div>
           ) : recentMovements.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
-              <p className="text-sm">No hay movimientos recientes</p>
+              <p className="text-sm">Aún no hay movimientos</p>
+              <p className="text-xs mt-1 text-gray-400">Cuando hagas una venta o gasto, aparecerá aquí</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -463,11 +515,16 @@ const HomePage = () => {
                 return (
                   <div
                     key={movement.id}
-                    className="flex items-center p-3 rounded-2xl hover:bg-gray-50 transition-colors"
+                    onClick={() => handleMovementClick(movement)}
+                    className={`flex items-center p-3 rounded-2xl transition-colors ${
+                      movement.type === 'sale' && !movement.isPayment
+                        ? 'hover:bg-gray-50 cursor-pointer active:bg-gray-100'
+                        : 'hover:bg-gray-50'
+                    }`}
                   >
                     {/* Icono */}
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center mr-4 flex-shrink-0 ${
-                      isIncome ? 'bg-green-100' : 'bg-red-100'
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mr-4 flex-shrink-0 shadow-sm ${
+                      isIncome ? 'bg-green-50 border border-green-100' : 'bg-red-50 border border-red-100'
                     }`}>
                       {isIncome ? (
                         <ArrowUp className="w-6 h-6 text-green-600" />
@@ -528,6 +585,17 @@ const HomePage = () => {
         <SaleTypeModal 
           isOpen={isSaleModalOpen} 
           onClose={() => setIsSaleModalOpen(false)} 
+        />
+
+        {/* Modal de detalles de venta */}
+        <SaleDetailModal
+          isOpen={isSaleDetailModalOpen}
+          onClose={() => {
+            setIsSaleDetailModalOpen(false);
+            setSelectedSale(null);
+          }}
+          sale={selectedSale}
+          loading={loadingSaleDetail}
         />
     </div>
   );
