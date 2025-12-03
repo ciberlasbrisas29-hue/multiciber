@@ -4,6 +4,10 @@ import Payment from '@/lib/models/Payment';
 import { verifyAuth } from '@/lib/auth';
 import mongoose from 'mongoose';
 
+// Forzar que esta ruta sea dinámica y no se cachee
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // @desc    Crear un nuevo pago (abono)
 export async function POST(req) {
   await dbConnect();
@@ -149,10 +153,19 @@ export async function GET(req) {
       return paymentObj;
     });
 
-    return NextResponse.json({
+    // Crear respuesta con headers anti-caché
+    const response = NextResponse.json({
       success: true,
       data: paymentsWithRefs
     });
+    
+    // Headers para evitar cualquier tipo de caché
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+    response.headers.set('Surrogate-Control', 'no-store');
+    
+    return response;
 
   } catch (error) {
     console.error('Error obteniendo pagos:', error);

@@ -3,6 +3,10 @@ import dbConnect from '@/lib/db';
 import Expense from '@/lib/models/Expense';
 import { verifyAuth } from '@/lib/auth';
 
+// Forzar que esta ruta sea dinámica y no se cachee
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(req) {
   await dbConnect();
 
@@ -21,12 +25,22 @@ export async function GET(req) {
     })
     .sort({ createdAt: -1 })
     .limit(limit)
-    .populate('createdBy', 'username');
+    .populate('createdBy', 'username')
+    .lean();
 
-    return NextResponse.json({
+    // Crear respuesta con headers anti-caché
+    const response = NextResponse.json({
       success: true,
       data: recentExpenses
     });
+    
+    // Headers para evitar cualquier tipo de caché
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+    response.headers.set('Surrogate-Control', 'no-store');
+    
+    return response;
 
   } catch (error) {
     console.error('Error obteniendo gastos recientes:', error);

@@ -81,19 +81,9 @@ const HomePage = () => {
   useEffect(() => {
     if (!mounted) return;
 
-    // Detectar si está en modo PWA
-    const isPWA = () => {
-      if (typeof window === 'undefined') return false;
-      return window.matchMedia('(display-mode: standalone)').matches ||
-        (window.navigator as any).standalone === true ||
-        document.referrer.includes('android-app://');
-    };
-
-    const fetchStats = async (forceRefresh = false) => {
+    const fetchStats = async () => {
       try {
-        // En PWA, siempre forzar refresh
-        const shouldForceRefresh = forceRefresh || isPWA();
-        const response = await dashboardService.getStats(shouldForceRefresh);
+        const response = await dashboardService.getStats(true);
         if (response.success) {
           setStats(response.data);
         }
@@ -104,59 +94,24 @@ const HomePage = () => {
       }
     };
 
-    // Cargar inmediatamente con refresh forzado
-    fetchStats(true);
+    // Cargar solo al montar el componente
+    fetchStats();
     
-    // En PWA, también cargar después de un pequeño delay para asegurar que la app esté lista
-    if (isPWA()) {
-      setTimeout(() => {
-        fetchStats(true);
-      }, 500);
-    }
-    
-    // Escuchar eventos de actualización cuando haya cambios en ventas, gastos o deudas
+    // Escuchar eventos de actualización solo cuando haya cambios explícitos (ventas, gastos, deudas)
     const handleUpdate = () => {
-      fetchStats(true);
+      fetchStats();
     };
 
-    // Función para recargar cuando la página gana foco
-    const handleFocus = () => {
-      fetchStats(true);
-    };
-
-    // Función para recargar cuando la visibilidad cambia
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        fetchStats(true);
-      }
-    };
-
-    // Función para recargar cuando el usuario navega (popstate - botón atrás/adelante)
-    const handlePopState = () => {
-      setTimeout(() => {
-        fetchStats(true);
-      }, 100);
-    };
-
-    // Eventos personalizados que se dispararán cuando haya cambios
     window.addEventListener('sale-created', handleUpdate);
     window.addEventListener('expense-created', handleUpdate);
     window.addEventListener('debt-updated', handleUpdate);
     window.addEventListener('payment-created', handleUpdate);
-    window.addEventListener('focus', handleFocus);
-    window.addEventListener('pageshow', handleFocus); // Se dispara cuando la página se muestra (incluye navegación)
-    window.addEventListener('popstate', handlePopState); // Se dispara cuando se usa el botón atrás/adelante
-    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       window.removeEventListener('sale-created', handleUpdate);
       window.removeEventListener('expense-created', handleUpdate);
       window.removeEventListener('debt-updated', handleUpdate);
       window.removeEventListener('payment-created', handleUpdate);
-      window.removeEventListener('focus', handleFocus);
-      window.removeEventListener('pageshow', handleFocus);
-      window.removeEventListener('popstate', handlePopState);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [mounted]);
 
@@ -164,36 +119,28 @@ const HomePage = () => {
     // Solo ejecutar cuando el componente esté montado
     if (!mounted) return;
 
-    // Detectar si está en modo PWA
-    const isPWA = () => {
-      if (typeof window === 'undefined') return false;
-      return window.matchMedia('(display-mode: standalone)').matches ||
-        (window.navigator as any).standalone === true ||
-        document.referrer.includes('android-app://');
-    };
-
-    const fetchRecentMovements = async (forceRefresh = false) => {
+    const fetchRecentMovements = async () => {
       try {
         setLoadingMovements(true);
         
-        // Limpiar movimientos anteriores antes de cargar nuevos (evitar mostrar datos antiguos)
-        setRecentMovements([]);
+        // Timestamp para evitar caché
+        const timestamp = `_t=${Date.now()}`;
         
-        // En PWA, siempre forzar refresh
-        const shouldForceRefresh = forceRefresh || isPWA();
-        const timestamp = shouldForceRefresh ? `&_t=${Date.now()}` : '';
+        // Opciones anti-caché
+        const fetchOptions: RequestInit = {
+          method: 'GET',
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          }
+        };
         
         const [salesResponse, expensesResponse, paymentsResponse] = await Promise.all([
-          dashboardService.getRecentSales(10, shouldForceRefresh),
-          dashboardService.getRecentExpenses(10, shouldForceRefresh),
-          fetch(`/api/payments?limit=10${timestamp}`, {
-            cache: 'no-store',
-            headers: {
-              'Cache-Control': 'no-cache, no-store, must-revalidate',
-              'Pragma': 'no-cache',
-              'Expires': '0'
-            }
-          }).then(res => res.json())
+          fetch(`/api/dashboard/recent-sales?limit=10&${timestamp}`, fetchOptions).then(res => res.json()),
+          fetch(`/api/dashboard/recent-expenses?limit=10&${timestamp}`, fetchOptions).then(res => res.json()),
+          fetch(`/api/payments?limit=10&${timestamp}`, fetchOptions).then(res => res.json())
         ]);
 
         const movements: Movement[] = [];
@@ -408,133 +355,31 @@ const HomePage = () => {
         setRecentMovements(movements.slice(0, 5));
       } catch (err) {
         console.error("Error fetching recent movements:", err);
-        // En caso de error, intentar recargar después de un breve delay
-        setTimeout(() => {
-          fetchRecentMovements(true);
-        }, 1000);
       } finally {
         setLoadingMovements(false);
       }
     };
 
-    // Ejecutar inmediatamente con refresh forzado
-    fetchRecentMovements(true);
+    // Cargar solo al montar el componente
+    fetchRecentMovements();
     
-    // En PWA, también cargar después de un pequeño delay para asegurar que la app esté lista
-    let intervalId: NodeJS.Timeout | null = null;
-    if (isPWA()) {
-      setTimeout(() => {
-        fetchRecentMovements(true);
-      }, 500);
-      
-      // En PWA, agregar un intervalo de verificación periódica (cada 30 segundos cuando la app está activa)
-      intervalId = setInterval(() => {
-        if (!document.hidden) {
-          fetchRecentMovements(true);
-        }
-      }, 30000); // 30 segundos
-    }
-    
-    // Función para recargar cuando la página gane foco
-    const handleFocus = () => {
-      // En PWA, limpiar estado antes de recargar
-      if (isPWA()) {
-        setRecentMovements([]);
-      }
-      fetchRecentMovements(true);
-    };
-    
-    // Función para recargar cuando la visibilidad cambia
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        // En PWA, limpiar estado antes de recargar
-        if (isPWA()) {
-          setRecentMovements([]);
-        }
-        fetchRecentMovements(true);
-      }
-    };
-    
-    // Función para recargar cuando el usuario navega (popstate - botón atrás/adelante)
-    const handlePopState = () => {
-      // Pequeño delay para asegurar que la navegación se complete
-      setTimeout(() => {
-        if (isPWA()) {
-          setRecentMovements([]);
-        }
-        fetchRecentMovements(true);
-      }, 100);
-    };
-    
-    // Función específica para PWA cuando la app se activa
-    const handlePWAAppState = () => {
-      if (isPWA()) {
-        // Limpiar estado y recargar
-        setRecentMovements([]);
-        setStats(null);
-        fetchRecentMovements(true);
-        // También recargar stats
-        const fetchStats = async () => {
-          try {
-            const response = await dashboardService.getStats(true);
-            if (response.success) {
-              setStats(response.data);
-            }
-          } catch (err) {
-            console.error("Error fetching stats:", err);
-          }
-        };
-        fetchStats();
-      }
-    };
-    
-    // Escuchar eventos de actualización cuando haya cambios en ventas, gastos o deudas
+    // Escuchar eventos de actualización solo cuando haya cambios explícitos (ventas, gastos, deudas)
     const handleUpdate = () => {
-      fetchRecentMovements(true);
+      fetchRecentMovements();
     };
 
-    // Eventos personalizados que se dispararán cuando haya cambios
     window.addEventListener('sale-created', handleUpdate);
     window.addEventListener('expense-created', handleUpdate);
     window.addEventListener('debt-updated', handleUpdate);
     window.addEventListener('payment-created', handleUpdate);
-    window.addEventListener('focus', handleFocus);
-    window.addEventListener('pageshow', handleFocus); // Se dispara cuando la página se muestra (incluye navegación)
-    window.addEventListener('popstate', handlePopState); // Se dispara cuando se usa el botón atrás/adelante
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    // Listeners específicos para PWA
-    if (isPWA()) {
-      // Escuchar cuando la app se activa desde el estado inactivo
-      window.addEventListener('appinstalled', handlePWAAppState);
-      // Escuchar cuando la app vuelve a primer plano (específico de PWA)
-      document.addEventListener('resume', handlePWAAppState);
-      // También escuchar el evento de activación de la app
-      window.addEventListener('activate', handlePWAAppState);
-    }
 
     return () => {
       window.removeEventListener('sale-created', handleUpdate);
       window.removeEventListener('expense-created', handleUpdate);
       window.removeEventListener('debt-updated', handleUpdate);
       window.removeEventListener('payment-created', handleUpdate);
-      window.removeEventListener('focus', handleFocus);
-      window.removeEventListener('pageshow', handleFocus);
-      window.removeEventListener('popstate', handlePopState);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      
-      // Remover listeners de PWA
-      if (isPWA()) {
-        window.removeEventListener('appinstalled', handlePWAAppState);
-        document.removeEventListener('resume', handlePWAAppState);
-        window.removeEventListener('activate', handlePWAAppState);
-        // Limpiar intervalo si existe
-        if (intervalId) {
-          clearInterval(intervalId);
-        }
-      }
     };
-  }, [mounted]); // Dependencia en mounted para ejecutar cuando esté listo
+  }, [mounted]);
 
   // No renderizar contenido hasta que esté montado (evita problemas de SSR)
   if (!mounted) {
