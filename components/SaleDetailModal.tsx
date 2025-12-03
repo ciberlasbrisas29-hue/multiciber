@@ -268,8 +268,7 @@ const SaleDetailModal: React.FC<SaleDetailModalProps> = ({ isOpen, onClose, sale
         `Transacción: ${saleNumber}\n` +
         `Fecha: ${formatDateTime(sale.createdAt)}\n` +
         `Total: $${sale.total.toFixed(2)}\n` +
-        `Método de pago: ${getPaymentMethodLabel(sale.paymentMethod)}\n\n` +
-        `El comprobante en PDF se descargará automáticamente.`;
+        `Método de pago: ${getPaymentMethodLabel(sale.paymentMethod)}\n\n`;
       
       // Intentar compartir usando Web Share API si está disponible
       if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([pdfBlob], 'comprobante.pdf', { type: 'application/pdf' })] })) {
