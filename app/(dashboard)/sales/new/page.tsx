@@ -572,28 +572,26 @@ const NewSalePage = () => {
   return (
     <>
       {/* Encabezado interno */}
-      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-4 mb-4 -mx-6 rounded-b-3xl shadow-lg -mt-4">
-        <div className="flex items-center justify-between">
+      <div className="text-white px-6 py-4 flex items-center justify-between rounded-b-2xl mb-6 -mx-6 md:mx-0 md:rounded-2xl shadow-md -mt-4" style={{ backgroundColor: '#7031f8' }}>
+        <div className="flex items-center space-x-3">
           <button
             onClick={() => router.back()}
             className="w-10 h-10 flex items-center justify-center active:opacity-70 rounded-full hover:bg-white/20 transition-colors"
           >
-            <ArrowLeft className="w-6 h-6 text-white" />
+            <ArrowLeft className="w-5 h-5 text-white opacity-95" />
           </button>
-          <h1 className="text-xl font-bold text-white">Seleccionar productos</h1>
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={() => {
-                // Limpiar el Set de códigos de barras al abrir el escáner (por si acaso)
-                scannedBarcodesRef.current.clear();
-                setIsScannerOpen(true);
-              }}
-              className="w-10 h-10 flex items-center justify-center bg-white/20 backdrop-blur-sm rounded-xl active:opacity-80 hover:bg-white/30 transition-colors border border-white/30"
-            >
-              <Scan className="w-5 h-5 text-white" />
-            </button>
-          </div>
+          <h1 className="text-2xl font-semibold">Seleccionar productos</h1>
         </div>
+        <button
+          onClick={() => {
+            // Limpiar el Set de códigos de barras al abrir el escáner (por si acaso)
+            scannedBarcodesRef.current.clear();
+            setIsScannerOpen(true);
+          }}
+          className="w-10 h-10 flex items-center justify-center bg-white/20 backdrop-blur-sm rounded-xl active:opacity-80 hover:bg-white/30 transition-colors"
+        >
+          <Scan className="w-5 h-5 text-white opacity-95" />
+        </button>
       </div>
 
       {/* Buscador Dinámico */}
