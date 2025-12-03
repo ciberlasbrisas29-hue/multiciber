@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { X, Copy, Check, Share2, QrCode } from 'lucide-react';
+import { X, Copy, Check, Share2, QrCode, Loader2 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 
 interface ShareCatalogModalProps {
@@ -14,16 +14,46 @@ const ShareCatalogModal: React.FC<ShareCatalogModalProps> = ({ isOpen, onClose, 
   const [copied, setCopied] = useState(false);
   const [catalogUrl, setCatalogUrl] = useState('');
   const [canShare, setCanShare] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [catalogSlug, setCatalogSlug] = useState<string | null>(null);
 
   useEffect(() => {
-    if (userId && typeof window !== 'undefined') {
+    const fetchSettings = async () => {
+      if (!isOpen) return;
+      
+      try {
+        setLoading(true);
+        const response = await fetch('/api/settings');
+        const data = await response.json();
+        
+        if (data.success && data.data.catalogSlug) {
+          setCatalogSlug(data.data.catalogSlug);
+        }
+      } catch (error) {
+        console.error('Error fetching settings:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSettings();
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
       const baseUrl = window.location.origin;
-      setCatalogUrl(`${baseUrl}/catalog/${userId}`);
+      
+      // Usar slug si está disponible, sino usar userId como fallback
+      if (catalogSlug) {
+        setCatalogUrl(`${baseUrl}/catalog/${catalogSlug}`);
+      } else if (userId) {
+        setCatalogUrl(`${baseUrl}/catalog/${userId}`);
+      }
       
       // Verificar si la API de compartir está disponible
       setCanShare(typeof navigator !== 'undefined' && 'share' in navigator);
     }
-  }, [userId]);
+  }, [catalogSlug, userId]);
 
   const handleCopy = async () => {
     if (catalogUrl) {
@@ -80,68 +110,85 @@ const ShareCatalogModal: React.FC<ShareCatalogModalProps> = ({ isOpen, onClose, 
           <p className="text-gray-500 text-center mt-2">Comparte tu catálogo con tus clientes</p>
         </div>
 
-        {/* Código QR */}
-        <div className="mb-6 flex justify-center">
-          <div className="bg-white p-4 rounded-2xl border-2 border-purple-100">
-            {catalogUrl && (
-              <QRCodeSVG
-                value={catalogUrl}
-                size={200}
-                level="H"
-                includeMargin={true}
-              />
-            )}
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 text-purple-600 animate-spin mb-4" />
+            <p className="text-gray-500">Cargando...</p>
           </div>
-        </div>
+        ) : (
+          <>
+            {/* Código QR */}
+            <div className="mb-6 flex justify-center">
+              <div className="bg-white p-4 rounded-2xl border-2 border-purple-100">
+                {catalogUrl && (
+                  <QRCodeSVG
+                    value={catalogUrl}
+                    size={200}
+                    level="H"
+                    includeMargin={true}
+                  />
+                )}
+              </div>
+            </div>
 
-        {/* Link */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Enlace del Catálogo
-          </label>
-          <div className="flex items-center space-x-2">
-            <input
-              type="text"
-              value={catalogUrl}
-              readOnly
-              className="flex-1 px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl text-sm text-gray-700"
-            />
-            <button
-              onClick={handleCopy}
-              className="p-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl transition-colors"
-              title="Copiar enlace"
-            >
-              {copied ? (
-                <Check className="w-5 h-5" />
-              ) : (
-                <Copy className="w-5 h-5" />
+            {/* Link */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Enlace del Catálogo
+              </label>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="text"
+                  value={catalogUrl}
+                  readOnly
+                  className="flex-1 px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl text-sm text-gray-700"
+                />
+                <button
+                  onClick={handleCopy}
+                  className="p-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl transition-colors"
+                  title="Copiar enlace"
+                >
+                  {copied ? (
+                    <Check className="w-5 h-5" />
+                  ) : (
+                    <Copy className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
+              {copied && (
+                <p className="text-sm text-green-600 mt-2 text-center">¡Enlace copiado!</p>
               )}
-            </button>
-          </div>
-          {copied && (
-            <p className="text-sm text-green-600 mt-2 text-center">¡Enlace copiado!</p>
-          )}
-        </div>
+              
+              {/* Indicador de URL amigable */}
+              {catalogSlug && (
+                <p className="text-xs text-green-600 mt-2 flex items-center justify-center">
+                  <Check className="w-3 h-3 mr-1" />
+                  URL amigable activada
+                </p>
+              )}
+            </div>
 
-        {/* Botones de acción */}
-        <div className="space-y-3">
-          {canShare && (
-            <button
-              onClick={handleShare}
-              className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-3 rounded-xl font-semibold flex items-center justify-center space-x-2 hover:shadow-lg transition-all"
-            >
-              <Share2 className="w-5 h-5" />
-              <span>Compartir</span>
-            </button>
-          )}
-          <button
-            onClick={handleCopy}
-            className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold flex items-center justify-center space-x-2 transition-colors"
-          >
-            <Copy className="w-5 h-5" />
-            <span>Copiar Enlace</span>
-          </button>
-        </div>
+            {/* Botones de acción */}
+            <div className="space-y-3">
+              {canShare && (
+                <button
+                  onClick={handleShare}
+                  className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-3 rounded-xl font-semibold flex items-center justify-center space-x-2 hover:shadow-lg transition-all"
+                >
+                  <Share2 className="w-5 h-5" />
+                  <span>Compartir</span>
+                </button>
+              )}
+              <button
+                onClick={handleCopy}
+                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold flex items-center justify-center space-x-2 transition-colors"
+              >
+                <Copy className="w-5 h-5" />
+                <span>Copiar Enlace</span>
+              </button>
+            </div>
+          </>
+        )}
 
         {/* Información */}
         <p className="text-xs text-gray-500 text-center mt-4">

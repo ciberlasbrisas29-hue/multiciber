@@ -846,7 +846,7 @@ const NewSalePage = () => {
 
                           {/* Información del producto */}
                           <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-gray-900 mb-1 truncate">
+                            <h3 className="font-semibold text-gray-900 mb-1 text-sm leading-tight">
                               {product.name}
                             </h3>
                             <div className="flex items-center space-x-2 mb-1">
@@ -953,7 +953,7 @@ const NewSalePage = () => {
 
                   {/* Información del producto */}
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-gray-900 mb-1 truncate">
+                    <h3 className="font-semibold text-gray-900 mb-1 text-sm leading-tight">
                       {product.name}
                     </h3>
                     <div className="flex items-center space-x-2 mb-1">

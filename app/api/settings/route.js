@@ -3,6 +3,22 @@ import dbConnect from '@/lib/db';
 import BusinessSettings from '@/lib/models/BusinessSettings';
 import { verifyAuth } from '@/lib/auth';
 
+// Función para generar slug único
+function generateSlug(name) {
+  const baseSlug = (name || 'tienda')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .substring(0, 30);
+  
+  const shortId = Math.random().toString(16).substring(2, 8);
+  return `${baseSlug}-${shortId}`;
+}
+
 // @desc    Obtener configuración del negocio
 export async function GET(req) {
   await dbConnect();
@@ -18,8 +34,10 @@ export async function GET(req) {
 
     // Si no existe, crear una configuración por defecto
     if (!settings) {
+      const slug = generateSlug('tienda');
       settings = new BusinessSettings({
         userId,
+        catalogSlug: slug,
         currency: 'USD',
         currencySymbol: '$',
         paymentMethods: [
@@ -29,6 +47,16 @@ export async function GET(req) {
         ]
       });
       await settings.save();
+      console.log('✅ Nuevo slug generado:', slug);
+    }
+    
+    // Si existe pero no tiene slug, generarlo
+    if (settings && !settings.catalogSlug) {
+      const name = settings.businessName || 'tienda';
+      const slug = generateSlug(name);
+      settings.catalogSlug = slug;
+      await settings.save();
+      console.log('✅ Slug generado para usuario existente:', slug);
     }
 
     return NextResponse.json({
@@ -98,6 +126,31 @@ export async function PUT(req) {
     if (currencySymbol !== undefined) settings.currencySymbol = currencySymbol;
     if (paymentMethods !== undefined && Array.isArray(paymentMethods)) {
       settings.paymentMethods = paymentMethods;
+    }
+
+    // Generar slug si no existe (forzado)
+    if (!settings.catalogSlug) {
+      const name = settings.businessName || 'tienda';
+      let slug = generateSlug(name);
+      
+      // Verificar unicidad
+      let existingSlug = await BusinessSettings.findOne({ 
+        catalogSlug: slug, 
+        _id: { $ne: settings._id } 
+      });
+      
+      let attempts = 0;
+      while (existingSlug && attempts < 5) {
+        slug = generateSlug(name);
+        existingSlug = await BusinessSettings.findOne({ 
+          catalogSlug: slug, 
+          _id: { $ne: settings._id } 
+        });
+        attempts++;
+      }
+      
+      settings.catalogSlug = slug;
+      console.log('✅ Slug generado:', slug);
     }
 
     await settings.save();

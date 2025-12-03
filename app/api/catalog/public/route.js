@@ -10,23 +10,33 @@ export async function GET(req) {
 
   try {
     const { searchParams } = new URL(req.url);
-    const userId = searchParams.get('userId');
+    const slug = searchParams.get('slug');
+    const userId = searchParams.get('userId'); // Mantener compatibilidad
     
-    if (!userId) {
-      return NextResponse.json({ success: false, message: 'ID de usuario requerido' }, { status: 400 });
+    let settings;
+    let ownerId;
+    
+    // Buscar por slug (nuevo método) o por userId (compatibilidad)
+    if (slug) {
+      settings = await BusinessSettings.findOne({ catalogSlug: slug.toLowerCase() }).lean();
+      if (!settings) {
+        return NextResponse.json({ success: false, message: 'Catálogo no encontrado' }, { status: 404 });
+      }
+      ownerId = settings.userId;
+    } else if (userId) {
+      // Compatibilidad con el método antiguo
+      if (!mongoose.Types.ObjectId.isValid(userId)) {
+        return NextResponse.json({ success: false, message: 'ID de usuario inválido' }, { status: 400 });
+      }
+      ownerId = new mongoose.Types.ObjectId(userId);
+      settings = await BusinessSettings.findOne({ userId: ownerId }).lean();
+    } else {
+      return NextResponse.json({ success: false, message: 'Slug o ID de usuario requerido' }, { status: 400 });
     }
-
-    // Validar que userId es un ObjectId válido
-    if (!mongoose.Types.ObjectId.isValid(userId)) {
-      return NextResponse.json({ success: false, message: 'ID de usuario inválido' }, { status: 400 });
-    }
-
-    // Obtener configuración del negocio
-    const settings = await BusinessSettings.findOne({ userId: new mongoose.Types.ObjectId(userId) }).lean();
     
     // Obtener solo productos disponibles (stock > 0 y activos)
     const products = await Product.find({
-      createdBy: new mongoose.Types.ObjectId(userId),
+      createdBy: ownerId,
       isActive: true,
       stock: { $gt: 0 }
     })
@@ -41,7 +51,8 @@ export async function GET(req) {
           name: settings?.businessName || 'Negocio',
           description: settings?.businessDescription || '',
           logo: settings?.businessLogo || '',
-          whatsappPhone: settings?.whatsappPhone || ''
+          whatsappPhone: settings?.whatsappPhone || '',
+          slug: settings?.catalogSlug || ''
         },
         products: products
       }
