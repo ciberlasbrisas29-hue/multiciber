@@ -94,24 +94,33 @@ const HomePage = () => {
       }
     };
 
-    // Cargar solo al montar el componente
+    // Cargar al montar el componente
     fetchStats();
     
-    // Escuchar eventos de actualización solo cuando haya cambios explícitos (ventas, gastos, deudas)
+    // Escuchar eventos de actualización cuando haya cambios explícitos
     const handleUpdate = () => {
       fetchStats();
+    };
+
+    // Para PWA: recargar cuando la app vuelve del fondo (visibility change)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchStats();
+      }
     };
 
     window.addEventListener('sale-created', handleUpdate);
     window.addEventListener('expense-created', handleUpdate);
     window.addEventListener('debt-updated', handleUpdate);
     window.addEventListener('payment-created', handleUpdate);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       window.removeEventListener('sale-created', handleUpdate);
       window.removeEventListener('expense-created', handleUpdate);
       window.removeEventListener('debt-updated', handleUpdate);
       window.removeEventListener('payment-created', handleUpdate);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [mounted]);
 
@@ -360,24 +369,33 @@ const HomePage = () => {
       }
     };
 
-    // Cargar solo al montar el componente
+    // Cargar al montar el componente
     fetchRecentMovements();
     
-    // Escuchar eventos de actualización solo cuando haya cambios explícitos (ventas, gastos, deudas)
+    // Escuchar eventos de actualización cuando haya cambios explícitos
     const handleUpdate = () => {
       fetchRecentMovements();
+    };
+
+    // Para PWA: recargar cuando la app vuelve del fondo (visibility change)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchRecentMovements();
+      }
     };
 
     window.addEventListener('sale-created', handleUpdate);
     window.addEventListener('expense-created', handleUpdate);
     window.addEventListener('debt-updated', handleUpdate);
     window.addEventListener('payment-created', handleUpdate);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       window.removeEventListener('sale-created', handleUpdate);
       window.removeEventListener('expense-created', handleUpdate);
       window.removeEventListener('debt-updated', handleUpdate);
       window.removeEventListener('payment-created', handleUpdate);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [mounted]);
 
