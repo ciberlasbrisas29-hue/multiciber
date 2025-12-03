@@ -143,9 +143,9 @@ const SaleDetailModal: React.FC<SaleDetailModalProps> = ({ isOpen, onClose, sale
     // Número de transacción
     doc.setFontSize(12);
     doc.setTextColor(0, 0, 0);
-    doc.setFont(undefined, 'bold');
+    doc.setFont('helvetica', 'bold');
     doc.text('Transacción:', margin, yPos);
-    doc.setFont(undefined, 'normal');
+    doc.setFont('helvetica', 'normal');
     const saleNumber = sale.saleNumber ? `#${sale.saleNumber}` : `#${sale._id.slice(-6).toUpperCase()}`;
     doc.text(saleNumber, margin + 50, yPos);
     yPos += 8;
@@ -162,9 +162,9 @@ const SaleDetailModal: React.FC<SaleDetailModalProps> = ({ isOpen, onClose, sale
 
     // Información del cliente (si existe)
     if (sale.client?.name) {
-      doc.setFont(undefined, 'bold');
+      doc.setFont('helvetica', 'bold');
       doc.text('Cliente:', margin, yPos);
-      doc.setFont(undefined, 'normal');
+      doc.setFont('helvetica', 'normal');
       doc.text(sale.client.name, margin + 30, yPos);
       yPos += 8;
       if (sale.client.phone) {
@@ -176,27 +176,27 @@ const SaleDetailModal: React.FC<SaleDetailModalProps> = ({ isOpen, onClose, sale
     }
 
     // Productos
-    doc.setFont(undefined, 'bold');
+    doc.setFont('helvetica', 'bold');
     doc.text('PRODUCTOS', margin, yPos);
     yPos += 8;
 
     if (sale.type === 'free' && sale.concept) {
-      doc.setFont(undefined, 'normal');
+      doc.setFont('helvetica', 'normal');
       doc.text(sale.concept, margin, yPos);
       yPos += 8;
     } else if (sale.items && sale.items.length > 0) {
-      doc.setFont(undefined, 'normal');
+      doc.setFont('helvetica', 'normal');
       sale.items.forEach((item, index) => {
         if (yPos > 250) {
           doc.addPage();
           yPos = margin;
         }
         
-        doc.setFont(undefined, 'bold');
+        doc.setFont('helvetica', 'bold');
         doc.text(`${index + 1}. ${item.productName}`, margin, yPos);
         yPos += 6;
         
-        doc.setFont(undefined, 'normal');
+        doc.setFont('helvetica', 'normal');
         doc.text(`   Cantidad: ${item.quantity}`, margin + 5, yPos);
         yPos += 6;
         doc.text(`   Precio unitario: $${item.unitPrice.toFixed(2)}`, margin + 5, yPos);
@@ -222,7 +222,7 @@ const SaleDetailModal: React.FC<SaleDetailModalProps> = ({ isOpen, onClose, sale
       yPos += 8;
     }
 
-    doc.setFont(undefined, 'bold');
+    doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
     doc.text('TOTAL:', margin, yPos);
     doc.text(`$${sale.total.toFixed(2)}`, pageWidth - margin - 30, yPos, { align: 'right' });
@@ -230,7 +230,7 @@ const SaleDetailModal: React.FC<SaleDetailModalProps> = ({ isOpen, onClose, sale
 
     // Método de pago
     doc.setFontSize(10);
-    doc.setFont(undefined, 'normal');
+    doc.setFont('helvetica', 'normal');
     doc.text(`Método de pago: ${getPaymentMethodLabel(sale.paymentMethod)}`, margin, yPos);
     yPos += 8;
 
