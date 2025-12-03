@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { X, Clock, DollarSign, User, CreditCard, FileText, Package, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, Clock, DollarSign, User, CreditCard, FileText, Package, Calendar, ChevronDown, ChevronUp, Share2, MessageCircle } from 'lucide-react';
 import Image from 'next/image';
 
 interface SaleItem {
@@ -51,6 +51,7 @@ interface SaleDetailModalProps {
 
 const SaleDetailModal: React.FC<SaleDetailModalProps> = ({ isOpen, onClose, sale, loading = false }) => {
   const [isProductsExpanded, setIsProductsExpanded] = useState(false);
+  const [generatingPDF, setGeneratingPDF] = useState(false);
 
   // Bloquear scroll del body cuando el modal está abierto
   useEffect(() => {
@@ -120,6 +121,199 @@ const SaleDetailModal: React.FC<SaleDetailModalProps> = ({ isOpen, onClose, sale
   const getTotalReferences = (): number => {
     if (!sale || !sale.items) return 0;
     return sale.items.reduce((sum, item) => sum + item.quantity, 0);
+  };
+
+  // Generar PDF del comprobante
+  const generatePDF = async (): Promise<Blob> => {
+    if (!sale) throw new Error('No hay datos de venta');
+
+    // Importar jsPDF dinámicamente
+    const { default: jsPDF } = await import('jspdf');
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 15;
+    let yPos = margin;
+
+    // Título
+    doc.setFontSize(20);
+    doc.setTextColor(112, 49, 248); // Color morado
+    doc.text('COMPROBANTE DE VENTA', pageWidth / 2, yPos, { align: 'center' });
+    yPos += 10;
+
+    // Número de transacción
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    doc.setFont(undefined, 'bold');
+    doc.text('Transacción:', margin, yPos);
+    doc.setFont(undefined, 'normal');
+    const saleNumber = sale.saleNumber ? `#${sale.saleNumber}` : `#${sale._id.slice(-6).toUpperCase()}`;
+    doc.text(saleNumber, margin + 50, yPos);
+    yPos += 8;
+
+    // Fecha
+    doc.text('Fecha:', margin, yPos);
+    doc.text(formatDateTime(sale.createdAt), margin + 50, yPos);
+    yPos += 8;
+
+    // Línea separadora
+    doc.setDrawColor(200, 200, 200);
+    doc.line(margin, yPos, pageWidth - margin, yPos);
+    yPos += 10;
+
+    // Información del cliente (si existe)
+    if (sale.client?.name) {
+      doc.setFont(undefined, 'bold');
+      doc.text('Cliente:', margin, yPos);
+      doc.setFont(undefined, 'normal');
+      doc.text(sale.client.name, margin + 30, yPos);
+      yPos += 8;
+      if (sale.client.phone) {
+        doc.text('Teléfono:', margin, yPos);
+        doc.text(sale.client.phone, margin + 30, yPos);
+        yPos += 8;
+      }
+      yPos += 5;
+    }
+
+    // Productos
+    doc.setFont(undefined, 'bold');
+    doc.text('PRODUCTOS', margin, yPos);
+    yPos += 8;
+
+    if (sale.type === 'free' && sale.concept) {
+      doc.setFont(undefined, 'normal');
+      doc.text(sale.concept, margin, yPos);
+      yPos += 8;
+    } else if (sale.items && sale.items.length > 0) {
+      doc.setFont(undefined, 'normal');
+      sale.items.forEach((item, index) => {
+        if (yPos > 250) {
+          doc.addPage();
+          yPos = margin;
+        }
+        
+        doc.setFont(undefined, 'bold');
+        doc.text(`${index + 1}. ${item.productName}`, margin, yPos);
+        yPos += 6;
+        
+        doc.setFont(undefined, 'normal');
+        doc.text(`   Cantidad: ${item.quantity}`, margin + 5, yPos);
+        yPos += 6;
+        doc.text(`   Precio unitario: $${item.unitPrice.toFixed(2)}`, margin + 5, yPos);
+        yPos += 6;
+        doc.text(`   Subtotal: $${item.totalPrice.toFixed(2)}`, margin + 5, yPos);
+        yPos += 8;
+      });
+    }
+
+    // Línea separadora
+    yPos += 5;
+    doc.line(margin, yPos, pageWidth - margin, yPos);
+    yPos += 10;
+
+    // Totales
+    if (sale.discount && sale.discount > 0) {
+      doc.text('Subtotal:', margin, yPos);
+      doc.text(`$${sale.subtotal.toFixed(2)}`, pageWidth - margin - 30, yPos, { align: 'right' });
+      yPos += 8;
+      
+      doc.text('Descuento:', margin, yPos);
+      doc.text(`-$${sale.discount.toFixed(2)}`, pageWidth - margin - 30, yPos, { align: 'right' });
+      yPos += 8;
+    }
+
+    doc.setFont(undefined, 'bold');
+    doc.setFontSize(14);
+    doc.text('TOTAL:', margin, yPos);
+    doc.text(`$${sale.total.toFixed(2)}`, pageWidth - margin - 30, yPos, { align: 'right' });
+    yPos += 10;
+
+    // Método de pago
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'normal');
+    doc.text(`Método de pago: ${getPaymentMethodLabel(sale.paymentMethod)}`, margin, yPos);
+    yPos += 8;
+
+    // Estado
+    doc.text(`Estado: ${sale.status === 'paid' ? 'Pagado' : 'Pendiente'}`, margin, yPos);
+    yPos += 8;
+
+    // Ganancias (si aplica)
+    if (sale.type === 'product' && sale.items && sale.items.length > 0) {
+      const profit = calculateProfit();
+      doc.text(`Ganancias: $${profit.toFixed(2)}`, margin, yPos);
+    }
+
+    // Pie de página
+    yPos = doc.internal.pageSize.getHeight() - 20;
+    doc.setFontSize(8);
+    doc.setTextColor(128, 128, 128);
+    doc.text('Gracias por su compra', pageWidth / 2, yPos, { align: 'center' });
+
+    // Convertir a Blob
+    const pdfBlob = doc.output('blob');
+    return pdfBlob;
+  };
+
+  // Compartir PDF por WhatsApp
+  const sharePDFViaWhatsApp = async () => {
+    if (!sale) return;
+
+    try {
+      setGeneratingPDF(true);
+      
+      // Generar PDF
+      const pdfBlob = await generatePDF();
+      
+      // Crear URL temporal
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+      
+      // Obtener número de WhatsApp del negocio (si está disponible)
+      // Por ahora, usaremos un mensaje con el link para descargar
+      const saleNumber = sale.saleNumber ? `#${sale.saleNumber}` : `#${sale._id.slice(-6).toUpperCase()}`;
+      const message = `📄 *Comprobante de Venta*\n\n` +
+        `Transacción: ${saleNumber}\n` +
+        `Fecha: ${formatDateTime(sale.createdAt)}\n` +
+        `Total: $${sale.total.toFixed(2)}\n` +
+        `Método de pago: ${getPaymentMethodLabel(sale.paymentMethod)}\n\n` +
+        `El comprobante en PDF se descargará automáticamente.`;
+      
+      // Intentar compartir usando Web Share API si está disponible
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([pdfBlob], 'comprobante.pdf', { type: 'application/pdf' })] })) {
+        try {
+          await navigator.share({
+            title: `Comprobante ${saleNumber}`,
+            text: message,
+            files: [new File([pdfBlob], 'comprobante.pdf', { type: 'application/pdf' })]
+          });
+          return;
+        } catch (err) {
+          console.log('Web Share API no disponible, usando descarga directa');
+        }
+      }
+      
+      // Fallback: Descargar PDF y abrir WhatsApp
+      const link = document.createElement('a');
+      link.href = pdfUrl;
+      link.download = `comprobante-${saleNumber.replace('#', '')}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Abrir WhatsApp con mensaje
+      const whatsappMessage = encodeURIComponent(message);
+      const whatsappUrl = `https://wa.me/?text=${whatsappMessage}`;
+      window.open(whatsappUrl, '_blank');
+      
+      // Limpiar URL después de un tiempo
+      setTimeout(() => URL.revokeObjectURL(pdfUrl), 1000);
+      
+    } catch (error) {
+      console.error('Error generando PDF:', error);
+      alert('Error al generar el comprobante. Por favor, intenta de nuevo.');
+    } finally {
+      setGeneratingPDF(false);
+    }
   };
 
   return (
@@ -318,6 +512,25 @@ const SaleDetailModal: React.FC<SaleDetailModalProps> = ({ isOpen, onClose, sale
                   {sale.status === 'paid' ? 'Pagada' : 'Pendiente'}
                 </div>
               </div>
+
+              {/* Botón para compartir PDF por WhatsApp */}
+              <button
+                onClick={sharePDFViaWhatsApp}
+                disabled={generatingPDF}
+                className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-4 rounded-2xl font-bold flex items-center justify-center space-x-3 shadow-lg hover:shadow-xl hover:from-green-600 hover:to-emerald-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] mt-4"
+              >
+                {generatingPDF ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    <span>Generando PDF...</span>
+                  </>
+                ) : (
+                  <>
+                    <MessageCircle className="w-5 h-5" />
+                    <span>Compartir comprobante por WhatsApp</span>
+                  </>
+                )}
+              </button>
             </div>
           ) : (
             <div className="text-center py-12 text-gray-500">
