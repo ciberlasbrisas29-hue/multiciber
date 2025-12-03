@@ -158,19 +158,10 @@ const ClientsPage = () => {
     <>
       <style dangerouslySetInnerHTML={{__html: clientsStyles}} />
       <div className="space-y-6 pb-24">
-        {/* Header Mejorado */}
-        <div className="bg-gradient-to-br from-purple-600 via-indigo-600 to-pink-500 text-white px-4 py-4 flex items-center space-x-3 rounded-b-2xl mb-6 -mx-6 md:mx-0 md:rounded-2xl shadow-xl relative overflow-hidden">
-          {/* Decoración de fondo */}
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full -mr-16 -mt-16"></div>
-            <div className="absolute bottom-0 left-0 w-24 h-24 bg-white rounded-full -ml-12 -mb-12"></div>
-          </div>
-          <div className="relative z-10 flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg">
-              <Users className="w-5 h-5 text-white" />
-            </div>
-            <h1 className="text-xl font-extrabold drop-shadow-lg">Clientes</h1>
-          </div>
+        {/* Header */}
+        <div className="text-white px-6 py-4 flex items-center space-x-3 rounded-b-2xl mb-6 -mx-6 md:mx-0 md:rounded-2xl shadow-md" style={{ backgroundColor: '#7031f8' }}>
+          <Users className="w-5 h-5 opacity-95" />
+          <h1 className="text-2xl font-semibold">Clientes</h1>
         </div>
 
       <div className="mx-4 space-y-4">
@@ -180,7 +171,7 @@ const ClientsPage = () => {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 z-10" />
             <input
               type="text"
-              placeholder="🔍 Buscar clientes..."
+              placeholder="Buscar clientes..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-3 bg-white rounded-2xl border-2 border-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-300 shadow-md hover:shadow-lg transition-all"

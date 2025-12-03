@@ -11,11 +11,7 @@ import {
   Save,
   Upload,
   X,
-  Sparkles,
-  Link,
-  Copy,
-  ExternalLink,
-  Check
+  Sparkles
 } from 'lucide-react';
 import axios from 'axios';
 import WhatsAppTestPanel from '@/components/WhatsAppTestPanel';
@@ -60,7 +56,6 @@ const SettingsPage = () => {
   const [settings, setSettings] = useState<BusinessSettings>({});
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [copied, setCopied] = useState(false);
 
   // Estados del formulario
   const [businessProfile, setBusinessProfile] = useState({
@@ -197,27 +192,6 @@ const SettingsPage = () => {
       ...financialSettings,
       paymentMethods: updatedMethods
     });
-  };
-
-  const getCatalogUrl = () => {
-    if (typeof window === 'undefined') return '';
-    const baseUrl = window.location.origin;
-    return settings.catalogSlug 
-      ? `${baseUrl}/catalog/${settings.catalogSlug}`
-      : '';
-  };
-
-  const copyToClipboard = async () => {
-    const url = getCatalogUrl();
-    if (url) {
-      try {
-        await navigator.clipboard.writeText(url);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      } catch (err) {
-        console.error('Error copying:', err);
-      }
-    }
   };
 
   if (loading) {
@@ -378,64 +352,6 @@ const SettingsPage = () => {
           </div>
           </div>
         </div>
-
-        {/* Sección: Link del Catálogo Público */}
-        {settings.catalogSlug && (
-          <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-3xl shadow-xl p-6 mb-6 border-2 border-green-200 relative overflow-hidden"
-            style={{
-              animation: 'fadeInUp 0.4s ease-out 0.05s both'
-            }}
-          >
-            <div className="relative z-10">
-              <div className="flex items-center mb-4">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center mr-3 shadow-lg">
-                  <Link className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-extrabold text-gray-900">Tu Catálogo Público</h2>
-                  <p className="text-sm text-gray-600">Comparte este link con tus clientes</p>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-2xl p-4 border-2 border-green-100 shadow-inner">
-                <div className="flex items-center space-x-3">
-                  <div className="flex-1 overflow-hidden">
-                    <p className="text-xs text-gray-500 mb-1">URL de tu catálogo:</p>
-                    <p className="text-sm font-mono text-green-700 truncate">
-                      {getCatalogUrl()}
-                    </p>
-                  </div>
-                  <div className="flex space-x-2 flex-shrink-0">
-                    <button
-                      onClick={copyToClipboard}
-                      className={`p-3 rounded-xl transition-all active:scale-95 ${
-                        copied 
-                          ? 'bg-green-500 text-white' 
-                          : 'bg-green-100 text-green-700 hover:bg-green-200'
-                      }`}
-                      title="Copiar link"
-                    >
-                      {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
-                    </button>
-                    <a
-                      href={getCatalogUrl()}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all active:scale-95"
-                      title="Abrir catálogo"
-                    >
-                      <ExternalLink className="w-5 h-5" />
-                    </a>
-                  </div>
-                </div>
-              </div>
-
-              <p className="text-xs text-gray-500 mt-3 text-center">
-                💡 Este link es fácil de recordar y compartir por WhatsApp, redes sociales o tu tarjeta de presentación
-              </p>
-            </div>
-          </div>
-        )}
 
         {/* Sección 2: Configuración Financiera Mejorada */}
         <div className="bg-white rounded-3xl shadow-xl p-6 mb-6 border-2 border-purple-100 relative overflow-hidden"
