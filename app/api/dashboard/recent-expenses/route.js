@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Expense from '@/lib/models/Expense';
+import User from '@/lib/models/User'; // Necesario para populate
 import { verifyAuth } from '@/lib/auth';
+
+// Registrar modelos para evitar errores de cold start en Vercel
+const _dependencies = { User };
 
 // Forzar que esta ruta sea dinámica y no se cachee
 export const dynamic = 'force-dynamic';

@@ -2,7 +2,12 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Sale from '@/lib/models/Sale';
 import User from '@/lib/models/User';
+import Product from '@/lib/models/Product'; // Necesario para populate
 import { verifyAuth } from '@/lib/auth';
+
+// Registrar modelos para evitar errores de cold start en Vercel
+// Esto asegura que los modelos estén disponibles para populate()
+const _dependencies = { User, Product };
 
 // Forzar que esta ruta sea dinámica y no se cachee
 export const dynamic = 'force-dynamic';

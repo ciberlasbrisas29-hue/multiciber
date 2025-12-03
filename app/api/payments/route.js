@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Payment from '@/lib/models/Payment';
+import User from '@/lib/models/User'; // Necesario para populate
+import Sale from '@/lib/models/Sale'; // Necesario para referencias
+import Expense from '@/lib/models/Expense'; // Necesario para referencias
 import { verifyAuth } from '@/lib/auth';
 import mongoose from 'mongoose';
+
+// Registrar modelos para evitar errores de cold start en Vercel
+const _dependencies = { User, Sale, Expense };
 
 // Forzar que esta ruta sea dinámica y no se cachee
 export const dynamic = 'force-dynamic';
@@ -125,14 +131,12 @@ export async function GET(req) {
     let expensesInfo = [];
 
     if (saleIds.length > 0) {
-      const Sale = (await import('@/lib/models/Sale')).default;
       salesInfo = await Sale.find({ _id: { $in: saleIds } })
         .select('_id saleNumber concept client type')
         .lean();
     }
 
     if (expenseIds.length > 0) {
-      const Expense = (await import('@/lib/models/Expense')).default;
       expensesInfo = await Expense.find({ _id: { $in: expenseIds } })
         .select('_id expenseNumber description vendor category')
         .lean();
