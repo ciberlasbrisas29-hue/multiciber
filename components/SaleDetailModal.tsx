@@ -236,13 +236,6 @@ const SaleDetailModal: React.FC<SaleDetailModalProps> = ({ isOpen, onClose, sale
 
     // Estado
     doc.text(`Estado: ${sale.status === 'paid' ? 'Pagado' : 'Pendiente'}`, margin, yPos);
-    yPos += 8;
-
-    // Ganancias (si aplica)
-    if (sale.type === 'product' && sale.items && sale.items.length > 0) {
-      const profit = calculateProfit();
-      doc.text(`Ganancias: $${profit.toFixed(2)}`, margin, yPos);
-    }
 
     // Pie de página
     yPos = doc.internal.pageSize.getHeight() - 20;
