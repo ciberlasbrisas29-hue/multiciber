@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Bell, LogOut } from 'lucide-react';
@@ -14,6 +14,18 @@ const Header = () => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const { lowStockData } = useLowStock(true); // Escuchar eventos de actualización
+
+  // Escuchar evento para cerrar notificaciones (desde BottomNavbar)
+  useEffect(() => {
+    const handleCloseNotifications = () => {
+      setShowNotifications(false);
+    };
+
+    window.addEventListener('close-notifications', handleCloseNotifications);
+    return () => {
+      window.removeEventListener('close-notifications', handleCloseNotifications);
+    };
+  }, []);
 
   const getGreeting = () => {
     // Obtener la hora de El Salvador (UTC-6)

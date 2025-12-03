@@ -2,8 +2,17 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Sale from '@/lib/models/Sale';
 import Payment from '@/lib/models/Payment';
+import User from '@/lib/models/User'; // Necesario para populate
+import Product from '@/lib/models/Product'; // Necesario para populate
 import { verifyAuth } from '@/lib/auth';
 import mongoose from 'mongoose';
+
+// Forzar que esta ruta sea dinámica y no se cachee
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+// Registrar modelos para evitar errores de cold start en Vercel
+const _dependencies = { User, Product };
 
 // @desc    Obtener una venta específica
 export async function GET(req, { params }) {

@@ -57,6 +57,9 @@ const BottomNavbar = () => {
             <button
               key={index}
               onClick={() => {
+                // Cerrar notificaciones si están abiertas
+                window.dispatchEvent(new CustomEvent('close-notifications'));
+                
                 if (isSpecial) {
                   // Abrir modal de selección de tipo de venta
                   setIsSaleModalOpen(true);

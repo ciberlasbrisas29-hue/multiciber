@@ -6,6 +6,13 @@ import Product from '@/lib/models/Product';
 import User from '@/lib/models/User';
 import jwt from 'jsonwebtoken';
 
+// Forzar que esta ruta sea dinámica y no se cachee
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+// Registrar modelos para evitar errores de cold start en Vercel
+const _dependencies = { User, Product };
+
 // Helper function to get user from token
 async function getUserFromToken(req) {
   try {
